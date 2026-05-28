@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BLS Korea Sourcing 종합 제어 포털</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0ede8; --surf: #fff; --bdr: #ddd9d2; --txt: #1a1a18; --muted: #7a7870;
+      --red: #c0392b; --redl: #fdf0ee; --ora: #b7770d; --oral: #fef9ec; --grn: #1e7e4a; --grnl: #edf7f1; --purple: #6b3fa0; --purplel: #f0eaf8;
+      --r: 10px; --ac: #1e3a5f; --acl: #e8eef6; --ach: #152b47;
+    }
+    body.theme-master { --ac: #1e3a5f; --acl: #e8eef6; --ach: #152b47; --bg: #f0ede8; }
+    body.theme-cs { --ac: #6b3fa0; --acl: #f0eaf8; --ach: #4e2d78; --bg: #f5f0f8; }
+    body.theme-md { --ac: #b5443a; --acl: #fbeae8; --ach: #8f3129; --bg: #faf2f0; }
+    body.theme-vendor { --ac: #1e7e4a; --acl: #edf7f1; --ach: #145c34; --bg: #ebf2ee; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; line-height: 1.6; min-height: 100vh; }
+    
+    .pg { display: none; }
+    .pg.on { display: block; }
+    .sec { display: none; }
+    .sec.on { display: block; }
+
+    /* 인증 인프라 UI */
+    .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .auth-box { background: var(--surf); border: 1px solid var(--bdr); border-radius: 16px; padding: 28px 24px; width: 100%; max-width: 380px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .logo { text-align: center; margin-bottom: 24px; }
+    .logo-brand { font-size: 11px; letter-spacing: .18em; color: var(--muted); text-transform: uppercase; }
+    .logo-title { font-size: 21px; font-weight: 700; margin-top: 4px; }
+    .logo-sub { font-size: 12px; background: var(--ac); color: #fff; display: inline-block; padding: 2px 12px; border-radius: 20px; margin-top: 8px; font-weight: 500; }
+    
+    .tabs { display: flex; background: var(--bg); border-radius: 8px; padding: 3px; margin-bottom: 20px; }
+    .tab { flex: 1; padding: 10px; border: none; background: none; border-radius: 6px; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; }
+    .tab.on { background: var(--surf); color: var(--txt); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+
+    .fg { margin-bottom: 14px; }
+    .fl { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 5px; }
+    input, select, textarea { width: 100%; padding: 12px; border: 1px solid var(--bdr); border-radius: var(--r); font-family: inherit; font-size: 14px; background: var(--surf); color: var(--txt); outline: none; -webkit-appearance: none; }
+    input:focus, select:focus, textarea:focus { border-color: var(--ac); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 16px; border-radius: var(--r); border: none; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .2s; white-space: nowrap; min-height: 44px; }
+    .btn-p { background: var(--ac); color: #fff; width: 100%; }
+    .btn-p:hover:not(:disabled) { background: var(--ach); }
+    .btn-s { background: var(--bg); color: var(--txt); border: 1px solid var(--bdr); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; width: auto; min-height: 36px; }
+    .btn-ok { background: var(--grn); color: #fff; }
+    .btn-danger { background: var(--red); color: #fff; }
+    
+    .alert { padding: 10px 14px; border-radius: var(--r); font-size: 13px; margin-bottom: 14px; display: none; }
+    .alert.on { display: block; }
+    .alert-e { background: var(--redl); color: var(--red); border: 1px solid #f0c0bb; }
+    .alert-s { background: var(--grnl); color: var(--grn); border: 1px solid #b8e4c8; }
+
+    .app-wrap { display: flex; min-height: 100vh; }
+    .sidebar { width: 240px; background: var(--ac); color: #fff; display: flex; flex-direction: column; position: fixed; inset: y 0; left: 0; height: 100vh; z-index: 210; transition: transform .3s ease; }
+    .sb-logo { padding: 22px 18px 18px; border-bottom: 1px solid rgba(255,255,255,.12); }
+    .sb-brand { font-size: 11px; letter-spacing: .15em; opacity: .6; text-transform: uppercase; }
+    .sb-name { font-size: 15px; font-weight: 700; margin-top: 2px; }
+    .sb-role { font-size: 11px; background: rgba(255,255,255,.15); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 5px; }
+    .sb-nav { flex: 1; padding: 14px 0; overflow-y: auto; }
+    .nav-btn { display: flex; align-items: center; gap: 10px; padding: 13px 18px; font-size: 14px; font-weight: 500; color: rgba(255,255,255,.7); cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: inherit; }
+    .nav-btn:hover, .nav-btn.on { background: rgba(255,255,255,.15); color: #fff; }
+    .sb-foot { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,.12); }
+    .sb-logout { background: rgba(255,255,255,.1); border: none; color: rgba(255,255,255,.7); font-family: inherit; font-size: 12px; padding: 10px 14px; border-radius: 6px; cursor: pointer; width: 100%; }
+
+    /* 상단 모바일 전용 헤더 바 */
+    .topbar { display: flex; background: var(--ac); color: #fff; padding: 0 16px; height: 56px; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 190; width: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .hamburger { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 8px; margin-left: -8px; }
+    
+    .content { margin-left: 240px; flex: 1; min-width: 0; width: 100%; }
+    .inner { max-width: 1140px; margin: 0 auto; padding: 24px 20px; }
+    .sec-hdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .sec-title { font-size: 20px; font-weight: 700; }
+    .sec-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    .sum-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 22px; }
+    .sum-card { background: var(--surf); border: 1px solid var(--bdr); border-radius: 12px; padding: 16px; }
+    .sum-lbl { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; }
+    .sum-val { font-size: 24px; font-weight: 700; margin-top: 4px; line-height: 1; }
+    .sum-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    .filter-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+    .fsel, .fsearch { padding: 10px 12px; border: 1px solid var(--bdr); border-radius: 8px; font-size: 13px; background: var(--surf); }
+    .fsearch { width: 100%; max-width: 240px; }
+
+    .tbl-wrap { overflow-x: auto; border: 1px solid var(--bdr); border-radius: 12px; background: var(--surf); margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 760px; }
+    thead th { background: var(--bg); padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--bdr); white-space: nowrap; }
+    tbody td { padding: 12px 14px; border-bottom: 1px solid var(--bdr); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--bg); }
+
+    .bdg { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .bdg-pend { background: #fef3e2; color: #b7770d; }
+    .bdg-pass, .bdg-ok { background: var(--grnl); color: var(--grn); }
+    .bdg-fail { background: var(--redl); color: var(--red); }
+    .bdg-cs { background: var(--purplel); color: var(--purple); }
+
+    .pend-card { background: var(--surf); border: 1px solid var(--bdr); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+    .pend-info { flex: 1; }
+    .pend-name { font-size: 15px; font-weight: 600; }
+    .pend-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .prog { width: 80px; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
+    .prog-f { height: 100%; background: var(--ac); border-radius: 3px; }
+
+    /* 캘린더 */
+    .cal-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .cal-month { font-size: 16px; font-weight: 700; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-dow { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); padding: 8px 0; background: var(--bg); border-radius: 4px; }
+    .cal-cell { background: var(--surf); border: 1px solid var(--bdr); border-radius: 8px; min-height: 95px; padding: 6px; font-size: 11px; }
+    .cal-date { font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+    .cal-event { background: var(--acl); color: var(--ac); border-radius: 4px; padding: 2px 5px; margin-bottom: 2px; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+    .cal-event.confirmed { background: var(--grnl); color: var(--grn); border-left: 3px solid var(--grn); }
+
+    .modal-section-title { font-size: 12px; font-weight: 700; color: var(--ac); margin: 16px 0 8px 0; border-bottom: 1px solid var(--bdr); padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300; display: none; align-items: flex-start; justify-content: center; padding: 12px; overflow-y: auto; }
+    .overlay.on { display: flex; }
+    .modal { background: var(--surf); border-radius: 16px; width: 100%; max-width: 580px; margin: auto; box-shadow: 0 4px 24px rgba(0,0,0,0.15); overflow: hidden; animation: pop .25s ease-out; }
+    @keyframes pop { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .mhdr { padding: 18px 20px 14px; border-bottom: 1px solid var(--bdr); display: flex; align-items: center; justify-content: space-between; }
+    .mhdr-t { font-size: 16px; font-weight: 700; line-height: 1.3; }
+    .mhdr-s { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .mclose { background: none; border: none; font-size: 28px; color: var(--muted); cursor: pointer; padding: 4px 8px; }
+    .mbody { padding: 16px 20px 24px; }
+    .mfooter { padding: 12px 20px; border-top: 1px solid var(--bdr); display: flex; gap: 10px; justify-content: flex-end; background: #faf9f6; }
+
+    /* 모바일 가림막 배너 */
+    .sb-shade { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: none; }
+    .sb-shade.on { display: block; }
+
+    /* 📱 초강력 모바일 기기 반응형 미디어 쿼리 (가로 스크롤 완전 방지 및 터치 최적화) */
+    @media (max-width: 992px) {
+      .content { margin-left: 0; }
+      .sidebar { transform: translateX(-100%); box-shadow: 4px 0 16px rgba(0,0,0,0.1); }
+      .sidebar.open { transform: translateX(0); }
+      .inner { padding: 16px 12px; }
+      .row2, .row3 { grid-template-columns: 1fr; gap: 4px; }
+      .fsearch { max-width: 100%; }
+
+      /* 🚨 대형 표를 모바일용 터치 카드형 뷰포트로 스위칭 */
+      .tbl-wrap { border: none; background: none; }
+      table, thead, tbody, tr, td { display: block; width: 100%; }
+      table { min-width: 100%; }
+      thead { display: none; }
+      tbody tr { background: var(--surf); border: 1px solid var(--bdr); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+      tbody td { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; align-items: center; text-align: right; font-size: 13px; }
+      tbody td:last-child { border-bottom: none; padding-top: 12px; justify-content: center; }
+      
+      /* 데이터 라벨 자동 주입 */
+      tbody td::before { content: attr(data-label); font-weight: 500; color: var(--muted); text-align: left; font-size: 12px; }
+      .btn-sm { width: 100%; padding: 10px; font-size: 13px; }
+      
+      /* 모바일용 미니 캘린더 축소 */
+      .cal-cell { min-height: 70px; padding: 4px; font-size: 10px; }
+      .cal-event { font-size: 9px; padding: 1px 3px; }
+      
+      .pend-card { text-align: left; }
+      .pend-card .btn { width: 100%; margin-top: 4px; }
+    }
+    .bls-footer { position: fixed; right: 12px; bottom: 10px; font-size: 11px; color: #999; z-index: 50; background: rgba(255,255,255,0.7); padding: 3px 8px; border-radius: 6px; }
+  </style>
+</head>
+<body class="theme-master">
+
+<div class="sb-shade" id="sb-shade"></div>
+
+<!-- [인증 레이어] -->
+<div class="pg on" id="pg-auth">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="logo">
+        <div class="logo-brand">BLS Sourcing Portal</div>
+        <div class="logo-title">종합 생산 현황 관리</div>
+        <div class="logo-sub">모바일 무선 연동 모듈</div>
+      </div>
+      <div class="tabs">
+        <button class="tab on" id="tab-login-btn">시스템 로그인</button>
+        <button class="tab" id="tab-reg-btn">협업사 신청</button>
+      </div>
+      
+      <div id="frm-login">
+        <div class="alert alert-e" id="login-alert"></div>
+        <div class="fg"><label class="fl">이메일 주소</label><input type="email" id="l-email" placeholder="name@company.com" autocomplete="username"></div>
+        <div class="fg"><label class="fl">접속 비밀번호</label><input type="password" id="l-pw" placeholder="••••••••" autocomplete="current-password"></div>
+        <button class="btn btn-p" id="login-btn">로그인 및 시스템 가동</button>
+      </div>
+
+      <div id="frm-reg" style="display:none">
+        <div class="alert alert-e" id="reg-alert"></div>
+        <div class="fg"><label class="fl">권한 그룹 지정 *</label>
+          <select id="r-role">
+            <option value="vendor">벤더사 (공장 가동 및 실시간 부분 출고 상신)</option>
+            <option value="md">MD (오더 기획 등록 담당)</option>
+            <option value="cs">CS팀 (생산관리 및 불량검수 담당)</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">회사명 / 부서명 *</label><input type="text" id="r-company" placeholder="예: 해외소싱1팀 / 벤더사명"></div>
+        <div class="row2">
+          <div class="fg"><label class="fl">담당자명 *</label><input type="text" id="r-name" placeholder="홍길동"></div>
+          <div class="fg"><label class="fl">연락처</label><input type="tel" id="r-phone" placeholder="010-0000-0000"></div>
+        </div>
+        <div class="fg"><label class="fl">이메일 주소 *</label><input type="email" id="r-email" placeholder="id@company.com"></div>
+        <div class="fg"><label class="fl">로그인 비밀번호 *</label><input type="password" id="r-pw" placeholder="••••••••"></div>
+        <button class="btn btn-p" id="reg-btn">마스터 승인 신청</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- [메인 작업 영역] -->
+<div class="pg" id="pg-app">
+  <div class="topbar">
+    <button class="hamburger" id="hamburger">☰</button>
+    <span style="font-size:15px;font-weight:700">BLS Sourcing Mobile</span>
+    <span></span>
+  </div>
+  
+  <div class="app-wrap">
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-logo">
+        <div class="sb-brand">BLS Engine v2</div>
+        <div class="sb-name" id="sb-name">사용자</div>
+        <div class="sb-role" id="sb-role">권한</div>
+      </div>
+      <nav class="sb-nav" id="sb-nav-container"></nav>
+      <div class="sb-foot"><button class="sb-logout" id="logout-btn">시스템 로그아웃</button></div>
+    </aside>
+
+    <div class="content">
+      <div class="inner">
+        
+        <!-- 섹션 [1] 마스터 회원가입 승인 패널 -->
+        <div class="sec" id="sec-master-approval">
+          <div class="sec-hdr"><div><div class="sec-title">회원 가입 승인 제어</div><div class="sec-sub">MD / CS / 벤더 계정 연동 승인 관리</div></div></div>
+          <div id="master-pending-container"></div>
+        </div>
+
+        <!-- 섹션 [2] 종합 오더 테이블 -->
+        <div class="sec on" id="sec-orders-dashboard">
+          <div class="sec-hdr"><div><div class="sec-title" id="dashboard-title">종합 오더 관리 현황판</div><div class="sec-sub">클라우드 원격 실시간 공유 모듈</div></div></div>
+          <div class="sum-grid">
+            <div class="sum-card"><div class="sum-lbl">총 발주 수량</div><div class="sum-val" id="dash-total-qty">0</div><div class="sum-sub">장</div></div>
+            <div class="sum-card"><div class="sum-lbl">종합 가동 코드</div><div class="sum-val" id="dash-total-count">0</div><div class="sum-sub">건</div></div>
+          </div>
+          <div class="filter-row">
+            <select class="fsel" id="f-season"><option value="">전체 시즌</option></select>
+            <input class="fsearch" type="text" id="f-search" placeholder="스타일번호/명 검색">
+          </div>
+          <div class="tbl-wrap" id="main-order-table-container"></div>
+        </div>
+
+        <!-- 섹션 [3] 신규 오더 계약 기입 배정 (MD/마스터) -->
+        <div class="sec" id="sec-order-reg">
+          <div class="sec-hdr"><div><div class="sec-title">신규 생산 오더 배정</div><div class="sec-sub">시즌별 스타일 생성 및 특정 벤더 파트너 할당</div></div></div>
+          <div class="card" style="background:var(--surf); padding:16px; border:1px solid var(--bdr); border-radius:12px;"><div class="card-body">
+            <div class="row2">
+              <div class="fg"><label class="fl">시즌 코드 선택 *</label><select id="reg-season"></select></div>
+              <div class="fg"><label class="fl">배정 대상 벤더사 *</label><select id="reg-vendor"></select></div>
+            </div>
+            <div class="row2">
+              <div class="fg"><label class="fl">스타일 번호 *</label><input type="text" id="reg-styleno" placeholder="10580-031-612-69"></div>
+              <div class="fg"><label class="fl">스타일명 *</label><input type="text" id="reg-stylename" placeholder="M) K. DYING WASHING T-SHIRTS"></div>
+            </div>
+            <div class="row3">
+              <div class="fg"><label class="fl">카테고리</label><input type="text" id="reg-cat" placeholder="T-SHIRTS"></div>
+              <div class="fg"><label class="fl">색상</label><input type="text" id="reg-color" placeholder="CHARCOAL"></div>
+              <div class="fg"><label class="fl">총 오더 계약 수량 *</label><input type="number" id="reg-qty" placeholder="2400"></div>
+            </div>
+            <div class="row2">
+              <div class="fg"><label class="fl">단가 ($)</label><input type="number" id="reg-price" placeholder="5.50" step="0.01"></div>
+              <div class="fg"><label class="fl">최종 선적 요구일 *</label><input type="date" id="reg-shipdate"></div>
+            </div>
+            <button class="btn btn-p" id="reg-submit" style="margin-top:10px;">클라우드 데이터베이스 저장 배정</button>
+          </div></div>
+          
+          <div class="card" id="master-season-manager-card" style="background:var(--surf); padding:16px; border:1px solid var(--bdr); border-radius:12px; margin-top:16px; display:none;">
+            <div class="card-hdr" style="font-weight:700; margin-bottom:8px;">시즌 코드 인프라 매니저</div>
+            <div class="card-body" style="display:flex; gap:10px;">
+              <input type="text" id="new-season-input" placeholder="2026FW" style="max-width:180px;">
+              <button class="btn btn-s btn-sm" onclick="addNewSeasonCore()">코드 인서트</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 섹션 [4] 부분 출고 결재 및 실시간 캘린더 리포트 (마스터) -->
+        <div class="sec" id="sec-master-shipping-booking">
+          <div class="sec-hdr"><div><div class="sec-title">벤더 상신 분할 선적 승인 관리 컨트롤러</div><div class="sec-sub">회차별 출고 승인 처리 및 선적 스케줄 누적 합산</div></div></div>
+          <div class="tbl-wrap" id="master-booking-requests-table"></div>
+          <div class="card" style="background:var(--surf); padding:14px; border:1px solid var(--bdr); border-radius:12px; margin-top:16px;">
+            <div class="card-hdr" style="font-weight:700; margin-bottom:12px;">🚢 글로벌 분할/부분 출고 종합 실시간 선적 캘린더</div>
+            <div class="card-body" id="live-shipping-calendar-container" style="overflow-x:auto;"></div>
+          </div>
+        </div>
+
+        <!-- 섹션 [5] 공장 및 스타일별 종합 가동 리포트 -->
+        <div class="sec" id="sec-factory-monitoring">
+          <div class="sec-hdr"><div><div class="sec-title">공장별 스타일 가동 진척 리포트</div><div class="sec-sub">실시간 공장 정보와 오더 대비 출고 누적 스케줄링 동기화</div></div></div>
+          <div class="tbl-wrap" id="factory-report-table-container"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 🏭 [벤더 전용 팝업] 생산 현황 및 분할 선적 부킹 요청 입력 모달 -->
+<div class="overlay" id="vendor-input-modal">
+  <div class="modal">
+    <div class="mhdr">
+      <div>
+        <div class="mhdr-t" id="v-m-style-name" style="color:#1e7e4a">M) K. DYING WASHING T-SHIRTS</div>
+        <div class="mhdr-s" id="v-m-style-meta">10580-031-612-69 · 총 오더 2,400장</div>
+      </div>
+      <button class="mclose" onclick="closeVendorModal()">×</button>
+    </div>
+    <div class="mbody" style="padding-top: 4px;">
+      
+      <div class="modal-section-title">🏭 실시간 가동 공장 / 라인 인프라 입력</div>
+      <div class="row2">
+        <div class="fg"><label class="fl">생산 공장명</label><input type="text" id="v-m-factory" placeholder="예: 닝보 제1공장"></div>
+        <div class="fg"><label class="fl">가동 라인 넘버</label><input type="text" id="v-m-line" placeholder="1"></div>
+      </div>
+
+      <div class="modal-section-title">📦 생산 진척 현황</div>
+      <div class="row2">
+        <div class="fg"><label class="fl">누적 생산 완료 수량 (장)</label><input type="number" id="v-m-produced" placeholder="1500"></div>
+        <div class="fg"><label class="fl">생산중 발생 불량 수량 (장)</label><input type="number" id="v-m-fail" placeholder="0"></div>
+      </div>
+
+      <div class="modal-section-title">📅 공장 납기 스케줄 일정</div>
+      <div class="row2">
+        <div class="fg"><label class="fl">생산완료 예정일</label><input type="date" id="v-m-predate"></div>
+        <div class="fg"><label class="fl">실제 생산완료일</label><input type="date" id="v-m-realdate"></div>
+      </div>
+
+      <div class="modal-section-title" style="color:#c0392b; border-bottom-color:#f0c0bb;">🚢 이번 회차 분할 출고 / 선적 부킹 상신</div>
+      <div class="row2">
+        <div class="fg"><label class="fl" style="font-weight:700; color:#c0392b;">이번 회차 출고 수량 *</label><input type="number" id="v-m-bookqty" placeholder="예: 500"></div>
+        <div class="fg"><label class="fl">이번 선적 예정일 (ETD) *</label><input type="date" id="v-m-booketd"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label class="fl">인보이스 번호</label><input type="text" id="v-m-invoice" placeholder="INV-2026-01"></div>
+        <div class="fg"><label class="fl">트래킹/컨테이너 번호</label><input type="text" id="v-m-tracking" placeholder="TRK-9400..."></div>
+      </div>
+      <div class="fg"><label class="fl">상태 비고 / 종합 특이사항</label><input type="text" id="v-m-notes" placeholder="일부 생산 완료분 우선 선적"></div>
+
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s" onclick="closeVendorModal()">취소</button>
+      <button class="btn btn-p" id="btn-vendor-submit" style="background:#1e7e4a; width:auto;">출고 상신 실행</button>
+    </div>
+  </div>
+</div>
+
+<!-- CS 최종 불량 검수 모달 -->
+<div class="overlay" id="cs-defect-modal">
+  <div class="modal">
+    <div class="mhdr"><div class="mhdr-t">CS 실시간 검수 데이터 마감 판정</div><button class="mclose" onclick="closeCsModal()">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label class="fl">최종 확인 불량 수량 (장) *</label><input type="number" id="m-cs-qty" placeholder="0"></div>
+      <div class="fg"><label class="fl">검수 최종 판단 기술서</label><textarea id="m-cs-note" placeholder="마감 봉제선 이탈 판정..."></textarea></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s" onclick="closeCsModal()">닫기</button>
+      <button class="btn btn-p" id="btn-cs-save" style="width:auto">DB 커밋 저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://boyixtyrtzknaqjmxfjj.supabase.co"; 
+const SUPABASE_KEY = "sb_publishable_b19kpVsItvdlFneFpzYb2Q_Z_Xc3ccr"; 
+
+let me = null;
+let globalOrders = [];
+let globalUsers = [];
+let globalSeasons = [];
+let globalRequests = [];
+let activeOrderId = null;
+
+async function querySupabase(path, method = 'GET', body = null) {
+  const headers = {
+    "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json", "Prefer": "return=representation"
+  };
+  const options = { method, headers };
+  if (body) options.body = JSON.stringify(body);
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, options);
+  if (!r.ok) { const e = await r.json(); throw new Error(e.message || "네트워크 통신 규격 에러"); }
+  return await r.json();
+}
+
+window.addEventListener('load', () => {
+  bindAuthFlow();
+  const saved = localStorage.getItem('bls_session_user');
+  if (saved) { me = JSON.parse(saved); launchWorkspace(); }
+});
+
+function bindAuthFlow() {
+  document.getElementById('tab-login-btn').addEventListener('click', () => {
+    document.getElementById('tab-login-btn').classList.add('on'); document.getElementById('tab-reg-btn').classList.remove('on');
+    document.getElementById('frm-login').style.display = 'block'; document.getElementById('frm-reg').style.display = 'none';
+  });
+  document.getElementById('tab-reg-btn').addEventListener('click', () => {
+    document.getElementById('tab-reg-btn').classList.add('on'); document.getElementById('tab-login-btn').classList.remove('on');
+    document.getElementById('frm-login').style.display = 'none'; document.getElementById('frm-reg').style.display = 'block';
+  });
+
+  document.getElementById('login-btn').addEventListener('click', async () => {
+    const email = document.getElementById('l-email').value.trim();
+    const pw = document.getElementById('l-pw').value;
+    try {
+      const res = await querySupabase(`users?email=eq.${email}&password_hash=eq.${pw}&status=eq.active`);
+      if (res.length === 0) return showAlert('login-alert', "계정 승인을 처리 대기 중이거나 정보가 일치하지 않습니다.");
+      me = res[0]; localStorage.setItem('bls_session_user', JSON.stringify(me)); launchWorkspace();
+    } catch (e) { showAlert('login-alert', e.message); }
+  });
+
+  document.getElementById('reg-btn').addEventListener('click', async () => {
+    const body = {
+      email: document.getElementById('r-email').value.trim(), password_hash: document.getElementById('r-pw').value,
+      company_name: document.getElementById('r-company').value.trim(), contact_name: document.getElementById('r-name').value.trim(),
+      contact_phone: document.getElementById('r-phone').value.trim(), role: document.getElementById('r-role').value, status: 'pending'
+    };
+    try {
+      await querySupabase('users', 'POST', body);
+      showAlert('reg-alert', "✓ 원격 가입 신호가 허브에 도달했습니다. 마스터 승인을 대기하세요.", 's');
+    } catch (e) { showAlert('reg-alert', e.message); }
+  });
+}
+
+function launchWorkspace() {
+  document.getElementById('pg-auth').classList.remove('on');
+  document.getElementById('pg-app').classList.add('on');
+  document.body.className = `theme-${me.role}`;
+  document.getElementById('sb-name').textContent = me.company_name;
+  document.getElementById('sb-role').textContent = me.role.toUpperCase() + " 모바일 그룹";
+
+  const container = document.getElementById('sb-nav-container');
+  let menu = `<button class="nav-btn on" onclick="switchSection('orders-dashboard')">📊 종합 오더 현황판</button>`;
+  
+  if (me.role === 'master') {
+    menu += `
+      <button class="nav-btn" onclick="switchSection('master-approval')">⏳ 가입 승인 관리</button>
+      <button class="nav-btn" onclick="switchSection('order-reg')">➕ 오더 배정 입력</button>
+      <button class="nav-btn" onclick="switchSection('master-shipping-booking')">🚢 부분 출고 및 캘린더</button>
+      <button class="nav-btn" onclick="switchSection('factory-monitoring')">🏭 공장별 생산 모니터링</button>
+    `;
+    document.getElementById('master-season-manager-card').style.display = 'block';
+  } else if (me.role === 'md') {
+    menu += `<button class="nav-btn" onclick="switchSection('order-reg')">➕ 오더 등록</button>`;
+  } else if (me.role === 'cs') {
+    menu += `<button class="nav-btn" onclick="switchSection('factory-monitoring')">🏭 생산 현황 분석</button>`;
+  } else if (me.role === 'vendor') {
+    document.getElementById('dashboard-title').textContent = "🏭 내 할당 스타일 및 공장 생산 관리";
+  }
+  container.innerHTML = menu;
+
+  // 📱 모바일 햄버거 메뉴 및 터치 셰이드 바인딩 안정화
+  const toggleSidebar = () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sb-shade').classList.toggle('on');
+  };
+  document.getElementById('hamburger').addEventListener('click', toggleSidebar);
+  document.getElementById('sb-shade').addEventListener('click', toggleSidebar);
+
+  document.getElementById('logout-btn').addEventListener('click', () => { localStorage.clear(); location.reload(); });
+  document.getElementById('reg-submit').addEventListener('click', insertNewOrderCore);
+  document.getElementById('btn-vendor-submit').addEventListener('click', submitVendorProductionCore);
+  document.getElementById('btn-cs-save').addEventListener('click', submitCsDefectCore);
+
+  syncCoreDataInfrastructure();
+}
+
+function switchSection(id) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
+  document.getElementById(`sec-${id}`).classList.add('on');
+  
+  // 모바일 메뉴 클릭 시 사이드바 자동 닫힘 안전장치
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sb-shade').classList.remove('on');
+
+  setTimeout(() => {
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      if(btn.getAttribute('onclick').includes(id)) btn.classList.add('on');
+      else btn.classList.remove('on');
+    });
+  }, 50);
+}
+
+async function syncCoreDataInfrastructure() {
+  try {
+    globalSeasons = await querySupabase('seasons');
+    globalUsers = await querySupabase('users');
+    
+    const sSel = document.getElementById('f-season');
+    const rSeason = document.getElementById('reg-season');
+    sSel.innerHTML = '<option value="">전체 시즌</option>';
+    rSeason.innerHTML = '';
+    globalSeasons.forEach(s => {
+      sSel.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+      rSeason.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+    });
+
+    const rVendor = document.getElementById('reg-vendor');
+    rVendor.innerHTML = '';
+    globalUsers.filter(u => u.role === 'vendor').forEach(v => {
+      rVendor.innerHTML += `<option value="${v.id}">${v.company_name}</option>`;
+    });
+
+    refreshOrderDataFeed();
+    if (me.role === 'master') { loadMasterPendingUsers(); loadMasterBookingRequests(); }
+  } catch(e) { console.error(e); }
+}
+
+async function loadMasterPendingUsers() {
+  try {
+    const pUsers = await querySupabase('users?status=eq.pending');
+    const container = document.getElementById('master-pending-container');
+    if(pUsers.length === 0) { container.innerHTML = '<div class="empty">현재 보류 중인 신규 협업사 신청 건이 없습니다.</div>'; return; }
+    container.innerHTML = pUsers.map(u => `
+      <div class="pend-card">
+        <div class="pend-info">
+          <div class="pend-name">${u.company_name} <span class="bdg bdg-cs">${u.role.toUpperCase()}</span></div>
+          <div class="pend-meta">담당: ${u.contact_name}<br>통신 채널: ${u.email}</div>
+        </div>
+        <div>
+          <button class="btn btn-ok btn-sm" onclick="patchUserStatusCore('${u.id}', 'active')">✓ 협업 가동 승인</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { console.error(e); }
+}
+async function patchUserStatusCore(id, s) {
+  try {
+    await querySupabase(`users?id=eq.${id}`, 'PATCH', { status: s });
+    alert('원격 가동 제어 승인이 해제되었습니다.'); syncCoreDataInfrastructure();
+  } catch(e) { alert(e.message); }
+}
+
+async function insertNewOrderCore() {
+  const body = {
+    season_id: document.getElementById('reg-season').value, vendor_id: document.getElementById('reg-vendor').value,
+    style_no: document.getElementById('reg-styleno').value.trim(), style_name: document.getElementById('reg-stylename').value.trim(),
+    category: document.getElementById('reg-cat').value.trim(), color: document.getElementById('reg-color').value.trim(),
+    order_qty: parseInt(document.getElementById('reg-qty').value) || 0, unit_price: parseFloat(document.getElementById('reg-price').value) || 0,
+    planned_ship_date: document.getElementById('reg-shipdate').value, shipped_qty: 0
+  };
+  try {
+    await querySupabase('orders', 'POST', body);
+    alert('✓ 신규 오더가 시스템 허브에 분출 및 자동 배정 완료되었습니다.');
+    switchSection('orders-dashboard'); syncCoreDataInfrastructure();
+  } catch(e) { alert(e.message); }
+}
+async function addNewSeasonCore() {
+  const name = document.getElementById('new-season-input').value.trim();
+  if(!name) return;
+  try {
+    await querySupabase('seasons', 'POST', { name, is_active: true });
+    document.getElementById('new-season-input').value = ''; alert('시즌 신규 식별 코드가 계성되었습니다.'); syncCoreDataInfrastructure();
+  } catch(e) { alert(e.message); }
+}
+
+function triggerVendorInputModal(id) {
+  activeOrderId = id;
+  const o = globalOrders.find(x => x.id === id);
+  document.getElementById('v-m-style-name').textContent = o.style_name;
+  document.getElementById('v-m-style-meta').textContent = `${o.style_no} · 계약 오더: ${Number(o.order_qty).toLocaleString()}장 (누적 출고: ${Number(o.shipped_qty || 0).toLocaleString()}장)`;
+  
+  document.getElementById('v-m-factory').value = o.factory_name || '';
+  document.getElementById('v-m-line').value = o.production_line || '';
+  document.getElementById('v-m-produced').value = o.produced_qty || '';
+  document.getElementById('v-m-fail').value = o.vendor_fail_qty || '0';
+  document.getElementById('v-m-notes').value = o.status_notes || '';
+  
+  const remainingQty = o.order_qty - (o.shipped_qty || 0);
+  document.getElementById('v-m-bookqty').value = remainingQty > 0 ? remainingQty : 0;
+  document.getElementById('v-m-booketd').value = o.planned_ship_date;
+  document.getElementById('v-m-invoice').value = '';
+  document.getElementById('v-m-tracking').value = '';
+  
+  document.getElementById('vendor-input-modal').classList.add('on');
+}
+function closeVendorModal() { document.getElementById('vendor-input-modal').classList.remove('on'); }
+
+async function submitVendorProductionCore() {
+  const bQty = parseInt(document.getElementById('v-m-bookqty').value);
+  const bEtd = document.getElementById('v-m-booketd').value;
+  if(!bQty || !bEtd) return alert('이번 회차 분할 출고 수량과 선적 ETD 날짜는 필수 지정 사양입니다.');
+
+  const orderBody = {
+    factory_name: document.getElementById('v-m-factory').value.trim(),
+    production_line: document.getElementById('v-m-line').value.trim(),
+    produced_qty: parseInt(document.getElementById('v-m-produced').value) || 0,
+    vendor_fail_qty: parseInt(document.getElementById('v-m-fail').value) || 0,
+    status_notes: document.getElementById('v-m-notes').value.trim()
+  };
+
+  const reqBody = {
+    order_id: activeOrderId, vendor_id: me.id, booking_qty: bQty, booking_etd: bEtd,
+    invoice_no: document.getElementById('v-m-invoice').value.trim(), tracking_no: document.getElementById('v-m-tracking').value.trim(),
+    status: 'requested'
+  };
+
+  try {
+    await querySupabase(`orders?id=eq.${activeOrderId}`, 'PATCH', orderBody);
+    await querySupabase('shipping_requests', 'POST', reqBody);
+    alert('✓ 이번 회차 부분 출고 요청서가 마스터 서버로 무선 상신 처리되었습니다.');
+    closeVendorModal(); refreshOrderDataFeed();
+    if(me.role === 'master') loadMasterBookingRequests();
+  } catch(e) { alert(e.message); }
+}
+
+async function loadMasterBookingRequests() {
+  try {
+    globalRequests = await querySupabase('shipping_requests?select=*,orders(style_no,style_name,shipped_qty,order_qty),users(company_name)');
+    const container = document.getElementById('master-booking-requests-table');
+    if(globalRequests.length === 0) { container.innerHTML = '<div class="empty">현재 대기 상태인 분할 선적 승인 요청이 없습니다.</div>'; return; }
+    
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>상신 벤더</th><th>스타일 정보</th><th>총 오더</th><th>이번 분할 출고 요청</th><th>상신 ETD</th><th>인보이스/트래킹</th><th>결재 제어 핸들러</th></tr></thead>
+        <tbody>
+          ${globalRequests.map(r => `
+            <tr>
+              <td data-label="상신 벤더"><strong>${r.users?.company_name || '-'}</strong></td>
+              <td data-label="스타일 정보">${r.orders?.style_name}<br><span style="font-size:11px; color:var(--muted);">${r.orders?.style_no}</span></td>
+              <td data-label="총 오더">${Number(r.orders?.order_qty).toLocaleString()}장<br><span style="font-size:11px; color:var(--grn);">기출고: ${Number(r.orders?.shipped_qty || 0).toLocaleString()}장</span></td>
+              <td data-label="이번 분할 출고 요청" style="color:#c0392b; font-weight:700;">${Number(r.booking_qty).toLocaleString()}장 요청</td>
+              <td data-label="상신 ETD">${r.booking_etd}</td>
+              <td data-label="인보이스/트래킹"><span style="font-family:'DM Mono'; font-size:11px;">INV: ${r.invoice_no||'-'}<br>TRK: ${r.tracking_no||'-'}</span></td>
+              <td data-label="결재 제어 핸들러">
+                ${r.status === 'requested' ? `
+                  <button class="btn btn-ok btn-sm" onclick="approvePartialShippingBooking('${r.id}', '${r.order_id}', '${r.booking_etd}', ${r.booking_qty}, ${r.orders?.shipped_qty || 0})">분할 출고 승인 및 누적합산</button>
+                ` : `<span class="bdg bdg-ok">출고 승인완료 (${r.confirmed_etd})</span>`}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+    renderIntegratedShippingCalendar();
+  } catch(e) { console.error(e); }
+}
+
+async function approvePartialShippingBooking(reqId, orderId, etd, currentRequestQty, existingShippedQty) {
+  const newCumulativeShippedQty = existingShippedQty + currentRequestQty;
+  try {
+    await querySupabase(`shipping_requests?id=eq.${reqId}`, 'PATCH', { status: 'confirmed', confirmed_etd: etd });
+    await querySupabase(`orders?id=eq.${orderId}`, 'PATCH', { etd_date: etd, shipped_qty: newCumulativeShippedQty });
+    alert(`✓ 분할 출고가 정상 승인 조치되었습니다. (누적: ${newCumulativeShippedQty}장)`);
+    loadMasterBookingRequests(); refreshOrderDataFeed();
+  } catch(e) { alert(e.message); }
+}
+
+function renderIntegratedShippingCalendar() {
+  const now = new Date(); const year = now.getFullYear(); const month = now.getMonth();
+  const first = new Date(year, month, 1); const last = new Date(year, month + 1, 0);
+  const startDow = first.getDay(); const days = last.getDate();
+  const events = {};
+  
+  globalRequests.filter(r => r.status === 'confirmed').forEach(r => {
+    if(!events[r.confirmed_etd]) events[r.confirmed_etd] = [];
+    events[r.confirmed_etd].push(`🚢[${r.users?.company_name}] ${Number(r.booking_qty).toLocaleString()}장 (${r.orders?.style_no})`);
+  });
+  
+  let html = `<div class="cal-hdr"><div class="cal-month">${year}년 ${month + 1}월 글로벌 분할 선적 스케줄</div></div><div class="cal-grid">`;
+  ['일','월','화','수','목','금','토'].forEach(d => html += `<div class="cal-dow">${d}</div>`);
+  for(let i=0; i<startDow; i++) html += '<div class="cal-cell"></div>';
+  for(let d=1; d<=days; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const evs = events[dateStr] || [];
+    html += `<div class="cal-cell"><div class="cal-date">${d}</div>`;
+    evs.forEach(e => html += `<div class="cal-event confirmed" title="${e}">${e}</div>`);
+    html += '</div>';
+  }
+  html += '</div>';
+  document.getElementById('live-shipping-calendar-container').innerHTML = html;
+}
+
+function renderFactoryMonitoringReport() {
+  const container = document.getElementById('factory-report-table-container');
+  container.innerHTML = `
+    <table>
+      <thead><tr><th>담당 벤더</th><th>스타일 배정</th><th>실시간 가동 공장 정보</th><th>생산 완료량</th><th>오더 대비 출고 누적량</th><th>출고 진행률</th></tr></thead>
+      <tbody>
+        ${globalOrders.map(o => {
+          const shipPct = o.order_qty ? Math.round((o.shipped_qty || 0) / o.order_qty * 100) : 0;
+          const vName = globalUsers.find(u => u.id === o.vendor_id)?.company_name || "미배정";
+          return `<tr>
+            <td data-label="담당 벤더"><strong>${vName}</strong></td>
+            <td data-label="스타일 배정">${o.style_name}<br><span style="font-size:11px; color:var(--muted);">${o.style_no}</span></td>
+            <td data-label="실시간 가동 공장 정보">${o.factory_name ? `🏭 ${o.factory_name} [${o.production_line || '1'}라인]` : '<span style="color:#aaa">인프라 대기 중</span>'}</td>
+            <td data-label="생산 완료량">${Number(o.produced_qty || 0).toLocaleString()}장 생산</td>
+            <td data-label="오더 대비 출고 누적량"><strong>${Number(o.shipped_qty || 0).toLocaleString()}장 선적</strong> / ${Number(o.order_qty).toLocaleString()}장</td>
+            <td data-label="출고 진행률">
+              <div style="display:flex; align-items:center; gap:5px">
+                <div class="prog"><div class="prog-f" style="width:${shipPct}%; background:${shipPct >= 100 ? 'var(--grn)' : '#b7770d'};"></div></div><strong>${shipPct}%</strong>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function refreshOrderDataFeed() {
+  try {
+    let endpoint = 'orders?select=*';
+    if(me.role === 'vendor') endpoint = `orders?vendor_id=eq.${me.id}`;
+    globalOrders = await querySupabase(endpoint);
+    
+    let tQty = 0; globalOrders.forEach(o => tQty += o.order_qty);
+    document.getElementById('dash-total-qty').textContent = tQty.toLocaleString() + " 장";
+    document.getElementById('dash-total-count').textContent = globalOrders.length + " 건";
+
+    const container = document.getElementById('main-order-table-container');
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>스타일번호</th><th>스타일명</th><th>배정 벤더</th><th>계약 오더</th><th>생산 완료</th><th>누적 출고/선적</th><th>CS 검수</th><th>시스템 제어</th></tr></thead>
+        <tbody>
+          ${globalOrders.map(o => {
+            const badQty = o.cs_defect_qty != null ? o.cs_defect_qty + "장" : "미입력";
+            const statusBdg = o.cs_defect_qty == null ? '<span class="bdg bdg-pend">검수대기</span>' : o.cs_defect_qty > 0 ? '<span class="bdg bdg-fail">불합격</span>' : '<span class="bdg bdg-ok">합격</span>';
+            const vName = globalUsers.find(u => u.id === o.vendor_id)?.company_name || "-";
+            return `<tr>
+              <td data-label="스타일번호" style="font-family:'DM Mono'; font-weight:700; color:var(--ac);">${o.style_no}</td>
+              <td data-label="스타일명"><strong>${o.style_name}</strong></td>
+              <td data-label="배정 벤더">${vName}</td>
+              <td data-label="계약 오더">${Number(o.order_qty).toLocaleString()}장</td>
+              <td data-label="생산 완료">${Number(o.produced_qty || 0).toLocaleString()}장</td>
+              <td data-label="누적 출고/선적" style="font-weight:700; color:#1e7e4a;">${Number(o.shipped_qty || 0).toLocaleString()}장 출고</td>
+              <td data-label="CS 검수">${statusBdg} (${badQty})</td>
+              <td data-label="시스템 제어">
+                ${me.role === 'vendor' ? `
+                  <button class="btn btn-sm" style="background:#1e7e4a; color:#fff;" onclick="triggerVendorInputModal('${o.id}')">분할 출고/생산 입력</button>
+                ` : me.role === 'cs' || me.role === 'master' ? `
+                  <button class="btn btn-s btn-sm" onclick="triggerCsModal('${o.id}')">최종 검수</button>
+                ` : '<span style="color:#aaa; font-size:12px;">조회 전용 권한</span>'}
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+    renderFactoryMonitoringReport();
+  } catch(e) { console.error(e); }
+}
+
+function triggerCsModal(id) { activeOrderId = id; document.getElementById('cs-defect-modal').classList.add('on'); }
+function closeCsModal() { document.getElementById('cs-defect-modal').classList.remove('on'); }
+
+async function submitCsDefectCore() {
+  const qty = parseInt(document.getElementById('m-cs-qty').value);
+  if(isNaN(qty)) return alert('수량을 정확히 입력하세요.');
+  try {
+    await querySupabase(`orders?id=eq.${activeOrderId}`, 'PATCH', { cs_defect_qty: qty, cs_defect_note: document.getElementById('m-cs-note').value.trim(), inspection_result: qty > 0 ? 'fail' : 'pass' });
+    closeCsModal(); alert('CS 마감 데이터 검수가 시스템에 저장되었습니다.'); refreshOrderDataFeed();
+  } catch(e) { alert(e.message); }
+}
+
+function showAlert(id, msg, type = 'e') { const el = document.getElementById(id); el.textContent = msg; el.className = `alert on alert-${type}`; }
+</script>
+<div class="bls-footer">Copyright by BLS Korea Sourcing</div>
+</body>
+</html>
