@@ -615,7 +615,8 @@ async function launchApp() {
   showPg('pg-app');
   document.body.className = 'theme-' + me.role;
   document.getElementById('sb-name').textContent = me.company_name;
-  document.getElementById('sb-role').textContent = {master:'마스터',vendor:'벤더',cs:'CS팀',md:'MD'}[me.role] || me.role;
+  const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD') };
+  document.getElementById('sb-role').textContent = roleMap[me.role] || me.role;
   buildSidebar();
   bindAppEvents();
   await loadAll();
@@ -776,21 +777,21 @@ function setupFilters() {
   // 시즌 셀렉트들
   const dashSel = document.getElementById('dash-season');
   const regSel = document.getElementById('reg-season');
-  dashSel.innerHTML = '<option value="">전체 시즌</option>';
+  dashSel.innerHTML = `<option value="">${L('전체 시즌','All Seasons')}</option>`;
   if(regSel) regSel.innerHTML = '';
   allSeasons.forEach(s=>{
     dashSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`;
     if (regSel) regSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`;
   });
-  document.getElementById('season-list').textContent = '등록된 시즌: ' + allSeasons.map(s=>s.name).join(', ');
+  document.getElementById('season-list').textContent = L('등록된 시즌: ','Registered seasons: ') + allSeasons.map(s=>s.name).join(', ');
 
   // 벤더 셀렉트들
   const vendors = allUsers.filter(u=>u.role==='vendor' && u.status==='active');
   const dashV = document.getElementById('ord-vendor');
   const regV = document.getElementById('reg-vendor');
   const facV = document.getElementById('fac-vendor-filter');
-  dashV.innerHTML = '<option value="">전체 벤더</option>';
-  facV.innerHTML = '<option value="">전체 벤더</option>';
+  dashV.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>`;
+  facV.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>`;
   if(regV) regV.innerHTML = '';
   vendors.forEach(v=>{
     dashV.innerHTML += `<option value="${v.id}">${v.company_name}</option>`;
@@ -811,11 +812,22 @@ function getVisibleOrders() {
   if (q) list = list.filter(o=>(o.style_no||'').toLowerCase().includes(q)||(o.style_name||'').toLowerCase().includes(q));
   return list;
 }
+// 다국어 헬퍼 — 어디서든 호출 가능
+function L(ko, en) {
+  const lang = localStorage.getItem('bls_lang') || 'ko';
+  return lang === 'en' ? en : ko;
+}
+
 function renderDashboard() {
   const list = getVisibleOrders();
   // 타이틀
-  const titles = {master:'전체 오더 현황',vendor:'내 오더 현황',cs:'전체 오더 현황',md:'전체 오더 현황'};
-  document.getElementById('dash-title').textContent = titles[me.role] || '대시보드';
+  const titles = {
+    master: L('전체 오더 현황','Overall Order Status'),
+    vendor: L('내 오더 현황','My Orders'),
+    cs: L('전체 오더 현황','Overall Order Status'),
+    md: L('전체 오더 현황','Overall Order Status')
+  };
+  document.getElementById('dash-title').textContent = titles[me.role] || L('대시보드','Dashboard');
   // 요약
   let tOrd=0,tPrd=0,tShp=0,delayed=0,csConf=0;
   const t = today();
@@ -826,21 +838,33 @@ function renderDashboard() {
   }
   const ppct = tOrd?Math.round(tPrd/tOrd*100):0;
   const spct = tOrd?Math.round(tShp/tOrd*100):0;
+  const U = { cases: L('건','cases'), pcs: L('장','pcs') };
   document.getElementById('sum-grid').innerHTML = `
-    <div class="sum-card"><div class="sum-lbl">전체 스타일</div><div class="sum-val">${list.length}</div><div class="sum-sub">건</div></div>
-    <div class="sum-card"><div class="sum-lbl">총 오더</div><div class="sum-val">${tOrd.toLocaleString()}</div><div class="sum-sub">장</div></div>
-    <div class="sum-card"><div class="sum-lbl">생산 완료</div><div class="sum-val">${ppct}%</div><div class="sum-sub">${tPrd.toLocaleString()}장</div></div>
-    <div class="sum-card"><div class="sum-lbl">선적 완료</div><div class="sum-val">${spct}%</div><div class="sum-sub">${tShp.toLocaleString()}장</div></div>
-    <div class="sum-card ${delayed>0?'danger':''}"><div class="sum-lbl">납기 지연</div><div class="sum-val" style="color:${delayed>0?'var(--red)':''}">${delayed}</div><div class="sum-sub">건</div></div>
-    <div class="sum-card"><div class="sum-lbl">CS 확정</div><div class="sum-val" style="color:var(--purple)">${csConf}</div><div class="sum-sub">건</div></div>`;
+    <div class="sum-card"><div class="sum-lbl">${L('전체 스타일','Total Styles')}</div><div class="sum-val">${list.length}</div><div class="sum-sub">${U.cases}</div></div>
+    <div class="sum-card"><div class="sum-lbl">${L('총 오더','Total Orders')}</div><div class="sum-val">${tOrd.toLocaleString()}</div><div class="sum-sub">${U.pcs}</div></div>
+    <div class="sum-card"><div class="sum-lbl">${L('생산 완료','Produced')}</div><div class="sum-val">${ppct}%</div><div class="sum-sub">${tPrd.toLocaleString()}${U.pcs}</div></div>
+    <div class="sum-card"><div class="sum-lbl">${L('선적 완료','Shipped')}</div><div class="sum-val">${spct}%</div><div class="sum-sub">${tShp.toLocaleString()}${U.pcs}</div></div>
+    <div class="sum-card ${delayed>0?'danger':''}"><div class="sum-lbl">${L('납기 지연','Delayed')}</div><div class="sum-val" style="color:${delayed>0?'var(--red)':''}">${delayed}</div><div class="sum-sub">${U.cases}</div></div>
+    <div class="sum-card"><div class="sum-lbl">${L('CS 확정','CS Confirmed')}</div><div class="sum-val" style="color:var(--purple)">${csConf}</div><div class="sum-sub">${U.cases}</div></div>`;
 
   // 오더 테이블
-  if (!list.length) { document.getElementById('ord-tbl').innerHTML = '<div class="empty"><div class="empty-t">오더가 없습니다</div></div>'; return; }
-  const imap = {pending:'bdg-pend',pass:'bdg-pass',fail:'bdg-fail'};
-  const ilbl = {pending:'검수전',pass:'합격',fail:'불합격'};
+  if (!list.length) { document.getElementById('ord-tbl').innerHTML = `<div class="empty"><div class="empty-t">${L('오더가 없습니다','No orders')}</div></div>`; return; }
   document.getElementById('ord-tbl').innerHTML = `
     <div class="tbl-wrap"><table>
-    <thead><tr><th>벤더</th><th>스타일번호</th><th>스타일명</th><th>공장/라인</th><th>오더</th><th>단가</th><th>생산</th><th>선적</th><th>불량률</th><th>선적예정</th><th>상태</th><th></th></tr></thead>
+    <thead><tr>
+      <th>${L('벤더','Vendor')}</th>
+      <th>${L('스타일번호','Style No.')}</th>
+      <th>${L('스타일명','Style Name')}</th>
+      <th>${L('공장/라인','Factory/Line')}</th>
+      <th>${L('오더','Order')}</th>
+      <th>${L('단가','Price')}</th>
+      <th>${L('생산','Produced')}</th>
+      <th>${L('선적','Shipped')}</th>
+      <th>${L('불량률','Defect%')}</th>
+      <th>${L('선적예정','ETD')}</th>
+      <th>${L('상태','Status')}</th>
+      <th></th>
+    </tr></thead>
     <tbody>
     ${list.map(o=>{
       const v = allUsers.find(u=>u.id===o.vendor_id);
@@ -848,26 +872,25 @@ function renderDashboard() {
       const pct = o.order_qty?Math.round((o.produced_qty||0)/o.order_qty*100):0;
       const fail = o.cs_defect_qty ?? o.vendor_fail_qty ?? 0;
       const def = o.order_qty && fail ? ((fail/o.order_qty)*100).toFixed(1) : '0.0';
-      const ir = o.inspection_result||'pending';
       let actBtn = '';
       if (me.role === 'vendor' && o.vendor_id === me.id) {
-        actBtn = `<button class="btn btn-sm" style="background:var(--grn);color:#fff" onclick="openVendorModal('${o.id}')">생산 입력</button> <button class="btn btn-s btn-sm" onclick="openShipReqFor('${o.id}')">선적요청</button>`;
+        actBtn = `<button class="btn btn-sm" style="background:var(--grn);color:#fff" onclick="openVendorModal('${o.id}')">${L('생산 입력','Input Production')}</button> <button class="btn btn-s btn-sm" onclick="openShipReqFor('${o.id}')">${L('선적요청','Shipping Request')}</button>`;
       } else if (me.role === 'cs' || me.role === 'master') {
-        actBtn = `<button class="btn btn-purple btn-sm" onclick="openCsModal('${o.id}')">CS 입력</button>`;
+        actBtn = `<button class="btn btn-purple btn-sm" onclick="openCsModal('${o.id}')">${L('CS 입력','CS Input')}</button>`;
       }
       return `<tr>
-        <td data-label="벤더"><strong>${v?.company_name||'-'}</strong></td>
-        <td data-label="스타일번호" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}</td>
-        <td data-label="스타일명">${o.style_name}</td>
-        <td data-label="공장/라인" style="font-size:12px">${o.factory_name?o.factory_name+(o.production_line?' / '+o.production_line:''):'<span style="color:var(--ora)">미입력</span>'}</td>
-        <td data-label="오더">${Number(o.order_qty).toLocaleString()}</td>
-        <td data-label="단가" style="font-size:12px">${fmtPrice(o.unit_price,o.currency)}</td>
-        <td data-label="생산"><div style="display:inline-flex;align-items:center;gap:5px"><div class="prog"><div class="prog-f" style="width:${pct}%"></div></div><span style="font-size:11px;color:var(--muted)">${pct}%</span></div></td>
-        <td data-label="선적">${Number(o.shipped_qty||0).toLocaleString()}</td>
-        <td data-label="불량률" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${o.cs_defect_qty!=null?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
-        <td data-label="선적예정" style="font-size:12px">${(o.planned_ship_date||'-').slice(0,10)}</td>
-        <td data-label="상태"><span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?'지연':'정상'}</span></td>
-        <td data-label="액션">${actBtn}</td>
+        <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
+        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}</td>
+        <td data-label="${L('스타일명','Style Name')}">${o.style_name}</td>
+        <td data-label="${L('공장/라인','Factory/Line')}" style="font-size:12px">${o.factory_name?o.factory_name+(o.production_line?' / '+o.production_line:''):`<span style="color:var(--ora)">${L('미입력','Not entered')}</span>`}</td>
+        <td data-label="${L('오더','Order')}">${Number(o.order_qty).toLocaleString()}</td>
+        <td data-label="${L('단가','Price')}" style="font-size:12px">${fmtPrice(o.unit_price,o.currency)}</td>
+        <td data-label="${L('생산','Produced')}"><div style="display:inline-flex;align-items:center;gap:5px"><div class="prog"><div class="prog-f" style="width:${pct}%"></div></div><span style="font-size:11px;color:var(--muted)">${pct}%</span></div></td>
+        <td data-label="${L('선적','Shipped')}">${Number(o.shipped_qty||0).toLocaleString()}</td>
+        <td data-label="${L('불량률','Defect%')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${o.cs_defect_qty!=null?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
+        <td data-label="${L('선적예정','ETD')}" style="font-size:12px">${(o.planned_ship_date||'-').slice(0,10)}</td>
+        <td data-label="${L('상태','Status')}"><span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?L('지연','Delayed'):L('정상','Normal')}</span></td>
+        <td data-label="${L('액션','Action')}">${actBtn}</td>
       </tr>`;
     }).join('')}
     </tbody></table></div>`;
@@ -1446,9 +1469,17 @@ function applyLang() {
   });
   const t = document.getElementById('lang-toggle');
   if (t) t.textContent = lang === 'ko' ? '🌐 EN' : '🌐 한';
-  // me가 로그인된 상태에서만 대시보드 다시 그리기
-  if (me && typeof renderDashboard === 'function' && document.getElementById('sec-dashboard')?.classList.contains('on')) {
-    try { renderDashboard(); } catch(e) {}
+  // 로그인 후라면 사이드바 역할 + 화면 갱신
+  if (me) {
+    const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD') };
+    const sbRole = document.getElementById('sb-role');
+    if (sbRole) sbRole.textContent = roleMap[me.role] || me.role;
+    if (typeof setupFilters === 'function' && allUsers.length) {
+      try { setupFilters(); } catch(e) {}
+    }
+    if (typeof renderDashboard === 'function' && document.getElementById('sec-dashboard')?.classList.contains('on')) {
+      try { renderDashboard(); } catch(e) {}
+    }
   }
 }
 function toggleLang() {
