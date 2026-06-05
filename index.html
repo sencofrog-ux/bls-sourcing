@@ -398,3 +398,1303 @@ tbody tr:hover{background:var(--bg)}
     </div>
   </div>
 </div>
+
+<div class="overlay" id="vendor-modal">
+  <div class="modal">
+    <div class="mhdr"><div><div class="mhdr-t" id="vm-title"></div><div class="mhdr-s" id="vm-sub"></div></div><button class="mclose" id="vm-close">×</button></div>
+    <div class="mbody">
+      <div class="alert alert-e" id="vm-alert"></div>
+      
+      <div id="po-info-top-zone"></div>
+      
+      <div id="vendor-input-fields">
+        <div class="modal-section-title" data-ko="🏭 생산 공장 / 라인" data-en="🏭 Factory / Line">🏭 생산 공장 / 라인</div>
+        <div class="row2">
+          <div class="fg"><label class="fl" data-ko="생산 공장 선택 *" data-en="Select Factory *">생산 공장 선택 *</label><select id="vm-factory"></select></div>
+          <div class="fg"><label class="fl" data-ko="생산 라인" data-en="Production Line">생산 라인</label><input type="text" id="vm-line" placeholder="A라인"></div>
+        </div>
+        <div id="vm-factory-info" style="background:var(--vendorl);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--vendor);margin-bottom:14px;display:none"></div>
+        <div class="modal-section-title" data-ko="📦 생산 현황" data-en="📦 Production Status">📦 생산 현황</div>
+        <div class="row2">
+          <div class="fg"><label class="fl" data-ko="누적 생산 완료 (장)" data-en="Total Produced (pcs)">누적 생산 완료 (장)</label><input type="number" id="vm-produced" placeholder="0"></div>
+          <div class="fg"><label class="fl" data-ko="생산중 불량 (장)" data-en="Defects in Production">생산중 불량 (장)</label><input type="number" id="vm-fail" placeholder="0"></div>
+        </div>
+        <div class="fg"><label class="fl" data-ko="원단 입고량 (yds)" data-en="Fabric Received (yds)">원단 입고량 (yds)</label><input type="number" id="vm-fab-qty" placeholder="0"></div>
+        <div class="modal-section-title" data-ko="📅 일정" data-en="📅 Schedule">📅 일정</div>
+        <div class="row2">
+          <div class="fg"><label class="fl" data-ko="생산완료 예정일" data-en="Planned Completion Date">생산완료 예정일</label><input type="date" id="vm-plan-date"></div>
+          <div class="fg"><label class="fl" data-ko="실제 생산완료일" data-en="Actual Completion Date">실제 생산완료일</label><input type="date" id="vm-actual-date"></div>
+        </div>
+        <div class="modal-section-title" data-ko="📝 비고" data-en="📝 Notes">📝 비고</div>
+        <div class="fg"><label class="fl" data-ko="지연 사유" data-en="Delay Reason">지연 사유</label><input type="text" id="vm-delay"></div>
+        <div class="fg"><label class="fl" data-ko="상태 메모" data-en="Status Memo">상태 메모</label><textarea id="vm-notes"></textarea></div>
+      </div>
+    </div>
+    <div class="mfooter" id="vm-footer-actions">
+      <button class="btn btn-s btn-sm" id="vm-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="vm-save" style="width:auto" data-ko="저장" data-en="Save">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="shipreq-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="mhdr"><div><div class="mhdr-t">선적 부킹 요청</div><div class="mhdr-s">생산 완료분에 대해 ETD 부킹을 신청합니다</div></div><button class="mclose" id="sr-close">×</button></div>
+    <div class="mbody">
+      <div class="alert alert-e" id="sr-alert"></div>
+      <div class="fg"><label class="fl">오더 선택 *</label><select id="sr-order"></select></div>
+      <div id="sr-info" style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--muted);margin-bottom:14px;display:none"></div>
+      <div class="row2">
+        <div class="fg"><label class="fl">부킹 ETD *</label><input type="date" id="sr-etd"></div>
+        <div class="fg"><label class="fl">부킹 수량 *</label><input type="number" id="sr-qty" placeholder="500"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label class="fl">인보이스 번호</label><input type="text" id="sr-invoice"></div>
+        <div class="fg"><label class="fl">트래킹 번호</label><input type="text" id="sr-tracking"></div>
+      </div>
+      <div class="fg"><label class="fl">비고</label><textarea id="sr-notes"></textarea></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="sr-cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="sr-save" style="width:auto">요청 전송</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="cs-modal">
+  <div class="modal">
+    <div class="mhdr"><div><div class="mhdr-t" id="csm-title" style="color:var(--purple)">CS 클레임 / 불량 입력</div><div class="mhdr-s" id="csm-sub"></div></div><button class="mclose" id="csm-close">×</button></div>
+    <div class="mbody">
+      <div class="alert alert-e" id="csm-alert"></div>
+      <div id="csm-info" class="card" style="background:var(--purplel);border-color:#c9b3e8;margin-bottom:14px;padding:12px 14px;font-size:13px"></div>
+      <div class="row2">
+        <div class="fg"><label class="fl">최종 불량 수량 (장) *</label><input type="number" id="csm-qty" placeholder="0" min="0"></div>
+        <div class="fg"><label class="fl">검수일</label><input type="date" id="csm-date"></div>
+      </div>
+      <div class="fg"><label class="fl">검수자</label><input type="text" id="csm-inspector"></div>
+      <div class="fg"><label class="fl">불량 내용/사유</label><textarea id="csm-note" placeholder="봉제 불량, 사이즈 오류, 원단 결함..." style="min-height:80px"></textarea></div>
+      <div id="csm-rate" style="font-size:13px;color:var(--purple);font-weight:500"></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="csm-cancel">취소</button>
+      <button class="btn btn-purple btn-sm" id="csm-save" style="width:auto">저장 확정</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="factory-modal">
+  <div class="modal" style="max-width:460px">
+    <div class="mhdr"><div><div class="mhdr-t" id="fm-title">공장 추가</div></div><button class="mclose" id="fm-close">×</button></div>
+    <div class="mbody">
+      <div class="alert alert-e" id="fm-alert"></div>
+      <div class="fg"><label class="fl" data-ko="공장명 *" data-en="Factory Name *">공장명 *</label><input type="text" id="fm-name" placeholder="닝보 제1공장"></div>
+      <div class="fg"><label class="fl" data-ko="위치" data-en="Location">위치</label><input type="text" id="fm-location" placeholder="중국 닝보"></div>
+      <div class="row2">
+        <div class="fg"><label class="fl" data-ko="월 CAPA (장/월)" data-en="Monthly CAPA (pcs/month)">월 CAPA (장/월)</label><input type="number" id="fm-capa" placeholder="90000"></div>
+        <div class="fg"><label class="fl" data-ko="가동 라인 수" data-en="Active Lines">가동 라인 수</label><input type="number" id="fm-lines" placeholder="5"></div>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="fm-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="fm-save" style="width:auto" data-ko="저장" data-en="Save">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="day-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="mhdr"><div><div class="mhdr-t" id="dm-title"></div><div class="mhdr-s" id="dm-sub"></div></div><button class="mclose" id="dm-close">×</button></div>
+    <div class="mbody" id="dm-body"></div>
+    <div class="mfooter"><button class="btn btn-s btn-sm" id="dm-cancel">닫기</button></div>
+  </div>
+</div>
+
+<div class="bls-footer">Copyright by BLS Korea Sourcing</div>
+
+<script>
+// ── Supabase 설정 ──
+const SUPABASE_URL = "https://boyixtyrtzknaqjmxfjj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_b19kpVsItvdlFneFpzYb2Q_Z_Xc3ccr";
+
+// ── 전역 상태 ──
+let me = null;
+let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allShipReqs = [], allErrors = [];
+let activeOrderId = null, editFactoryId = null;
+let inboundCalYear, inboundCalMonth;
+let parsedBulkOrders = []; // 대량 엑셀 홀더
+
+const CUR_SYM = {USD:'$',CNY:'¥',KRW:'₩',EUR:'€',JPY:'¥',VND:'₫'};
+function fmtPrice(p, c) { if (p == null) return '-'; return `${CUR_SYM[c]||''}${Number(p).toLocaleString()} ${c||'USD'}`; }
+
+// ── Supabase 통신 ──
+async function sb(path, method='GET', body=null) {
+  const opts = {
+    method,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, opts);
+  if (!r.ok) {
+    const e = await r.json().catch(()=>({message:r.statusText}));
+    throw new Error(e.message || '서버 오류');
+  }
+  if (r.status === 204) return null;
+  return await r.json();
+}
+
+// ── 유틸 ──
+function showPg(id) { document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on')); document.getElementById(id).classList.add('on'); }
+function showAlert(id, msg, type='e') { const el=document.getElementById(id); if(!el)return; el.textContent=msg; el.className='alert on alert-'+type; if(type!=='s')setTimeout(()=>el.classList.remove('on'),5000); }
+function today() { return new Date().toISOString().slice(0,10); }
+
+// 🌟 직렬화된 notes 복원 엔진 🌟
+function parsePoNotes(notesString) {
+  const defaultData = { poDate: '-', styleNo: '-', qty: 0, targetEtd: '-', desc: '-', supplier: '-', fob: 0, isPo: false, rawNotes: notesString || '' };
+  if (!notesString || !notesString.startsWith('__PO_DATA__')) return defaultData;
+  const parts = notesString.split('||');
+  return {
+    isPo: true,
+    poDate: parts[1] || '-',
+    styleNo: parts[2] || '-',
+    qty: parseInt(parts[3]) || 0,
+    targetEtd: parts[4] || '-',
+    desc: parts[5] || '-',
+    supplier: parts[6] || '-',
+    fob: parseFloat(parts[7]) || 0,
+    rawNotes: parts[8] || ''
+  };
+}
+
+// ── 초기화 ──
+window.addEventListener('load', () => {
+  bindAuth();
+  const saved = localStorage.getItem('bls_user');
+  if (saved) { try { me = JSON.parse(saved); launchApp(); } catch{} }
+});
+
+// ── 인증 ──
+function bindAuth() {
+  document.getElementById('tab-login-btn').addEventListener('click', ()=>switchAuthTab('login'));
+  document.getElementById('tab-reg-btn').addEventListener('click', ()=>switchAuthTab('reg'));
+  document.getElementById('login-btn').addEventListener('click', doLogin);
+  document.getElementById('reg-btn').addEventListener('click', doRegister);
+  document.getElementById('l-pw').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+}
+function switchAuthTab(t) {
+  document.getElementById('tab-login-btn').classList.toggle('on', t==='login');
+  document.getElementById('tab-reg-btn').classList.toggle('on', t==='reg');
+  document.getElementById('frm-login').style.display = t==='login'?'block':'none';
+  document.getElementById('frm-reg').style.display = t==='reg'?'block':'none';
+}
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pw = document.getElementById('l-pw').value;
+  if (!email || !pw) return showAlert('login-alert', '이메일과 비밀번호를 입력해주세요');
+  const btn = document.getElementById('login-btn'); btn.disabled=true; btn.textContent='로그인 중...';
+  try {
+    const res = await sb(`users?email=eq.${encodeURIComponent(email)}&password_hash=eq.${encodeURIComponent(pw)}`);
+    if (!res.length) return showAlert('login-alert', '이메일 또는 비밀번호가 올바르지 않습니다');
+    const user = res[0];
+    if (user.status === 'pending') return showAlert('login-alert', '승인 대기 중입니다. 마스터 승인 후 이용 가능합니다.');
+    if (user.status === 'inactive') return showAlert('login-alert', '비활성화된 계정입니다');
+    me = user;
+    localStorage.setItem('bls_user', JSON.stringify(me));
+    launchApp();
+  } catch(e) { showAlert('login-alert', e.message); }
+  finally { btn.disabled=false; btn.textContent='로그인'; }
+}
+async function doRegister() {
+  const body = {
+    email: document.getElementById('r-email').value.trim(),
+    password_hash: document.getElementById('r-pw').value,
+    company_name: document.getElementById('r-company').value.trim(),
+    contact_name: document.getElementById('r-name').value.trim(),
+    contact_phone: document.getElementById('r-phone').value.trim() || null,
+    role: document.getElementById('r-role').value,
+    status: 'pending'
+  };
+  if (!body.email || !body.password_hash || !body.company_name || !body.contact_name)
+    return showAlert('reg-alert', '필수 항목을 모두 입력해주세요');
+  if (body.password_hash.length < 6) return showAlert('reg-alert', '비밀번호는 6자 이상이어야 합니다');
+  const btn = document.getElementById('reg-btn'); btn.disabled=true; btn.textContent='신청 중...';
+  try {
+    await sb('users', 'POST', body);
+    showAlert('reg-alert', '✓ 회원가입 완료! 마스터 승인 후 로그인 가능합니다.', 's');
+    setTimeout(()=>switchAuthTab('login'), 2500);
+  } catch(e) {
+    if (String(e.message).includes('duplicate')) showAlert('reg-alert', '이미 등록된 이메일입니다');
+    else showAlert('reg-alert', e.message);
+  }
+  finally { btn.disabled=false; btn.textContent='회원가입 신청'; }
+}
+
+// ── 앱 시작 ──
+async function launchApp() {
+  showPg('pg-app');
+  document.body.className = 'theme-' + me.role;
+  document.getElementById('sb-name').textContent = me.company_name;
+  const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD') };
+  document.getElementById('sb-role').textContent = roleMap[me.role] || me.role;
+  
+  const ordVendorSel = document.getElementById('ord-vendor');
+  if (ordVendorSel) ordVendorSel.style.display = me.role === 'vendor' ? 'none' : '';
+  buildSidebar();
+  bindAppEvents();
+  await loadAll();
+  applyLang();
+}
+
+function buildSidebar() {
+  const nav = document.getElementById('sb-nav');
+  let menu = '';
+  if (me.role === 'master') {
+    menu = `
+      <button class="nav-btn on" data-sec="dashboard">📊 대시보드</button>
+      <button class="nav-btn" data-sec="pending">⏳ 승인 대기 <span class="nav-badge" id="pend-badge">0</span></button>
+      <button class="nav-btn" data-sec="order-reg">➕ 오더 등록</button>
+      <button class="nav-btn" data-sec="shipreq">📦 선적 요청 관리 <span class="nav-badge" id="sr-badge">0</span></button>
+      <button class="nav-btn" data-sec="inbound">📅 입고 일정표</button>
+      <button class="nav-btn" data-sec="factory-all">🏭 공장 현황</button>
+      <button class="nav-btn" data-sec="cs">🔍 CS 클레임</button>
+      <button class="nav-btn" data-sec="members">👥 회원 관리</button>
+      <button class="nav-btn" data-sec="errors">🛠️ 오류 관리 <span class="nav-badge" id="err-badge">0</span></button>
+      <button class="nav-btn" data-sec="manual">📖 매뉴얼</button>`;
+  } else if (me.role === 'vendor') {
+    menu = `
+      <button class="nav-btn on" data-sec="dashboard" data-ko="📋 내 오더 현황" data-en="📋 My Orders">📋 내 오더 현황</button>
+      <button class="nav-btn" data-sec="factory-mine" data-ko="🏭 공장 관리" data-en="🏭 Factory Management">🏭 공장 관리</button>
+      <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
+  } else if (me.role === 'cs') {
+    menu = `
+      <button class="nav-btn on" data-sec="cs">🔍 CS 클레임 입력</button>
+      <button class="nav-btn" data-sec="dashboard">📋 전체 오더 현황</button>
+      <button class="nav-btn" data-sec="manual">📖 매뉴얼</button>`;
+  } else if (me.role === 'md') {
+    menu = `
+      <button class="nav-btn on" data-sec="dashboard">📋 전체 오더 현황</button>
+      <button class="nav-btn" data-sec="order-reg">➕ 오더 등록</button>
+      <button class="nav-btn" data-sec="manual">📖 매뉴얼</button>`;
+  }
+  nav.innerHTML = menu;
+  nav.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click', ()=>switchSec(b.dataset.sec)));
+
+  if (me.role === 'cs') {
+    document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+    document.getElementById('sec-cs').classList.add('on');
+  }
+}
+
+function switchSec(id) {
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  document.getElementById('sec-'+id).classList.add('on');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('on', b.dataset.sec===id));
+  closeSidebar();
+  if (id === 'pending') renderPending();
+  if (id === 'shipreq') renderShipReqs();
+  if (id === 'inbound') renderInbound();
+  if (id === 'factory-all') renderFactoryAll();
+  if (id === 'factory-mine') renderFactoryMine();
+  if (id === 'cs') renderCs();
+  if (id === 'members') renderMembers();
+  if (id === 'errors') renderErrors();
+  if (id === 'manual') setTimeout(()=>{ if(!document.getElementById('base-url').value) document.getElementById('base-url').value = location.href.replace(/\/[^/]*$/,''); genQR(); }, 100);
+}
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sb-shade').classList.remove('on'); }
+
+function bindAppEvents() {
+  const toggleSb = ()=>{ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sb-shade').classList.toggle('on'); };
+  document.getElementById('hamburger').addEventListener('click', toggleSb);
+  document.getElementById('sb-shade').addEventListener('click', closeSidebar);
+  document.getElementById('logout-btn').addEventListener('click', ()=>{ localStorage.removeItem('bls_user'); location.reload(); });
+
+  document.getElementById('dash-season').addEventListener('change', renderDashboard);
+  document.getElementById('ord-vendor').addEventListener('change', renderDashboard);
+  document.getElementById('ord-search').addEventListener('input', renderDashboard);
+
+  document.getElementById('reg-submit').addEventListener('click', submitOrder);
+  document.getElementById('add-season-btn').addEventListener('click', addSeason);
+  
+  // 엑셀 일괄 등록용 이벤트 바인딩 추가
+  document.getElementById('bulk-excel-file')?.addEventListener('change', handleBulkExcelUpload);
+  document.getElementById('bulk-submit-btn')?.addEventListener('click', submitBulkOrders);
+
+  document.getElementById('sr-filter').addEventListener('change', renderShipReqs);
+  document.getElementById('inbound-print').addEventListener('click', ()=>window.print());
+  document.querySelectorAll('[data-iview]').forEach(b=>b.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-iview]').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('#sec-inbound .view-pane').forEach(p=>p.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('view-inbound-'+b.dataset.iview).classList.add('on');
+    if (b.dataset.iview === 'cal') renderInboundCalendar();
+  }));
+
+  document.getElementById('new-factory-btn').addEventListener('click', ()=>openFactoryModal(null));
+  document.getElementById('fac-vendor-filter').addEventListener('change', renderFactoryAll);
+  document.getElementById('cs-search').addEventListener('input', renderCs);
+  document.getElementById('mem-filter').addEventListener('change', renderMembers);
+  document.getElementById('err-filter').addEventListener('change', renderErrors);
+  document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
+
+  ['vm','sr','csm','fm','dm'].forEach(prefix=>{
+    document.getElementById(prefix+'-close')?.addEventListener('click', ()=>closeModal(prefix));
+    document.getElementById(prefix+'-cancel')?.addEventListener('click', ()=>closeModal(prefix));
+  });
+  document.getElementById('vendor-modal').addEventListener('click', e=>{ if(e.target.id==='vendor-modal') closeModal('vm'); });
+  document.getElementById('shipreq-modal').addEventListener('click', e=>{ if(e.target.id==='shipreq-modal') closeModal('sr'); });
+  document.getElementById('cs-modal').addEventListener('click', e=>{ if(e.target.id==='cs-modal') closeModal('csm'); });
+  document.getElementById('factory-modal').addEventListener('click', e=>{ if(e.target.id==='factory-modal') closeModal('fm'); });
+  document.getElementById('day-modal').addEventListener('click', e=>{ if(e.target.id==='day-modal') closeModal('dm'); });
+
+  document.getElementById('vm-save').addEventListener('click', saveVendorProduction);
+  document.getElementById('sr-save').addEventListener('click', saveShipReq);
+  document.getElementById('csm-save').addEventListener('click', saveCsDefect);
+  document.getElementById('fm-save').addEventListener('click', saveFactory);
+  document.getElementById('csm-qty').addEventListener('input', previewCsRate);
+}
+function closeModal(prefix) {
+  const map = {vm:'vendor-modal', sr:'shipreq-modal', csm:'cs-modal', fm:'factory-modal', dm:'day-modal'};
+  document.getElementById(map[prefix])?.classList.remove('on');
+}
+
+// ── 전체 데이터 로드 ──
+async function loadAll() {
+  try {
+    const isVendor = me.role === 'vendor';
+    const ordersQuery = isVendor ? `orders?select=*&vendor_id=eq.${me.id}` : 'orders?select=*';
+    const factoriesQuery = isVendor ? `factories?select=*&vendor_id=eq.${me.id}` : 'factories?select=*';
+    const shipReqsQuery = isVendor ? `shipping_requests?select=*&vendor_id=eq.${me.id}` : 'shipping_requests?select=*';
+    const usersQuery = isVendor ? `users?select=id,company_name,role&id=eq.${me.id}` : 'users?select=*';
+    
+    [allUsers, allSeasons, allOrders, allFactories, allShipReqs, allErrors] = await Promise.all([
+      sb(usersQuery),
+      sb('seasons?select=*'),
+      sb(ordersQuery),
+      sb(factoriesQuery),
+      sb(shipReqsQuery),
+      me.role==='master' ? sb('errors?select=*&order=created_at.desc') : Promise.resolve([])
+    ]);
+    setupFilters();
+    renderDashboard();
+    updateBadges();
+  } catch(e) { console.error(e); alert('데이터 로드 실패: '+e.message); }
+}
+function updateBadges() {
+  if (me.role !== 'master') return;
+  const pCount = allUsers.filter(u=>u.status==='pending').length;
+  const sCount = allShipReqs.filter(r=>r.status==='requested').length;
+  const eCount = allErrors.filter(e=>!e.resolved).length;
+  const pb=document.getElementById('pend-badge'); if(pb){ pb.textContent=pCount; pb.classList.toggle('on',pCount>0); }
+  const sb2=document.getElementById('sr-badge'); if(sb2){ sb2.textContent=sCount; sb2.classList.toggle('on',sCount>0); }
+  const eb=document.getElementById('err-badge'); if(eb){ eb.textContent=eCount; eb.classList.toggle('on',eCount>0); }
+}
+
+function setupFilters() {
+  const dashSel = document.getElementById('dash-season');
+  const regSel = document.getElementById('reg-season');
+  dashSel.innerHTML = `<option value="">${L('전체 시즌','All Seasons')}</option>`;
+  if(regSel) regSel.innerHTML = '';
+  allSeasons.forEach(s=>{
+    dashSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`;
+    if (regSel) regSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`;
+  });
+  document.getElementById('season-list').textContent = L('등록된 시즌: ','Registered seasons: ') + allSeasons.map(s=>s.name).join(', ');
+
+  const vendors = allUsers.filter(u=>u.role==='vendor' && u.status==='active');
+  const dashV = document.getElementById('ord-vendor');
+  const regV = document.getElementById('reg-vendor');
+  const facV = document.getElementById('fac-vendor-filter');
+  dashV.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>`;
+  facV.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>`;
+  if(regV) regV.innerHTML = '';
+  vendors.forEach(v=>{
+    dashV.innerHTML += `<option value="${v.id}">${v.company_name}</option>`;
+    facV.innerHTML += `<option value="${v.id}">${v.company_name}</option>`;
+    if (regV) regV.innerHTML += `<option value="${v.id}">${v.company_name}</option>`;
+  });
+}
+
+function getVisibleOrders() {
+  let list = allOrders.slice();
+  if (me.role === 'vendor') list = list.filter(o=>o.vendor_id===me.id);
+  const sid = document.getElementById('dash-season').value;
+  const vid = document.getElementById('ord-vendor').value;
+  const q = document.getElementById('ord-search').value.toLowerCase();
+  if (sid) list = list.filter(o=>o.season_id===sid);
+  if (vid) list = list.filter(o=>o.vendor_id===vid);
+  if (q) list = list.filter(o=>(o.style_no||'').toLowerCase().includes(q)||(o.style_name||'').toLowerCase().includes(q));
+  return list;
+}
+function L(ko, en) {
+  const lang = localStorage.getItem('bls_lang') || 'ko';
+  return lang === 'en' ? en : ko;
+}
+
+function renderDashboard() {
+  const list = getVisibleOrders();
+  const titles = { master: '전체 오더 현황', vendor: '내 오더 현황', cs: '전체 오더 현황', md: '전체 오더 현황' };
+  document.getElementById('dash-title').textContent = titles[me.role] || '대시보드';
+  
+  let tOrd=0,tPrd=0,tShp=0,delayed=0,csConf=0;
+  const t = today();
+  for (const o of list) {
+    tOrd += o.order_qty||0; tPrd += o.produced_qty||0; tShp += o.shipped_qty||0;
+    if (o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty) delayed++;
+    if (o.cs_defect_qty != null) csConf++;
+  }
+  const ppct = tOrd?Math.round(tPrd/tOrd*100):0;
+  const spct = tOrd?Math.round(tShp/tOrd*100):0;
+  const U = { cases: '건', pcs: '장' };
+  document.getElementById('sum-grid').innerHTML = `
+    <div class="sum-card"><div class="sum-lbl">전체 스타일</div><div class="sum-val">${list.length}</div><div class="sum-sub">${U.cases}</div></div>
+    <div class="sum-card"><div class="sum-lbl">총 오더</div><div class="sum-val">${tOrd.toLocaleString()}</div><div class="sum-sub">${U.pcs}</div></div>
+    <div class="sum-card"><div class="sum-lbl">생산 완료</div><div class="sum-val">${ppct}%</div><div class="sum-sub">${tPrd.toLocaleString()}${U.pcs}</div></div>
+    <div class="sum-card"><div class="sum-lbl">선적 완료</div><div class="sum-val">${spct}%</div><div class="sum-sub">${tShp.toLocaleString()}${U.pcs}</div></div>
+    <div class="sum-card ${delayed>0?'danger':''}"><div class="sum-lbl">납기 지연</div><div class="sum-val" style="color:${delayed>0?'var(--red)':''}">${delayed}</div><div class="sum-sub">${U.cases}</div></div>
+    <div class="sum-card"><div class="sum-lbl">CS 확정</div><div class="sum-val" style="color:var(--purple)">${csConf}</div><div class="sum-sub">${U.cases}</div></div>`;
+
+  if (!list.length) { document.getElementById('ord-tbl').innerHTML = `<div class="empty"><div class="empty-t">오더가 없습니다</div></div>`; return; }
+  document.getElementById('ord-tbl').innerHTML = `
+    <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>벤더</th>
+      <th>스타일번호</th>
+      <th>스타일명</th>
+      <th>공장/라인</th>
+      <th>오더</th>
+      <th>단가</th>
+      <th>생산</th>
+      <th>선적</th>
+      <th>불량률</th>
+      <th>선적예정</th>
+      <th>상태</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+    ${list.map(o=>{
+      const v = allUsers.find(u=>u.id===o.vendor_id);
+      const late = o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty;
+      const pct = o.order_qty?Math.round((o.produced_qty||0)/o.order_qty*100):0;
+      const fail = o.cs_defect_qty ?? o.vendor_fail_qty ?? 0;
+      const def = o.order_qty && fail ? ((fail/o.order_qty)*100).toFixed(1) : '0.0';
+      
+      let actBtn = '';
+      if (me.role === 'vendor' && o.vendor_id === me.id) {
+        actBtn = `<button class="btn btn-sm" style="background:var(--grn);color:#fff" onclick="openVendorModal('${o.id}')">생산 입력</button> <button class="btn btn-s btn-sm" onclick="openShipReqFor('${o.id}')">선적요청</button>`;
+      } else if (me.role === 'master' || me.role === 'md' || me.role === 'cs') {
+        // 마스터/MD/CS 대시보드에서는 조회(상세보기 클릭 포함) 가능하도록 통합
+        actBtn = `<button class="btn btn-s btn-sm" onclick="openVendorModal('${o.id}')">상세 보기</button> `;
+        if (me.role !== 'md') {
+          actBtn += `<button class="btn btn-purple btn-sm" onclick="openCsModal('${o.id}')">CS 입력</button>`;
+        }
+      }
+      return `<tr>
+        <td data-label="벤더"><strong>${v?.company_name||'-'}</strong></td>
+        <td data-label="스타일번호" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}</td>
+        <td data-label="스타일명">${o.style_name}</td>
+        <td data-label="공장/라인" style="font-size:12px">${o.factory_name?o.factory_name+(o.production_line?' / '+o.production_line:''):`<span style="color:var(--ora)">미입력</span>`}</td>
+        <td data-label="오더">${Number(o.order_qty).toLocaleString()}</td>
+        <td data-label="단가" style="font-size:12px">${fmtPrice(o.unit_price,o.currency)}</td>
+        <td data-label="생산"><div style="display:inline-flex;align-items:center;gap:5px"><div class="prog"><div class="prog-f" style="width:${pct}%"></div></div><span style="font-size:11px;color:var(--muted)">${pct}%</span></div></td>
+        <td data-label="선적">${Number(o.shipped_qty||0).toLocaleString()}</td>
+        <td data-label="불량률" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${o.cs_defect_qty!=null?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
+        <td data-label="선적예정" style="font-size:12px">${(o.planned_ship_date||'-').slice(0,10)}</td>
+        <td data-label="상태"><span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?'지연':'정상'}</span></td>
+        <td data-label="액션">${actBtn}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+}
+
+// ── 승인 대기 ──
+function renderPending() {
+  const list = allUsers.filter(u=>u.status==='pending').sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||''));
+  if (!list.length) { document.getElementById('pend-list').innerHTML = '<div class="empty"><div class="empty-t">승인 대기 중인 계정이 없습니다</div></div>'; return; }
+  const rlbl = {vendor:'벤더',cs:'CS팀',md:'MD'};
+  document.getElementById('pend-list').innerHTML = list.map(u=>`
+    <div class="pend-card">
+      <div class="pend-info">
+        <div class="pend-name">${u.company_name} <span class="bdg bdg-cs" style="margin-left:6px">${rlbl[u.role]||u.role}</span></div>
+        <div class="pend-meta">${u.contact_name} · ${u.email}${u.contact_phone?' · '+u.contact_phone:''}</div>
+        <div class="pend-meta" style="margin-top:2px">신청: ${new Date(u.created_at).toLocaleString('ko-KR')}</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ok btn-sm" onclick="approveUser('${u.id}')">✓ 승인</button>
+        <button class="btn btn-danger btn-sm" onclick="rejectUser('${u.id}','${u.company_name}')">✗ 거절</button>
+      </div>
+    </div>`).join('');
+}
+async function approveUser(id) {
+  try { await sb(`users?id=eq.${id}`, 'PATCH', {status:'active'}); await loadAll(); renderPending(); alert('승인되었습니다'); }
+  catch(e) { alert(e.message); }
+}
+async function rejectUser(id, name) {
+  if (!confirm(`${name}의 가입 신청을 거절(비활성화)하시겠습니까?`)) return;
+  try { await sb(`users?id=eq.${id}`, 'PATCH', {status:'inactive'}); await loadAll(); renderPending(); }
+  catch(e) { alert(e.message); }
+}
+
+// ── 오더 개별 등록 ──
+async function submitOrder() {
+  const body = {
+    season_id: document.getElementById('reg-season').value,
+    vendor_id: document.getElementById('reg-vendor').value,
+    style_no: document.getElementById('reg-styleno').value.trim(),
+    style_name: document.getElementById('reg-stylename').value.trim(),
+    category: document.getElementById('reg-cat').value.trim() || null,
+    color: document.getElementById('reg-color').value.trim() || null,
+    order_qty: parseInt(document.getElementById('reg-qty').value)||0,
+    unit_price: parseFloat(document.getElementById('reg-price').value)||null,
+    currency: document.getElementById('reg-currency').value,
+    planned_ship_date: document.getElementById('reg-shipdate').value || null,
+    destination: document.getElementById('reg-dest').value.trim() || null,
+    notes: document.getElementById('reg-notes').value.trim() || null,
+    shipped_qty: 0
+  };
+  if (me.role === 'md') body.created_by_md = me.id;
+  if (!body.season_id || !body.vendor_id || !body.style_no || !body.style_name || !body.order_qty || !body.planned_ship_date)
+    return showAlert('reg-alert', '필수 항목을 모두 입력해주세요');
+  const btn = document.getElementById('reg-submit'); btn.disabled=true; btn.textContent='등록 중...';
+  try {
+    await sb('orders', 'POST', body);
+    showAlert('reg-alert', '✓ 오더가 등록되었습니다', 's');
+    ['reg-styleno','reg-stylename','reg-cat','reg-color','reg-qty','reg-price','reg-shipdate','reg-dest','reg-notes'].forEach(id=>document.getElementById(id).value='');
+    await loadAll();
+  } catch(e) { showAlert('reg-alert', e.message); }
+  finally { btn.disabled=false; btn.textContent='오더 등록'; }
+}
+async function addSeason() {
+  const name = document.getElementById('new-season-input').value.trim();
+  if (!name) return;
+  try {
+    await sb('seasons', 'POST', {name, is_active:false});
+    document.getElementById('new-season-input').value='';
+    await loadAll(); alert('시즌이 추가되었습니다');
+  } catch(e) { alert(e.message); }
+}
+
+// 🌟 ── 대량 엑셀 업로드/파싱 핸들러 ── 🌟
+function handleBulkExcelUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = evt.target.result;
+      const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+      // 공유해주신 정규 컬럼 맵핑값 세팅
+      const START_ROW = 1;       
+      const COL_PO_DATE = 10;    // Unnamed: 10 (PO SEND)
+      const COL_STYLE_NO = 12;   // Unnamed: 12 (style)
+      const COL_QTY = 19;        // Unnamed: 19 (ORDER Q'TY)
+      const COL_TARGET_ETD = 43; // Unnamed: 43 (TARGET ETD)
+      const COL_DESC = 45;       // Unnamed: 45 (DESCRIPTION)
+      const COL_SUPPLIER = 47;   // Unnamed: 47 (SUPPLIER)
+      const COL_FOB = 48;        // Unnamed: 48 (FOB)
+
+      parsedBulkOrders = [];
+      const currentSeasonId = document.getElementById('reg-season').value;
+      const currentVendorId = document.getElementById('reg-vendor').value;
+
+      if (!currentSeasonId || !currentVendorId) {
+        alert('엑셀 파일을 올리기 전, 오더 등록 폼에서 [시즌]과 [벤더]를 먼저 마우스로 지정해 주세요.');
+        e.target.value = '';
+        return;
+      }
+
+      const getDt = (v) => {
+        if (v instanceof Date) return v.toISOString().slice(0, 10);
+        if (!v) return '-';
+        return String(v).trim().slice(0,10);
+      };
+
+      for (let i = START_ROW; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+
+        const styleNo = row[COL_STYLE_NO] ? String(row[COL_STYLE_NO]).trim() : '';
+        if (!styleNo || styleNo === 'style') continue; // 헤더 중복 차단
+
+        const poDate = getDt(row[COL_PO_DATE]);
+        const qty = parseInt(row[COL_QTY]) || 0;
+        const targetEtd = getDt(row[COL_TARGET_ETD]);
+        const desc = row[COL_DESC] ? String(row[COL_DESC]).trim().replace(/[\r\n\t]+/g, ' ') : '-';
+        const supplier = row[COL_SUPPLIER] ? String(row[COL_SUPPLIER]).trim() : '-';
+        const fob = parseFloat(row[48]) || 0;
+
+        // 🌟 Supabase를 건드리지 않기 위해 구분자(||) 기반으로 notes 통합 저장 🌟
+        const serializedPoData = `__PO_DATA__||${poDate}||${styleNo}||${qty}||${targetEtd}||${desc}||${supplier}||${fob}||`;
+
+        parsedBulkOrders.push({
+          season_id: currentSeasonId,
+          vendor_id: currentVendorId,
+          style_no: styleNo,
+          style_name: desc.slice(0, 40), // 이름이 빈 칸이므로 디스크립션 앞부분 대체 활용
+          category: 'CLOTHING',
+          color: 'AS SORTED',
+          order_qty: qty,
+          unit_price: fob,
+          currency: 'USD',
+          planned_ship_date: targetEtd !== '-' ? targetEtd : today(),
+          notes: serializedPoData, // 특수 블록 매핑
+          shipped_qty: 0,
+          created_by_md: me.role === 'md' ? me.id : null
+        });
+      }
+
+      if (parsedBulkOrders.length === 0) {
+        alert('엑셀 시트 내부에 파싱 가능한 발주 정보 행이 존재하지 않습니다.');
+        document.getElementById('excel-preview-zone').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('preview-count-txt').textContent = `검출된 발주 데이터: 총 ${parsedBulkOrders.length}건`;
+      document.getElementById('preview-list-wrap').innerHTML = parsedBulkOrders.map((o, idx) => {
+        const po = parsePoNotes(o.notes);
+        return `[${idx+1}] Style: ${po.styleNo} | Qty: ${po.qty.toLocaleString()}장 | Supplier: ${po.supplier} | FOB: $${po.fob}`;
+      }).join('<br>');
+
+      document.getElementById('excel-preview-zone').style.display = 'block';
+
+    } catch (err) {
+      console.error(err);
+      alert('엑셀 파일 분석 오류: ' + err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ── 엑셀 데이터 Supabase 순차 일괄 Push ──
+async function submitBulkOrders() {
+  if (parsedBulkOrders.length === 0) return;
+  const btn = document.getElementById('bulk-submit-btn');
+  btn.disabled = true;
+
+  let ok = 0, err = 0;
+  for (let i = 0; i < parsedBulkOrders.length; i++) {
+    try {
+      btn.textContent = `업로드 처리 중... (${i+1}/${parsedBulkOrders.length})`;
+      await sb('orders', 'POST', parsedBulkOrders[i]);
+      ok++;
+    } catch (e) {
+      console.error(e);
+      err++;
+    }
+  }
+
+  alert(`일괄 처리 작업 완료\n- 정상 등록: ${ok}건\n- 업로드 실패: ${err}건`);
+  document.getElementById('excel-preview-zone').style.display = 'none';
+  parsedBulkOrders = [];
+  await loadAll();
+  btn.disabled = false;
+  btn.textContent = '✓ 위 목록 일괄 업로드하기';
+}
+
+// ── 생산현황 모달 및 마스터 상세공용 오픈 ──
+function openVendorModal(orderId) {
+  activeOrderId = orderId;
+  const o = allOrders.find(x=>x.id===orderId);
+  if (!o) return;
+  
+  document.getElementById('vm-title').textContent = o.style_name;
+  document.getElementById('vm-sub').textContent = `${o.style_no} · 오더 ${Number(o.order_qty).toLocaleString()}장`;
+  
+  // 🌟 notes 기저에서 발주 정보 역직렬화(복원) 🌟
+  const po = parsePoNotes(o.notes);
+  const topZone = document.getElementById('po-info-top-zone');
+  
+  if (po.isPo) {
+    if (me.role === 'master' || me.role === 'md') {
+      // 👑 마스터/MD 버전: 7가지 정보 전체 노출 👑
+      topZone.innerHTML = `
+        <div style="background: var(--acl); padding: 14px; border-radius: var(--r); margin-bottom: 16px; border: 1px solid var(--bdr);">
+          <h4 style="margin-bottom: 8px; font-size: 13px; color: var(--ac); font-weight:700;">📦 발주 상세 정보 (PO 정보)</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color:var(--txt);">
+            <div><strong>PO 발송일:</strong> ${po.poDate}</div>
+            <div><strong>스타일 번호:</strong> ${po.styleNo}</div>
+            <div><strong>Order Q'ty:</strong> ${po.qty.toLocaleString()}장</div>
+            <div><strong>Target ETD:</strong> ${po.targetEtd}</div>
+            <div><strong>Supplier:</strong> ${po.supplier}</div>
+            <div><strong>FOB Price:</strong> $${po.fob.toLocaleString()}</div>
+          </div>
+          <div style="margin-top: 6px; font-size: 13px; border-top: 1px dashed var(--bdr); padding-top: 6px; color:#333;"><strong>Description:</strong> ${po.desc}</div>
+        </div>`;
+    } else {
+      // 🏭 벤더용 버전: 가격/공급원 제외 5가지 정보만 노출 🏭
+      topZone.innerHTML = `
+        <div style="background: #f9f9f9; padding: 12px; border-radius: var(--r); margin-bottom: 16px; border-left: 4px solid var(--grn); font-size: 13px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; color:var(--txt);">
+            <div><strong>PO 발송일:</strong> ${po.poDate}</div>
+            <div><strong>스타일 번호:</strong> ${po.styleNo}</div>
+            <div><strong>Order Q'ty:</strong> ${po.qty.toLocaleString()}장</div>
+            <div><strong>Target ETD:</strong> ${po.targetEtd}</div>
+          </div>
+          <div style="border-top: 1px dashed #eee; padding-top: 4px; margin-top: 4px; color:#555;"><strong>Description:</strong> ${po.desc}</div>
+        </div>`;
+    }
+  } else {
+    topZone.innerHTML = ''; // 엑셀 출처 오더가 아닌 수동 오더인 경우 공백 유지
+  }
+
+  // 마스터/MD 권한일 때는 보기 권한 전용 모드로 폼 비활성화 처리
+  const fieldsBlock = document.getElementById('vendor-input-fields');
+  const footerBlock = document.getElementById('vm-footer-actions');
+  if (me.role === 'master' || me.role === 'md') {
+    fieldsBlock.style.opacity = '0.6';
+    fieldsBlock.style.pointerEvents = 'none';
+    footerBlock.style.display = 'none';
+  } else {
+    fieldsBlock.style.opacity = '1';
+    fieldsBlock.style.pointerEvents = 'auto';
+    footerBlock.style.display = 'flex';
+  }
+  
+  const factorySel = document.getElementById('vm-factory');
+  const myFactories = allFactories.filter(f=>f.vendor_id===me.id);
+  const isKo = (localStorage.getItem('bls_lang')||'ko')==='ko';
+  if (!myFactories.length) {
+    factorySel.innerHTML = `<option value="">${isKo?'⚠️ 먼저 [공장 관리]에서 공장을 등록하세요':'⚠️ Please register factory first'}</option>`;
+  } else {
+    factorySel.innerHTML = `<option value="">${isKo?'선택하세요':'Select factory'}</option>` + myFactories.map(f=>`<option value="${f.name}" ${o.factory_name===f.name?'selected':''}>${f.name}${f.capa?' (월 '+Number(f.capa).toLocaleString()+'장)':''}</option>`).join('');
+  }
+  factorySel.onchange = () => {
+    const sel = factorySel.value;
+    const f = myFactories.find(x=>x.name===sel);
+    const info = document.getElementById('vm-factory-info');
+    if (f) {
+      info.style.display='block';
+      info.innerHTML = `📊 ${f.location||'-'} · ${isKo?'월 CAPA':'Monthly CAPA'} ${f.capa?Number(f.capa).toLocaleString()+'장':'-'} · ${isKo?'가동 라인':'Active Lines'} ${f.active_lines||'-'}`;
+    } else { info.style.display='none'; }
+  };
+  factorySel.dispatchEvent(new Event('change'));
+  
+  document.getElementById('vm-line').value = o.production_line||'';
+  document.getElementById('vm-produced').value = o.produced_qty||'';
+  document.getElementById('vm-fail').value = o.vendor_fail_qty||'';
+  document.getElementById('vm-fab-qty').value = o.fabric_received_qty||'';
+  document.getElementById('vm-plan-date').value = o.planned_complete_date||'';
+  document.getElementById('vm-actual-date').value = o.actual_complete_date||'';
+  document.getElementById('vm-delay').value = o.delay_reason||'';
+  document.getElementById('vm-notes').value = po.isPo ? po.rawNotes : (o.notes || '');
+  document.getElementById('vm-alert').classList.remove('on');
+  document.getElementById('vendor-modal').classList.add('on');
+}
+
+async function saveVendorProduction() {
+  if (!activeOrderId) return;
+  const o = allOrders.find(x=>x.id===activeOrderId);
+  const po = parsePoNotes(o?.notes);
+
+  let finalNotes = document.getElementById('vm-notes').value.trim();
+  // 🌟 기존 오더가 엑셀 구조였다면 토큰 구조를 유지하면서 후단 비고 텍스트만 업데이트 🌟
+  if (po.isPo) {
+    finalNotes = `__PO_DATA__|${po.poDate}||${po.styleNo}||${po.qty}||${po.targetEtd}||${po.desc}||${po.supplier}||${po.fob}||${finalNotes}`;
+  }
+
+  const body = {
+    factory_name: document.getElementById('vm-factory').value||null,
+    production_line: document.getElementById('vm-line').value.trim()||null,
+    produced_qty: parseInt(document.getElementById('vm-produced').value)||0,
+    vendor_fail_qty: parseInt(document.getElementById('vm-fail').value)||0,
+    fabric_received_qty: parseInt(document.getElementById('vm-fab-qty').value)||0,
+    planned_complete_date: document.getElementById('vm-plan-date').value||null,
+    actual_complete_date: document.getElementById('vm-actual-date').value||null,
+    delay_reason: document.getElementById('vm-delay').value.trim()||null,
+    notes: finalNotes,
+    updated_at: new Date().toISOString()
+  };
+  const btn = document.getElementById('vm-save'); btn.disabled=true; btn.textContent='저장 중...';
+  try {
+    await sb(`orders?id=eq.${activeOrderId}`, 'PATCH', body);
+    closeModal('vm'); await loadAll(); alert('저장되었습니다');
+  } catch(e) { showAlert('vm-alert', e.message); }
+  finally { btn.disabled=false; btn.textContent='저장'; }
+}
+
+// ── 선적 요청 ──
+function openShipReqFor(orderId) {
+  const sel = document.getElementById('sr-order');
+  sel.innerHTML = '';
+  allOrders.filter(o=>o.vendor_id===me.id).forEach(o=>{
+    sel.innerHTML += `<option value="${o.id}" ${o.id===orderId?'selected':''}>${o.style_no} - ${o.style_name} (생산 ${o.produced_qty||0}/${o.order_qty})</option>`;
+  });
+  sel.onchange = updateSrInfo;
+  updateSrInfo();
+  ['sr-etd','sr-qty','sr-invoice','sr-tracking','sr-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sr-alert').classList.remove('on');
+  document.getElementById('shipreq-modal').classList.add('on');
+}
+function updateSrInfo() {
+  const oid = document.getElementById('sr-order').value;
+  const o = allOrders.find(x=>x.id===oid);
+  const box = document.getElementById('sr-info');
+  if (!o) { box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML = `오더 <strong>${o.order_qty.toLocaleString()}장</strong> · 생산 <strong>${(o.produced_qty||0).toLocaleString()}장</strong> · 기선적 <strong>${(o.shipped_qty||0).toLocaleString()}장</strong>`;
+}
+async function saveShipReq() {
+  const order_id = document.getElementById('sr-order').value;
+  const booking_etd = document.getElementById('sr-etd').value;
+  const booking_qty = parseInt(document.getElementById('sr-qty').value)||0;
+  if (!order_id || !booking_etd || !booking_qty) return showAlert('sr-alert', '오더, ETD, 수량을 입력해주세요');
+  const body = {
+    order_id, vendor_id: me.id, booking_etd, booking_qty,
+    invoice_no: document.getElementById('sr-invoice').value.trim()||null,
+    tracking_no: document.getElementById('sr-tracking').value.trim()||null,
+    notes: document.getElementById('sr-notes').value.trim()||null,
+    status: 'requested'
+  };
+  const btn = document.getElementById('sr-save'); btn.disabled=true; btn.textContent='전송 중...';
+  try {
+    await sb('shipping_requests', 'POST', body);
+    closeModal('sr'); await loadAll(); alert('선적 요청이 전송되었습니다');
+  } catch(e) { showAlert('sr-alert', e.message); }
+  finally { btn.disabled=false; btn.textContent='요청 전송'; }
+}
+
+// ── 선적 요청 관리 (마스터) ──
+function renderShipReqs() {
+  const filter = document.getElementById('sr-filter').value;
+  let list = allShipReqs.slice();
+  if (filter) list = list.filter(r=>r.status===filter);
+  list.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  if (!list.length) { document.getElementById('sr-tbl').innerHTML='<div class="empty"><div class="empty-t">선적 요청이 없습니다</div></div>'; return; }
+  const smap = {requested:'bdg-pend',confirmed:'bdg-ok',rejected:'bdg-fail'};
+  const slbl = {requested:'요청됨',confirmed:'확정',rejected:'거절'};
+  document.getElementById('sr-tbl').innerHTML = `
+    <div class="tbl-wrap"><table>
+    <thead><tr><th>부킹 ETD</th><th>벤더</th><th>스타일</th><th>부킹수량</th><th>확정 ETD</th><th>상태</th><th>관리</th></tr></thead>
+    <tbody>
+    ${list.map(r=>{
+      const o = allOrders.find(x=>x.id===r.order_id);
+      const v = allUsers.find(u=>u.id===r.vendor_id);
+      let actBtn = '';
+      if (r.status==='requested') actBtn = `<button class="btn btn-ok btn-sm" onclick="confirmShipReq('${r.id}','${r.order_id}','${r.booking_etd}',${r.booking_qty})">확정</button> <button class="btn btn-danger btn-sm" onclick="rejectShipReq('${r.id}')">거절</button>`;
+      else actBtn = `<button class="btn btn-s btn-sm" onclick="resetShipReq('${r.id}')">되돌리기</button>`;
+      return `<tr>
+        <td data-label="부킹 ETD" style="font-family:'DM Mono',monospace;font-weight:600">${r.booking_etd}</td>
+        <td data-label="벤더"><strong>${v?.company_name||'-'}</strong></td>
+        <td data-label="스타일">${o?.style_no||''}<br>${o?.style_name||''}</td>
+        <td data-label="부킹수량">${Number(r.booking_qty).toLocaleString()}장</td>
+        <td data-label="확정 ETD" style="color:var(--grn)">${r.confirmed_etd||'-'}</td>
+        <td data-label="상태"><span class="bdg ${smap[r.status]}">${slbl[r.status]}</span></td>
+        <td data-label="관리">${actBtn}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+}
+async function confirmShipReq(reqId, orderId, etd, qty) {
+  const newEtd = prompt('확정 ETD를 입력하세요 (YYYY-MM-DD)', etd);
+  if (!newEtd) return;
+  try {
+    await sb(`shipping_requests?id=eq.${reqId}`, 'PATCH', {status:'confirmed', confirmed_etd:newEtd, updated_at:new Date().toISOString()});
+    const o = allOrders.find(x=>x.id===orderId);
+    const newShipped = (o?.shipped_qty||0) + qty;
+    await sb(`orders?id=eq.${orderId}`, 'PATCH', {shipped_qty:newShipped, etd_date:newEtd, ship_date:newEtd});
+    await loadAll(); renderShipReqs(); alert('확정되었습니다 (선적 누적 ' + newShipped + '장)');
+  } catch(e) { alert(e.message); }
+}
+async function rejectShipReq(reqId) {
+  const note = prompt('거절 사유 (선택)', '');
+  try {
+    await sb(`shipping_requests?id=eq.${reqId}`, 'PATCH', {status:'rejected', master_notes:note||null});
+    await loadAll(); renderShipReqs();
+  } catch(e) { alert(e.message); }
+}
+async function resetShipReq(reqId) {
+  try { await sb(`shipping_requests?id=eq.${reqId}`, 'PATCH', {status:'requested'}); await loadAll(); renderShipReqs(); }
+  catch(e) { alert(e.message); }
+}
+
+// ── 입고 일정표 ──
+function getInboundList() {
+  return allShipReqs.filter(r=>r.status==='confirmed'||r.status==='requested').map(r=>{
+    const o = allOrders.find(x=>x.id===r.order_id);
+    const v = allUsers.find(u=>u.id===r.vendor_id);
+    const s = o ? allSeasons.find(x=>x.id===o.season_id) : null;
+    return { ...r, style_no:o?.style_no, style_name:o?.style_name, category:o?.category, order_qty:o?.order_qty, vendor_name:v?.company_name, season_name:s?.name, destination:o?.destination, etd:r.confirmed_etd||r.booking_etd };
+  }).sort((a,b)=>(a.etd||'').localeCompare(b.etd||''));
+}
+function renderInbound() {
+  const list = getInboundList();
+  if (!list.length) { document.getElementById('inbound-tbl').innerHTML='<div class="empty"><div class="empty-t">입고 일정이 없습니다</div></div>'; return; }
+  const smap = {requested:'bdg-pend',confirmed:'bdg-ok'};
+  const slbl = {requested:'요청(미확정)',confirmed:'확정'};
+  document.getElementById('inbound-tbl').innerHTML = `
+    <div class="tbl-wrap"><table>
+    <thead><tr><th>입고 ETD</th><th>벤더</th><th>스타일</th><th>카테고리</th><th>입고수량</th><th>납품처</th><th>시즌</th><th>상태</th></tr></thead>
+    <tbody>
+    ${list.map(r=>`<tr>
+      <td data-label="입고 ETD" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--ac)">${r.etd}</td>
+      <td data-label="벤더"><strong>${r.vendor_name||'-'}</strong></td>
+      <td data-label="스타일">${r.style_no||''}<br>${r.style_name||''}</td>
+      <td data-label="카테고리">${r.category||'-'}</td>
+      <td data-label="입고수량"><strong>${Number(r.booking_qty).toLocaleString()}장</strong></td>
+      <td data-label="납품처" style="font-size:12px">${r.destination||'-'}</td>
+      <td data-label="시즌" style="font-size:12px">${r.season_name||'-'}</td>
+      <td data-label="상태"><span class="bdg ${smap[r.status]}">${slbl[r.status]}</span></td>
+    </tr>`).join('')}
+    </tbody></table></div>`;
+  if (!inboundCalYear) { const n=new Date(); inboundCalYear=n.getFullYear(); inboundCalMonth=n.getMonth(); }
+}
+function renderInboundCalendar() {
+  const list = getInboundList();
+  if (!inboundCalYear) { const n=new Date(); inboundCalYear=n.getFullYear(); inboundCalMonth=n.getMonth(); }
+  document.getElementById('inbound-cal').innerHTML = buildCal(list, inboundCalYear, inboundCalMonth, 'inbound', r=>r.etd, r=>r.style_name, r=>r.booking_qty);
+  document.querySelectorAll('[data-cal="inbound"]').forEach(b=>b.addEventListener('click', ()=>{
+    inboundCalMonth += +b.dataset.dir;
+    if (inboundCalMonth<0){inboundCalMonth=11;inboundCalYear--;}
+    if (inboundCalMonth>11){inboundCalMonth=0;inboundCalYear++;}
+    renderInboundCalendar();
+  }));
+  document.querySelectorAll('.cal-cell[data-day]').forEach(c=>c.addEventListener('click', ()=>showDayDetail(c.dataset.day, list, r=>r.etd, r=>({style_no:r.style_no,style_name:r.style_name,qty:r.booking_qty,vendor:r.vendor_name,category:r.category}))));
+}
+
+function buildCal(data, year, month, prefix, getDate, getName, getQty) {
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month+1, 0);
+  const startDow = first.getDay();
+  const days = last.getDate();
+  const t = today();
+  const events = {};
+  data.forEach(r=>{
+    const d = getDate(r); if(!d) return;
+    if (!events[d]) events[d] = [];
+    events[d].push({name:getName(r), qty:getQty?getQty(r):null});
+  });
+  const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  let html = `<div class="cal-hdr"><div class="cal-month">${year}년 ${months[month]}</div><div class="cal-nav"><button data-cal="${prefix}" data-dir="-1">‹</button><button data-cal="${prefix}" data-dir="1">›</button></div></div><div class="cal-grid">`;
+  ['일','월','화','수','목','금','토'].forEach(d=>html+=`<div class="cal-dow">${d}</div>`);
+  for (let i=0;i<startDow;i++) html += '<div class="cal-cell" style="opacity:.3;cursor:default"></div>';
+  for (let d=1;d<=days;d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const evs = events[dateStr]||[];
+    const isToday = dateStr===t;
+    const hasEv = evs.length>0;
+    html += `<div class="cal-cell ${isToday?'today':''} ${hasEv?'has-events':''}" ${hasEv?`data-day="${dateStr}"`:'style="cursor:default"'}><div class="cal-date">${d}</div>`;
+    evs.slice(0,3).forEach(e=>html+=`<div class="cal-event confirmed">${e.name}</div>`);
+    if (evs.length>3) html += `<div style="font-size:9px;color:var(--muted)">+${evs.length-3}건</div>`;
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+function showDayDetail(dateStr, data, getDate, getDetail) {
+  const items = data.filter(r=>getDate(r)===dateStr).map(getDetail);
+  document.getElementById('dm-title').textContent = dateStr + ' 일정';
+  document.getElementById('dm-sub').textContent = `${items.length}개 항목`;
+  let totalQty = 0;
+  const rows = items.map(it=>{
+    totalQty += it.qty||0;
+    return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between">
+      <div><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${it.style_no||''}</div><strong>${it.style_name||''}</strong>${it.vendor?'<div style="font-size:11px;color:var(--muted)">'+it.vendor+'</div>':''}</div>
+      <div style="text-align:right"><strong>${Number(it.qty||0).toLocaleString()}장</strong>${it.category?'<div style="font-size:11px;color:var(--muted)">'+it.category+'</div>':''}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('dm-body').innerHTML = items.length
+    ? rows + `<div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--bdr);display:flex;justify-content:space-between;font-weight:700"><span>합계</span><span>${totalQty.toLocaleString()}장</span></div>`
+    : '<div class="empty"><div class="empty-t">항목이 없습니다</div></div>';
+  document.getElementById('day-modal').classList.add('on');
+}
+
+// ── 공장 관리 (벤더) ──
+function renderFactoryMine() {
+  const list = allFactories.filter(f=>f.vendor_id===me.id);
+  if (!list.length) { document.getElementById('factory-list').innerHTML='<div class="empty"><div class="empty-t">등록된 공장이 없습니다</div>+ 공장 추가 버튼으로 등록하세요</div>'; return; }
+  document.getElementById('factory-list').innerHTML = list.map(f=>`
+    <div class="factory-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div><div class="factory-name">🏭 ${f.name}</div><div style="font-size:12px;color:var(--muted)">${f.location||''}</div></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-s btn-sm" onclick="openFactoryModal('${f.id}')">수정</button>
+          <button class="btn btn-s btn-sm" style="color:var(--red)" onclick="deleteFactory('${f.id}')">삭제</button>
+        </div>
+      </div>
+      <div class="factory-row"><span data-ko="월 CAPA" data-en="Monthly CAPA">월 CAPA</span><strong>${f.capa?Number(f.capa).toLocaleString()+'장':'-'}</strong></div>
+      <div class="factory-row"><span data-ko="가동 라인" data-en="Active Lines">가동 라인</span><strong>${f.active_lines||'-'}개</strong></div>
+    </div>`).join('');
+}
+function openFactoryModal(id) {
+  editFactoryId = id;
+  const f = id ? allFactories.find(x=>x.id===id) : null;
+  document.getElementById('fm-title').textContent = id?'공장 수정':'공장 추가';
+  document.getElementById('fm-name').value = f?.name||'';
+  document.getElementById('fm-location').value = f?.location||'';
+  document.getElementById('fm-capa').value = f?.capa||'';
+  document.getElementById('fm-lines').value = f?.active_lines||'';
+  document.getElementById('fm-alert').classList.remove('on');
+  document.getElementById('factory-modal').classList.add('on');
+}
+async function saveFactory() {
+  const name = document.getElementById('fm-name').value.trim();
+  if (!name) return showAlert('fm-alert', '공장명을 입력해주세요');
+  const body = {
+    vendor_id: me.id, name,
+    location: document.getElementById('fm-location').value.trim()||null,
+    capa: parseInt(document.getElementById('fm-capa').value)||null,
+    active_lines: parseInt(document.getElementById('fm-lines').value)||null
+  };
+  const btn = document.getElementById('fm-save'); btn.disabled=true; btn.textContent='저장 중...';
+  try {
+    if (editFactoryId) await sb(`factories?id=eq.${editFactoryId}`, 'PATCH', body);
+    else await sb('factories', 'POST', body);
+    closeModal('fm'); await loadAll(); renderFactoryMine();
+  } catch(e) { showAlert('fm-alert', e.message); }
+  finally { btn.disabled=false; btn.textContent='저장'; }
+}
+async function deleteFactory(id) {
+  if (!confirm('이 공장을 삭제하시겠습니까?')) return;
+  try { await sb(`factories?id=eq.${id}`, 'DELETE'); await loadAll(); renderFactoryMine(); }
+  catch(e) { alert(e.message); }
+}
+
+// ── 공장 현황 (마스터) ──
+function renderFactoryAll() {
+  const vid = document.getElementById('fac-vendor-filter').value;
+  let list = allFactories.slice();
+  if (vid) list = list.filter(f=>f.vendor_id===vid);
+  if (!list.length) { document.getElementById('factory-grid').innerHTML='<div class="empty"><div class="empty-t">등록된 공장이 없습니다</div></div>'; return; }
+  const byVendor = {};
+  list.forEach(f=>{
+    const v = allUsers.find(u=>u.id===f.vendor_id);
+    const vname = v?.company_name||'미상';
+    if (!byVendor[vname]) byVendor[vname]=[];
+    byVendor[vname].push(f);
+  });
+  let html = '';
+  for (const [vname, facs] of Object.entries(byVendor)) {
+    const totalCapa = facs.reduce((s,f)=>s+(+f.capa||0),0);
+    const totalLines = facs.reduce((s,f)=>s+(+f.active_lines||0),0);
+    html += `<div style="margin-bottom:20px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">🏭 ${vname}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">공장 ${facs.length}개 · 총 월 CAPA ${totalCapa.toLocaleString()}장/월 · 총 ${totalLines}개 라인</div>
+      ${facs.map(f=>`<div class="factory-card">
+        <div class="factory-name">${f.name}</div>
+        <div class="factory-row"><span>위치</span><strong>${f.location||'-'}</strong></div>
+        <div class="factory-row"><span>월 CAPA</span><strong>${f.capa?Number(f.capa).toLocaleString()+'장':'-'}</strong></div>
+        <div class="factory-row"><span>가동 라인</span><strong>${f.active_lines||'-'}개</strong></div>
+      </div>`).join('')}
+    </div>`;
+  }
+  document.getElementById('factory-grid').innerHTML = html;
+}
+
+// ── CS 클레임 입력 ──
+function renderCs() {
+  const q = (document.getElementById('cs-search').value||'').toLowerCase();
+  let list = allOrders.slice();
+  if (q) list = list.filter(o=>(o.style_no||'').toLowerCase().includes(q)||(o.style_name||'').toLowerCase().includes(q));
+  if (!list.length) { document.getElementById('cs-tbl').innerHTML='<div class="empty"><div class="empty-t">오더가 없습니다</div></div>'; return; }
+  document.getElementById('cs-tbl').innerHTML = `
+    <div class="tbl-wrap"><table>
+    <thead><tr><th>스타일번호</th><th>스타일명</th><th>벤더</th><th>오더</th><th>벤더 불량</th><th>CS 확정 불량</th><th>불량률</th><th>관리</th></tr></thead>
+    <tbody>
+    ${list.map(o=>{
+      const v = allUsers.find(u=>u.id===o.vendor_id);
+      const hasCs = o.cs_defect_qty != null;
+      const fail = hasCs ? o.cs_defect_qty : (o.vendor_fail_qty||0);
+      const def = o.order_qty && fail ? ((fail/o.order_qty)*100).toFixed(1) : '0.0';
+      return `<tr>
+        <td data-label="스타일번호" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--purple);font-weight:700">${o.style_no}</td>
+        <td data-label="스타일명"><strong>${o.style_name}</strong></td>
+        <td data-label="벤더">${v?.company_name||'-'}</td>
+        <td data-label="오더">${Number(o.order_qty).toLocaleString()}장</td>
+        <td data-label="벤더 불량" style="color:${o.vendor_fail_qty>0?'var(--ora)':'var(--muted)'}">${o.vendor_fail_qty>0?Number(o.vendor_fail_qty).toLocaleString()+'장':'-'}</td>
+        <td data-label="CS 확정 불량">${hasCs?'<strong style="color:var(--purple)">'+Number(o.cs_defect_qty).toLocaleString()+'장</strong>':'<span style="color:var(--muted)">미입력</span>'}</td>
+        <td data-label="불량률" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'700':''}">${def}%${hasCs?' <span class="bdg bdg-cs" style="font-size:9px">CS확정</span>':''}</td>
+        <td data-label="관리"><button class="btn btn-purple btn-sm" onclick="openCsModal('${o.id}')">${hasCs?'수정':'입력'}</button></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+}
+function openCsModal(orderId) {
+  activeOrderId = orderId;
+  const o = allOrders.find(x=>x.id===orderId);
+  if (!o) return;
+  const v = allUsers.find(u=>u.id===o.vendor_id);
+  document.getElementById('csm-title').textContent = o.style_name;
+  document.getElementById('csm-sub').textContent = `${o.style_no} · ${v?.company_name||''}`;
+  document.getElementById('csm-info').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>오더 수량</span><strong>${Number(o.order_qty).toLocaleString()}장</strong></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>선적 완료</span><strong>${Number(o.shipped_qty||0).toLocaleString()}장</strong></div>
+    <div style="display:flex;justify-content:space-between"><span>벤더 입력 불량</span><strong style="color:var(--ora)">${o.vendor_fail_qty>0?Number(o.vendor_fail_qty).toLocaleString()+'장':'없음'}</strong></div>
+    ${o.cs_defect_qty!=null?`<div style="display:flex;justify-content:space-between;margin-top:4px"><span>기존 CS 불량</span><strong style="color:var(--purple)">${Number(o.cs_defect_qty).toLocaleString()}장</strong></div>`:''}
+  `;
+  document.getElementById('csm-qty').value = o.cs_defect_qty!=null ? o.cs_defect_qty : (o.vendor_fail_qty||'');
+  document.getElementById('csm-date').value = o.cs_inspected_date || today();
+  document.getElementById('csm-inspector').value = o.cs_inspector || me.contact_name || '';
+  document.getElementById('csm-note').value = o.cs_defect_note || '';
+  document.getElementById('csm-alert').classList.remove('on');
+  previewCsRate();
+  document.getElementById('cs-modal').classList.add('on');
+}
+function previewCsRate() {
+  const o = allOrders.find(x=>x.id===activeOrderId);
+  if (!o) return;
+  const qty = +document.getElementById('csm-qty').value||0;
+  const rate = o.order_qty ? ((qty/o.order_qty)*100).toFixed(1) : 0;
+  document.getElementById('csm-rate').textContent = qty>0 ? `→ 불량률 ${rate}% (${qty}장 / ${o.order_qty.toLocaleString()}장)` : '';
+}
+async function saveCsDefect() {
+  const qty = parseInt(document.getElementById('csm-qty').value);
+  if (isNaN(qty) || qty<0) return showAlert('csm-alert', '불량 수량을 입력해주세요');
+  const body = {
+    cs_defect_qty: qty,
+    cs_defect_note: document.getElementById('csm-note').value.trim()||null,
+    cs_inspector: document.getElementById('csm-inspector').value.trim()||null,
+    cs_inspected_date: document.getElementById('csm-date').value||null,
+    inspection_result: qty>0 ? 'fail' : 'pass'
+  };
+  const btn = document.getElementById('csm-save'); btn.disabled=true; btn.textContent='저장 중...';
+  try {
+    await sb(`orders?id=eq.${activeOrderId}`, 'PATCH', body);
+    closeModal('csm'); await loadAll(); renderCs();
+    alert('CS 불량 데이터가 저장되었습니다');
+  } catch(e) { showAlert('csm-alert', e.message); }
+  finally { btn.disabled=false; btn.textContent='저장 확정'; }
+}
+
+// ── 회원 관리 (마스터) ──
+function renderMembers() {
+  const filter = document.getElementById('mem-filter').value;
+  let list = allUsers.filter(u=>u.role!=='master');
+  if (filter) list = list.filter(u=>u.role===filter);
+  list.sort((a,b)=>a.company_name.localeCompare(b.company_name));
+  if (!list.length) { document.getElementById('members-tbl').innerHTML='<div class="empty"><div class="empty-t">회원이 없습니다</div></div>'; return; }
+  const rlbl = {vendor:'벤더',cs:'CS팀',md:'MD'};
+  document.getElementById('members-tbl').innerHTML = `
+    <div class="tbl-wrap"><table>
+    <thead><tr><th>회사명</th><th>역할</th><th>담당자</th><th>이메일</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead>
+    <tbody>
+    ${list.map(u=>`<tr>
+      <td data-label="회사명"><strong>${u.company_name}</strong></td>
+      <td data-label="역할"><span class="bdg bdg-cs">${rlbl[u.role]||u.role}</span></td>
+      <td data-label="담당자">${u.contact_name||'-'}<br><span style="font-size:11px;color:var(--muted)">${u.contact_phone||''}</span></td>
+      <td data-label="이메일" style="font-size:12px">${u.email}</td>
+      <td data-label="가입일" style="font-size:12px">${new Date(u.created_at).toLocaleDateString('ko-KR')}</td>
+      <td data-label="상태"><span class="bdg bdg-${u.status==='active'?'ok':'fail'}">${u.status==='active'?'활성':u.status==='pending'?'대기':'비활성'}</span></td>
+      <td data-label="관리">${u.status==='active'?`<button class="btn btn-s btn-sm" onclick="toggleUser('${u.id}','inactive')">비활성화</button>`:`<button class="btn btn-ok btn-sm" onclick="toggleUser('${u.id}','active')">활성화</button>`}</td>
+    </tr>`).join('')}
+    </tbody></table></div>`;
+}
+async function toggleUser(id, status) {
+  try { await sb(`users?id=eq.${id}`, 'PATCH', {status}); await loadAll(); renderMembers(); }
+  catch(e) { alert(e.message); }
+}
+
+// ── 오류 관리 ──
+function renderErrors() {
+  const filter = document.getElementById('err-filter').value;
+  let list = allErrors.slice();
+  if (filter==='unresolved') list = list.filter(e=>!e.resolved);
+  if (filter==='resolved') list = list.filter(e=>e.resolved);
+  if (!list.length) { document.getElementById('err-tbl').innerHTML='<div class="empty"><div class="empty-t">오류가 없습니다 ✓</div></div>'; return; }
+  document.getElementById('err-tbl').innerHTML = `
+    <div class="tbl-wrap"><table>
+    <thead><tr><th>시각</th><th>유형</th><th>페이지</th><th>사용자</th><th>내용</th><th>상태</th><th>관리</th></tr></thead>
+    <tbody>
+    ${list.map(e=>`<tr style="${e.resolved?'opacity:.5':''}">
+      <td data-label="시각" style="font-size:11px;font-family:'DM Mono',monospace">${(e.created_at||'').slice(0,16).replace('T',' ')}</td>
+      <td data-label="유형"><span class="bdg bdg-cs">${e.type}</span></td>
+      <td data-label="페이지">${e.page||'-'}</td>
+      <td data-label="사용자" style="font-size:12px">${e.vendor_name||'-'}</td>
+      <td data-label="내용" style="font-size:12px"><div style="font-weight:500">${e.message||''}</div>${e.detail?`<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${e.detail}</div>`:''}</td>
+      <td data-label="상태">${e.resolved?'<span class="bdg bdg-ok">해결됨</span>':'<span class="bdg bdg-fail">미해결</span>'}</td>
+      <td data-label="관리">${e.resolved?'':`<button class="btn btn-s btn-sm" onclick="resolveError('${e.id}')">해결됨</button>`}</td>
+    </tr>`).join('')}
+    </tbody></table></div>`;
+}
+async function resolveError(id) {
+  try { await sb(`errors?id=eq.${id}`, 'PATCH', {resolved:true, resolved_at:new Date().toISOString()}); await loadAll(); renderErrors(); }
+  catch(e) { alert(e.message); }
+}
+async function clearResolvedErrors() {
+  if (!confirm('해결된 오류를 모두 삭제하시겠습니까?')) return;
+  try { await sb('errors?resolved=eq.true', 'DELETE'); await loadAll(); renderErrors(); }
+  catch(e) { alert(e.message); }
+}
+
+// ── 매뉴얼 QR ──
+function genQR() {
+  let base = document.getElementById('base-url').value.trim().replace(/\/$/,'');
+  if (!base) base = location.href.replace(/\/[^/]*$/,'');
+  document.getElementById('base-url').value = base;
+  const grid = document.getElementById('qr-grid');
+  grid.innerHTML = '';
+  const url = base + '/' + (location.pathname.split('/').pop() || 'index.html');
+  const card = document.createElement('div');
+  card.className = 'qr-card';
+  card.innerHTML = `<h3>📱 전체 통합 포털</h3><div class="qr-box" id="qr-main"></div><div class="qr-url">${url}</div>`;
+  grid.appendChild(card);
+  if (typeof QRCode !== 'undefined') {
+    new QRCode(document.getElementById('qr-main'), {text:url, width:140, height:140});
+  }
+}
+
+// ── 언어 토글 (한/영) ──
+function applyLang() {
+  const lang = localStorage.getItem('bls_lang') || 'ko';
+  document.querySelectorAll('[data-ko], [data-en]').forEach(el => {
+    const txt = el.getAttribute('data-' + lang);
+    if (txt != null) {
+      if (el.children.length === 0) el.textContent = txt;
+      else {
+        for (const node of el.childNodes) {
+          if (node.nodeType === 3 && node.textContent.trim()) { node.textContent = txt; break; }
+        }
+        if (![...el.childNodes].some(n=>n.nodeType===3 && n.textContent.trim())) el.textContent = txt;
+      }
+    }
+  });
+  document.querySelectorAll('[data-ko-ph], [data-en-ph]').forEach(el => {
+    const txt = el.getAttribute('data-' + lang + '-ph');
+    if (txt != null) el.placeholder = txt;
+  });
+  const t = document.getElementById('lang-toggle');
+  if (t) t.textContent = lang === 'ko' ? '🌐 EN' : '🌐 한';
+  if (me) {
+    const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD') };
+    const sbRole = document.getElementById('sb-role');
+    if (sbRole) sbRole.textContent = roleMap[me.role] || me.role;
+    if (typeof setupFilters === 'function' && allUsers.length) {
+      try { setupFilters(); } catch(e) {}
+    }
+    if (typeof renderDashboard === 'function' && document.getElementById('sec-dashboard')?.classList.contains('on')) {
+      try { renderDashboard(); } catch(e) {}
+    }
+  }
+}
+function toggleLang() {
+  const cur = localStorage.getItem('bls_lang') || 'ko';
+  localStorage.setItem('bls_lang', cur === 'ko' ? 'en' : 'ko');
+  applyLang();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('lang-toggle')?.addEventListener('click', toggleLang);
+});
+
+// ── 오류 자동 수집 ──
+function logErr(type, message, detail) {
+  try {
+    if (!me || !me.id || !me.role) return;
+    sb('errors', 'POST', {
+      type, page: location.pathname.split('/').pop()||'index.html',
+      message: String(message).slice(0,500), detail: detail?String(detail).slice(0,300):null,
+      vendor_id: me.id, vendor_name: '['+me.role+'] '+(me.company_name||'')
+    }).catch(()=>{});
+  } catch(e) {}
+}
+window.addEventListener('error', e=>logErr('JS_ERROR', e.message, `${e.filename}:${e.lineno}`));
+window.addEventListener('unhandledrejection', e=>logErr('PROMISE_ERROR', String(e.reason)));
+</script>
+</body>
+</html>
