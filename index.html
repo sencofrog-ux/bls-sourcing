@@ -26,9 +26,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--txt)
 .tab{flex:1;padding:10px;border:none;background:none;border-radius:6px;font-family:inherit;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer}
 .tab.on{background:var(--surf);color:var(--txt);box-shadow:0 1px 4px rgba(0,0,0,.1)}
 .fg{margin-bottom:14px}
-.fl { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 5px; }
+.fl{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px}
 input,select,textarea{width:100%;padding:12px;border:1px solid var(--bdr);border-radius:var(--r);font-family:inherit;font-size:14px;background:var(--surf);color:var(--txt);outline:none;-webkit-appearance:none}
-input:focus,select:focus,textarea:focus { border-color: var(--ac); }
+input:focus,select:focus,textarea:focus{border-color:var(--ac)}
 textarea{resize:vertical;min-height:70px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
@@ -62,7 +62,7 @@ textarea{resize:vertical;min-height:70px}
 .hamburger{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:8px;margin-left:-8px}
 .content{margin-left:240px;flex:1;min-width:0;width:100%}
 .inner{max-width:1140px;margin:0 auto;padding:24px 20px}
-.sec-hdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.sec-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
 .sec-title{font-size:20px;font-weight:700}
 .sec-sub{font-size:13px;color:var(--muted);margin-top:2px}
 .sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:22px}
@@ -109,7 +109,7 @@ tbody tr:hover{background:var(--bg)}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto}
 .overlay.on{display:flex}
 .modal{background:var(--surf);border-radius:16px;width:100%;max-width:600px;margin:auto;box-shadow:0 4px 24px rgba(0,0,0,.15);overflow:hidden;animation:pop .25s ease-out}
-@keyframes pop { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes pop{from{transform:translateY(15px);opacity:0}to{transform:translateY(0);opacity:1}}
 .mhdr{padding:18px 20px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
 .mhdr-t{font-size:16px;font-weight:700;line-height:1.3}
 .mhdr-s{font-size:12px;color:var(--muted);margin-top:3px}
@@ -121,7 +121,7 @@ tbody tr:hover{background:var(--bg)}
 .empty{text-align:center;padding:40px 20px;color:var(--muted);background:var(--surf);border-radius:12px;border:1px solid var(--bdr)}
 .empty-t{font-size:14px;font-weight:500;color:var(--txt);margin-bottom:4px}
 .loading{text-align:center;padding:40px;color:var(--muted)}
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin{to{transform:rotate(360deg)}}
 .spin{width:24px;height:24px;border:2px solid var(--bdr);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
 .card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:14px}
 .card-hdr{padding:14px 18px;border-bottom:1px solid var(--bdr);font-size:14px;font-weight:600}
@@ -129,7 +129,7 @@ tbody tr:hover{background:var(--bg)}
 .factory-card{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px;margin-bottom:10px}
 .factory-name{font-size:14px;font-weight:600;margin-bottom:6px}
 .factory-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:2px}
-.factory-row strong { color: var(--txt); }
+.factory-row strong{color:var(--txt)}
 .view-tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--bdr)}
 .view-tab{padding:10px 16px;border:none;background:none;font-family:inherit;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
 .view-tab.on{color:var(--ac);border-bottom-color:var(--ac)}
@@ -146,26 +146,26 @@ tbody tr:hover{background:var(--bg)}
 .manual-step{display:flex;gap:12px;margin:10px 0;align-items:flex-start}
 .manual-step-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--acl);color:var(--ac);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
 .bls-footer{position:fixed;right:12px;bottom:10px;font-size:11px;color:#999;z-index:50;background:rgba(255,255,255,.7);padding:3px 8px;border-radius:6px}
-@media (max-width: 992px) {
-  .content { margin-left: 0; }
-  .sidebar { transform: translateX(-100%); box-shadow: 4px 0 16px rgba(0,0,0,.1); }
-  .sidebar.open { transform: translateX(0); }
-  .inner { padding: 16px 12px; }
-  .row2, .row3 { grid-template-columns: 1fr; gap: 4px; }
-  .fsearch { max-width: 100%; }
-  .tbl-wrap { border: none; background: none; }
-  table, thead, tbody, tr, td { display: block; width: 100%; }
-  table { min-width: 100%; }
-  thead { display: none; }
-  tbody tr { background: var(--surf); border: 1px solid var(--bdr); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,.02); }
-  tbody td { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; align-items: center; text-align: right; font-size: 13px; }
-  tbody td:last-child { border-bottom: none; padding-top: 12px; justify-content: center; }
-  tbody td::before { content: attr(data-label); font-weight: 500; color: var(--muted); text-align: left; font-size: 12px; }
-  .btn-sm { width: 100%; padding: 10px; font-size: 13px; }
-  .cal-cell { min-height: 70px; padding: 4px; font-size: 10px; }
-  .cal-event { font-size: 9px; padding: 1px 3px; }
-  .pend-card .btn { width: 100%; }
-  .bls-footer { font-size: 9px; right: 6px; bottom: 6px; }
+@media(max-width:992px){
+  .content{margin-left:0}
+  .sidebar{transform:translateX(-100%);box-shadow:4px 0 16px rgba(0,0,0,.1)}
+  .sidebar.open{transform:translateX(0)}
+  .inner{padding:16px 12px}
+  .row2,.row3{grid-template-columns:1fr;gap:4px}
+  .fsearch{max-width:100%}
+  .tbl-wrap{border:none;background:none}
+  table,thead,tbody,tr,td{display:block;width:100%}
+  table{min-width:100%}
+  thead{display:none}
+  tbody tr{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.02)}
+  tbody td{padding:8px 0;border-bottom:1px dashed #eee;display:flex;justify-content:space-between;align-items:center;text-align:right;font-size:13px}
+  tbody td:last-child{border-bottom:none;padding-top:12px;justify-content:center}
+  tbody td::before{content:attr(data-label);font-weight:500;color:var(--muted);text-align:left;font-size:12px}
+  .btn-sm{width:100%;padding:10px;font-size:13px}
+  .cal-cell{min-height:70px;padding:4px;font-size:10px}
+  .cal-event{font-size:9px;padding:1px 3px}
+  .pend-card .btn{width:100%}
+  .bls-footer{font-size:9px;right:6px;bottom:6px}
 }
 </style>
 </head>
@@ -173,6 +173,7 @@ tbody tr:hover{background:var(--bg)}
 
 <div class="sb-shade" id="sb-shade"></div>
 
+<!-- 인증 -->
 <div class="pg on" id="pg-auth">
   <div class="auth-wrap">
     <div class="auth-box">
@@ -213,11 +214,12 @@ tbody tr:hover{background:var(--bg)}
   </div>
 </div>
 
+<!-- 앱 -->
 <div class="pg" id="pg-app">
   <div class="topbar">
     <button class="hamburger" id="hamburger">☰</button>
     <span style="font-size:15px;font-weight:700" id="topbar-title">BLS Sourcing</span>
-    <span></span>
+    <button id="lang-toggle" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 12px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">🌐 EN</button>
   </div>
 
   <div class="app-wrap">
@@ -228,29 +230,32 @@ tbody tr:hover{background:var(--bg)}
         <div class="sb-role" id="sb-role">권한</div>
       </div>
       <nav class="sb-nav" id="sb-nav"></nav>
-      <div class="sb-foot"><button class="sb-logout" id="logout-btn">로그아웃</button></div>
+      <div class="sb-foot"><button class="sb-logout" id="logout-btn" data-ko="로그아웃" data-en="Logout">로그아웃</button></div>
     </aside>
 
     <div class="content">
       <div class="inner">
 
+        <!-- 대시보드 -->
         <div class="sec on" id="sec-dashboard">
-          <div class="sec-hdr"><div><div class="sec-title" id="dash-title">대시보드</div><div class="sec-sub" id="dash-sub">전체 생산 현황</div></div>
+          <div class="sec-hdr"><div><div class="sec-title" id="dash-title" data-ko="대시보드" data-en="Dashboard">대시보드</div><div class="sec-sub" id="dash-sub" data-ko="전체 생산 현황" data-en="Overall Production Status">전체 생산 현황</div></div>
             <select class="fsel" id="dash-season"><option value="">전체 시즌</option></select>
           </div>
           <div class="sum-grid" id="sum-grid"></div>
           <div class="filter-row">
             <select class="fsel" id="ord-vendor"><option value="">전체 벤더</option></select>
-            <input class="fsearch" type="text" id="ord-search" placeholder="스타일명/번호 검색">
+            <input class="fsearch" type="text" id="ord-search" data-ko-ph="스타일명/번호 검색" data-en-ph="Search style name/number" placeholder="스타일명/번호 검색">
           </div>
           <div id="ord-tbl"></div>
         </div>
 
+        <!-- 승인 대기 (마스터) -->
         <div class="sec" id="sec-pending">
           <div class="sec-hdr"><div><div class="sec-title">승인 대기</div><div class="sec-sub">회원가입 신청 검토</div></div></div>
           <div id="pend-list"></div>
         </div>
 
+        <!-- 오더 등록 (마스터, MD) -->
         <div class="sec" id="sec-order-reg">
           <div class="sec-hdr"><div><div class="sec-title">오더 등록</div><div class="sec-sub">시즌별 스타일을 벤더에게 배정</div></div></div>
           <div class="card" style="max-width:680px"><div class="card-body">
@@ -286,12 +291,14 @@ tbody tr:hover{background:var(--bg)}
           </div>
         </div>
 
+        <!-- 선적 요청 관리 (마스터) -->
         <div class="sec" id="sec-shipreq">
           <div class="sec-hdr"><div><div class="sec-title">선적 요청 관리</div><div class="sec-sub">벤더의 부킹 요청 검토 및 확정</div></div></div>
           <div class="filter-row"><select class="fsel" id="sr-filter"><option value="">전체</option><option value="requested">요청됨</option><option value="confirmed">확정</option><option value="rejected">거절</option></select></div>
           <div id="sr-tbl"></div>
         </div>
 
+        <!-- 입고 일정표 (마스터) -->
         <div class="sec" id="sec-inbound">
           <div class="sec-hdr"><div><div class="sec-title">입고 일정표</div><div class="sec-sub">확정된 선적 기준 입고 일정</div></div>
             <button class="btn btn-s btn-sm" id="inbound-print">🖨️ 인쇄</button>
@@ -304,31 +311,36 @@ tbody tr:hover{background:var(--bg)}
           <div class="view-pane" id="view-inbound-cal"><div id="inbound-cal"></div></div>
         </div>
 
+        <!-- 공장 관리 (벤더) -->
         <div class="sec" id="sec-factory-mine">
-          <div class="sec-hdr"><div><div class="sec-title">공장 관리</div><div class="sec-sub">생산 공장과 CAPA 정보를 등록하세요</div></div>
-            <button class="btn btn-p btn-sm" id="new-factory-btn" style="width:auto">+ 공장 추가</button>
+          <div class="sec-hdr"><div><div class="sec-title" data-ko="공장 관리" data-en="Factory Management">공장 관리</div><div class="sec-sub" data-ko="생산 공장과 CAPA 정보를 등록하세요" data-en="Register your production factories and capacity">생산 공장과 CAPA 정보를 등록하세요</div></div>
+            <button class="btn btn-p btn-sm" id="new-factory-btn" style="width:auto" data-ko="+ 공장 추가" data-en="+ Add Factory">+ 공장 추가</button>
           </div>
           <div id="factory-list"></div>
         </div>
 
+        <!-- 공장 현황 (마스터) -->
         <div class="sec" id="sec-factory-all">
           <div class="sec-hdr"><div><div class="sec-title">공장 현황</div><div class="sec-sub">벤더별 생산 공장 CAPA 및 가동 라인</div></div></div>
           <div class="filter-row"><select class="fsel" id="fac-vendor-filter"><option value="">전체 벤더</option></select></div>
           <div id="factory-grid"></div>
         </div>
 
+        <!-- CS 클레임 (CS, 마스터) -->
         <div class="sec" id="sec-cs">
           <div class="sec-hdr"><div><div class="sec-title">🔍 CS 클레임 / 불량 입력</div><div class="sec-sub">입고 후 최종 불량을 확정합니다. CS 입력값이 최종값으로 반영됩니다.</div></div></div>
-          <div class="filter-row"><input class="fsearch" type="text" id="cs-search" placeholder="스타일번호/스타일명 신속 검색"></div>
+          <div class="filter-row"><input class="fsearch" type="text" id="cs-search" placeholder="스타일번호/스타일명 검색"></div>
           <div id="cs-tbl"></div>
         </div>
 
+        <!-- 회원 관리 (마스터) -->
         <div class="sec" id="sec-members">
           <div class="sec-hdr"><div><div class="sec-title">회원 관리</div><div class="sec-sub">전체 벤더/CS/MD 계정 관리</div></div></div>
           <div class="filter-row"><select class="fsel" id="mem-filter"><option value="">전체</option><option value="vendor">벤더</option><option value="cs">CS팀</option><option value="md">MD</option></select></div>
           <div id="members-tbl"></div>
         </div>
 
+        <!-- 오류 관리 (마스터) -->
         <div class="sec" id="sec-errors">
           <div class="sec-hdr"><div><div class="sec-title">오류 관리</div><div class="sec-sub">사이트 오류 로그</div></div>
             <button class="btn btn-s btn-sm" id="err-clear-btn">✓ 해결된 오류 삭제</button>
@@ -337,6 +349,7 @@ tbody tr:hover{background:var(--bg)}
           <div id="err-tbl"></div>
         </div>
 
+        <!-- 매뉴얼 -->
         <div class="sec" id="sec-manual">
           <div class="sec-hdr"><div><div class="sec-title">📖 사용 매뉴얼</div><div class="sec-sub">시스템 사용법 및 모바일 QR 코드</div></div></div>
           <div class="manual-section">
@@ -382,38 +395,41 @@ tbody tr:hover{background:var(--bg)}
   </div>
 </div>
 
+<!-- 생산 입력 모달 (벤더) -->
 <div class="overlay" id="vendor-modal">
   <div class="modal">
     <div class="mhdr"><div><div class="mhdr-t" id="vm-title"></div><div class="mhdr-s" id="vm-sub"></div></div><button class="mclose" id="vm-close">×</button></div>
     <div class="mbody">
       <div class="alert alert-e" id="vm-alert"></div>
-      <div class="modal-section-title">🏭 생산 공장 / 라인</div>
+      <div class="modal-section-title" data-ko="🏭 생산 공장 / 라인" data-en="🏭 Factory / Line">🏭 생산 공장 / 라인</div>
       <div class="row2">
-        <div class="fg"><label class="fl">생산 공장명</label><input type="text" id="vm-factory" placeholder="예: 닝보 제1공장"></div>
-        <div class="fg"><label class="fl">생산 라인</label><input type="text" id="vm-line" placeholder="A라인"></div>
+        <div class="fg"><label class="fl" data-ko="생산 공장 선택 *" data-en="Select Factory *">생산 공장 선택 *</label><select id="vm-factory"></select></div>
+        <div class="fg"><label class="fl" data-ko="생산 라인" data-en="Production Line">생산 라인</label><input type="text" id="vm-line" placeholder="A라인"></div>
       </div>
-      <div class="modal-section-title">📦 생산 현황</div>
+      <div id="vm-factory-info" style="background:var(--vendorl);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--vendor);margin-bottom:14px;display:none"></div>
+      <div class="modal-section-title" data-ko="📦 생산 현황" data-en="📦 Production Status">📦 생산 현황</div>
       <div class="row2">
-        <div class="fg"><label class="fl">누적 생산 완료 (장)</label><input type="number" id="vm-produced" placeholder="0"></div>
-        <div class="fg"><label class="fl">생산중 불량 (장)</label><input type="number" id="vm-fail" placeholder="0"></div>
+        <div class="fg"><label class="fl" data-ko="누적 생산 완료 (장)" data-en="Total Produced (pcs)">누적 생산 완료 (장)</label><input type="number" id="vm-produced" placeholder="0"></div>
+        <div class="fg"><label class="fl" data-ko="생산중 불량 (장)" data-en="Defects in Production">생산중 불량 (장)</label><input type="number" id="vm-fail" placeholder="0"></div>
       </div>
-      <div class="fg"><label class="fl">원단 입고량 (yds)</label><input type="number" id="vm-fab-qty" placeholder="0"></div>
-      <div class="modal-section-title">📅 일정</div>
+      <div class="fg"><label class="fl" data-ko="원단 입고량 (yds)" data-en="Fabric Received (yds)">원단 입고량 (yds)</label><input type="number" id="vm-fab-qty" placeholder="0"></div>
+      <div class="modal-section-title" data-ko="📅 일정" data-en="📅 Schedule">📅 일정</div>
       <div class="row2">
-        <div class="fg"><label class="fl">생산완료 예정일</label><input type="date" id="vm-plan-date"></div>
-        <div class="fg"><label class="fl">실제 생산완료일</label><input type="date" id="vm-actual-date"></div>
+        <div class="fg"><label class="fl" data-ko="생산완료 예정일" data-en="Planned Completion Date">생산완료 예정일</label><input type="date" id="vm-plan-date"></div>
+        <div class="fg"><label class="fl" data-ko="실제 생산완료일" data-en="Actual Completion Date">실제 생산완료일</label><input type="date" id="vm-actual-date"></div>
       </div>
-      <div class="modal-section-title">📝 비고</div>
-      <div class="fg"><label class="fl">지연 사유</label><input type="text" id="vm-delay"></div>
-      <div class="fg"><label class="fl">상태 메모</label><textarea id="vm-notes"></textarea></div>
+      <div class="modal-section-title" data-ko="📝 비고" data-en="📝 Notes">📝 비고</div>
+      <div class="fg"><label class="fl" data-ko="지연 사유" data-en="Delay Reason">지연 사유</label><input type="text" id="vm-delay"></div>
+      <div class="fg"><label class="fl" data-ko="상태 메모" data-en="Status Memo">상태 메모</label><textarea id="vm-notes"></textarea></div>
     </div>
     <div class="mfooter">
-      <button class="btn btn-s btn-sm" id="vm-cancel">취소</button>
-      <button class="btn btn-p btn-sm" id="vm-save" style="width:auto">저장</button>
+      <button class="btn btn-s btn-sm" id="vm-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="vm-save" style="width:auto" data-ko="저장" data-en="Save">저장</button>
     </div>
   </div>
 </div>
 
+<!-- 선적 요청 모달 (벤더) -->
 <div class="overlay" id="shipreq-modal">
   <div class="modal" style="max-width:480px">
     <div class="mhdr"><div><div class="mhdr-t">선적 부킹 요청</div><div class="mhdr-s">생산 완료분에 대해 ETD 부킹을 신청합니다</div></div><button class="mclose" id="sr-close">×</button></div>
@@ -438,6 +454,7 @@ tbody tr:hover{background:var(--bg)}
   </div>
 </div>
 
+<!-- CS 불량 입력 모달 -->
 <div class="overlay" id="cs-modal">
   <div class="modal">
     <div class="mhdr"><div><div class="mhdr-t" id="csm-title" style="color:var(--purple)">CS 클레임 / 불량 입력</div><div class="mhdr-s" id="csm-sub"></div></div><button class="mclose" id="csm-close">×</button></div>
@@ -459,26 +476,27 @@ tbody tr:hover{background:var(--bg)}
   </div>
 </div>
 
+<!-- 공장 추가/수정 모달 -->
 <div class="overlay" id="factory-modal">
   <div class="modal" style="max-width:460px">
     <div class="mhdr"><div><div class="mhdr-t" id="fm-title">공장 추가</div></div><button class="mclose" id="fm-close">×</button></div>
     <div class="mbody">
       <div class="alert alert-e" id="fm-alert"></div>
-      <div class="fg"><label class="fl">공장명 *</label><input type="text" id="fm-name" placeholder="닝보 제1공장"></div>
-      <div class="fg"><label class="fl">위치</label><input type="text" id="fm-location" placeholder="중국 닝보"></div>
+      <div class="fg"><label class="fl" data-ko="공장명 *" data-en="Factory Name *">공장명 *</label><input type="text" id="fm-name" placeholder="닝보 제1공장"></div>
+      <div class="fg"><label class="fl" data-ko="위치" data-en="Location">위치</label><input type="text" id="fm-location" placeholder="중국 닝보"></div>
       <div class="row2">
-        <div class="fg"><label class="fl">일일 CAPA (장/일)</label><input type="number" id="fm-capa" placeholder="3000"></div>
-        <div class="fg"><label class="fl">가동 라인 수</label><input type="number" id="fm-lines" placeholder="5"></div>
+        <div class="fg"><label class="fl" data-ko="월 CAPA (장/월)" data-en="Monthly CAPA (pcs/month)">월 CAPA (장/월)</label><input type="number" id="fm-capa" placeholder="90000"></div>
+        <div class="fg"><label class="fl" data-ko="가동 라인 수" data-en="Active Lines">가동 라인 수</label><input type="number" id="fm-lines" placeholder="5"></div>
       </div>
-      <div class="fg"><label class="fl">생산 품목</label><textarea id="fm-products" placeholder="A라인-블레이저, B라인-코트"></textarea></div>
     </div>
     <div class="mfooter">
-      <button class="btn btn-s btn-sm" id="fm-cancel">취소</button>
-      <button class="btn btn-p btn-sm" id="fm-save" style="width:auto">저장</button>
+      <button class="btn btn-s btn-sm" id="fm-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="fm-save" style="width:auto" data-ko="저장" data-en="Save">저장</button>
     </div>
   </div>
 </div>
 
+<!-- 캘린더 날짜 클릭 모달 -->
 <div class="overlay" id="day-modal">
   <div class="modal" style="max-width:520px">
     <div class="mhdr"><div><div class="mhdr-t" id="dm-title"></div><div class="mhdr-s" id="dm-sub"></div></div><button class="mclose" id="dm-close">×</button></div>
@@ -601,6 +619,7 @@ async function launchApp() {
   buildSidebar();
   bindAppEvents();
   await loadAll();
+  applyLang();
 }
 
 function buildSidebar() {
@@ -620,9 +639,9 @@ function buildSidebar() {
       <button class="nav-btn" data-sec="manual">📖 매뉴얼</button>`;
   } else if (me.role === 'vendor') {
     menu = `
-      <button class="nav-btn on" data-sec="dashboard">📋 내 오더 현황</button>
-      <button class="nav-btn" data-sec="factory-mine">🏭 공장 관리</button>
-      <button class="nav-btn" data-sec="manual">📖 매뉴얼</button>`;
+      <button class="nav-btn on" data-sec="dashboard" data-ko="📋 내 오더 현황" data-en="📋 My Orders">📋 내 오더 현황</button>
+      <button class="nav-btn" data-sec="factory-mine" data-ko="🏭 공장 관리" data-en="🏭 Factory Management">🏭 공장 관리</button>
+      <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
   } else if (me.role === 'cs') {
     menu = `
       <button class="nav-btn on" data-sec="cs">🔍 CS 클레임 입력</button>
@@ -637,6 +656,7 @@ function buildSidebar() {
   nav.innerHTML = menu;
   nav.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click', ()=>switchSec(b.dataset.sec)));
 
+  // CS는 기본으로 CS 메뉴 활성화
   if (me.role === 'cs') {
     document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
     document.getElementById('sec-cs').classList.add('on');
@@ -648,6 +668,7 @@ function switchSec(id) {
   document.getElementById('sec-'+id).classList.add('on');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('on', b.dataset.sec===id));
   closeSidebar();
+  // 섹션 진입 시 데이터 갱신
   if (id === 'pending') renderPending();
   if (id === 'shipreq') renderShipReqs();
   if (id === 'inbound') renderInbound();
@@ -666,15 +687,19 @@ function bindAppEvents() {
   document.getElementById('sb-shade').addEventListener('click', closeSidebar);
   document.getElementById('logout-btn').addEventListener('click', ()=>{ localStorage.removeItem('bls_user'); location.reload(); });
 
+  // 대시보드 필터
   document.getElementById('dash-season').addEventListener('change', renderDashboard);
   document.getElementById('ord-vendor').addEventListener('change', renderDashboard);
   document.getElementById('ord-search').addEventListener('input', renderDashboard);
 
+  // 오더 등록
   document.getElementById('reg-submit').addEventListener('click', submitOrder);
   document.getElementById('add-season-btn').addEventListener('click', addSeason);
 
+  // 선적 요청 필터
   document.getElementById('sr-filter').addEventListener('change', renderShipReqs);
 
+  // 입고일정표
   document.getElementById('inbound-print').addEventListener('click', ()=>window.print());
   document.querySelectorAll('[data-iview]').forEach(b=>b.addEventListener('click', ()=>{
     document.querySelectorAll('[data-iview]').forEach(x=>x.classList.remove('on'));
@@ -684,16 +709,21 @@ function bindAppEvents() {
     if (b.dataset.iview === 'cal') renderInboundCalendar();
   }));
 
+  // 공장 관리
   document.getElementById('new-factory-btn').addEventListener('click', ()=>openFactoryModal(null));
   document.getElementById('fac-vendor-filter').addEventListener('change', renderFactoryAll);
 
-  // 🚨 요구사항 1번 구현: CS 검색창 입력 시 자동으로 renderCs 필터 엔진 즉시 재호출 트리거
+  // CS 검색
   document.getElementById('cs-search').addEventListener('input', renderCs);
 
+  // 회원관리 필터
   document.getElementById('mem-filter').addEventListener('change', renderMembers);
+
+  // 오류 필터
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
+  // 모달 닫기들
   ['vm','sr','csm','fm','dm'].forEach(prefix=>{
     document.getElementById(prefix+'-close')?.addEventListener('click', ()=>closeModal(prefix));
     document.getElementById(prefix+'-cancel')?.addEventListener('click', ()=>closeModal(prefix));
@@ -704,9 +734,11 @@ function bindAppEvents() {
   document.getElementById('factory-modal').addEventListener('click', e=>{ if(e.target.id==='factory-modal') closeModal('fm'); });
   document.getElementById('day-modal').addEventListener('click', e=>{ if(e.target.id==='day-modal') closeModal('dm'); });
 
+  // 저장 버튼
   document.getElementById('vm-save').addEventListener('click', saveVendorProduction);
   document.getElementById('sr-save').addEventListener('click', saveShipReq);
   document.getElementById('csm-save').addEventListener('click', saveCsDefect);
+  document.getElementById('fm-save').addEventListener('click', saveFactory);
   document.getElementById('csm-qty').addEventListener('input', previewCsRate);
 }
 function closeModal(prefix) {
@@ -714,6 +746,7 @@ function closeModal(prefix) {
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
+// ── 전체 데이터 로드 ──
 async function loadAll() {
   try {
     [allUsers, allSeasons, allOrders, allFactories, allShipReqs, allErrors] = await Promise.all([
@@ -726,8 +759,6 @@ async function loadAll() {
     ]);
     setupFilters();
     renderDashboard();
-    // 타계정 화면 갱신 대비 CS 렌더 싱크 가동
-    if(document.getElementById('sec-cs').classList.contains('on')) renderCs();
     updateBadges();
   } catch(e) { console.error(e); alert('데이터 로드 실패: '+e.message); }
 }
@@ -742,31 +773,33 @@ function updateBadges() {
 }
 
 function setupFilters() {
+  // 시즌 셀렉트들
   const dashSel = document.getElementById('dash-season');
   const regSel = document.getElementById('reg-season');
-  if(dashSel) dashSel.innerHTML = '<option value="">전체 시즌</option>';
+  dashSel.innerHTML = '<option value="">전체 시즌</option>';
   if(regSel) regSel.innerHTML = '';
   allSeasons.forEach(s=>{
-    if(dashSel) dashSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`;
+    dashSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`;
     if (regSel) regSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`;
   });
-  const smgr = document.getElementById('season-list');
-  if(smgr) smgr.textContent = '등록된 시즌: ' + allSeasons.map(s=>s.name).join(', ');
+  document.getElementById('season-list').textContent = '등록된 시즌: ' + allSeasons.map(s=>s.name).join(', ');
 
+  // 벤더 셀렉트들
   const vendors = allUsers.filter(u=>u.role==='vendor' && u.status==='active');
   const dashV = document.getElementById('ord-vendor');
   const regV = document.getElementById('reg-vendor');
   const facV = document.getElementById('fac-vendor-filter');
-  if(dashV) dashV.innerHTML = '<option value="">전체 벤더</option>';
-  if(facV) facV.innerHTML = '<option value="">전체 벤더</option>';
+  dashV.innerHTML = '<option value="">전체 벤더</option>';
+  facV.innerHTML = '<option value="">전체 벤더</option>';
   if(regV) regV.innerHTML = '';
   vendors.forEach(v=>{
-    if(dashV) dashV.innerHTML += `<option value="${v.id}">${v.company_name}</option>`;
-    if(facV) facV.innerHTML += `<option value="${v.id}">${v.company_name}</option>`;
+    dashV.innerHTML += `<option value="${v.id}">${v.company_name}</option>`;
+    facV.innerHTML += `<option value="${v.id}">${v.company_name}</option>`;
     if (regV) regV.innerHTML += `<option value="${v.id}">${v.company_name}</option>`;
   });
 }
 
+// ── 대시보드 ──
 function getVisibleOrders() {
   let list = allOrders.slice();
   if (me.role === 'vendor') list = list.filter(o=>o.vendor_id===me.id);
@@ -778,13 +811,12 @@ function getVisibleOrders() {
   if (q) list = list.filter(o=>(o.style_no||'').toLowerCase().includes(q)||(o.style_name||'').toLowerCase().includes(q));
   return list;
 }
-
-// ── 대시보드 ──
 function renderDashboard() {
   const list = getVisibleOrders();
+  // 타이틀
   const titles = {master:'전체 오더 현황',vendor:'내 오더 현황',cs:'전체 오더 현황',md:'전체 오더 현황'};
   document.getElementById('dash-title').textContent = titles[me.role] || '대시보드';
-  
+  // 요약
   let tOrd=0,tPrd=0,tShp=0,delayed=0,csConf=0;
   const t = today();
   for (const o of list) {
@@ -802,9 +834,10 @@ function renderDashboard() {
     <div class="sum-card ${delayed>0?'danger':''}"><div class="sum-lbl">납기 지연</div><div class="sum-val" style="color:${delayed>0?'var(--red)':''}">${delayed}</div><div class="sum-sub">건</div></div>
     <div class="sum-card"><div class="sum-lbl">CS 확정</div><div class="sum-val" style="color:var(--purple)">${csConf}</div><div class="sum-sub">건</div></div>`;
 
+  // 오더 테이블
   if (!list.length) { document.getElementById('ord-tbl').innerHTML = '<div class="empty"><div class="empty-t">오더가 없습니다</div></div>'; return; }
-  
-  // 🚨 요구사항 2번 구현: 모든 권한(마스터, MD, 벤더) 계정의 종합 테이블에 CS 불량률을 실시간 연동하여 공유
+  const imap = {pending:'bdg-pend',pass:'bdg-pass',fail:'bdg-fail'};
+  const ilbl = {pending:'검수전',pass:'합격',fail:'불합격'};
   document.getElementById('ord-tbl').innerHTML = `
     <div class="tbl-wrap"><table>
     <thead><tr><th>벤더</th><th>스타일번호</th><th>스타일명</th><th>공장/라인</th><th>오더</th><th>단가</th><th>생산</th><th>선적</th><th>불량률</th><th>선적예정</th><th>상태</th><th></th></tr></thead>
@@ -813,11 +846,9 @@ function renderDashboard() {
       const v = allUsers.find(u=>u.id===o.vendor_id);
       const late = o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty;
       const pct = o.order_qty?Math.round((o.produced_qty||0)/o.order_qty*100):0;
-      
-      // CS 확정값이 있으면 최우선 반영, 없으면 벤더 가접수값 매핑 계산
-      const fail = o.cs_defect_qty !== null ? o.cs_defect_qty : (o.vendor_fail_qty||0);
+      const fail = o.cs_defect_qty ?? o.vendor_fail_qty ?? 0;
       const def = o.order_qty && fail ? ((fail/o.order_qty)*100).toFixed(1) : '0.0';
-      
+      const ir = o.inspection_result||'pending';
       let actBtn = '';
       if (me.role === 'vendor' && o.vendor_id === me.id) {
         actBtn = `<button class="btn btn-sm" style="background:var(--grn);color:#fff" onclick="openVendorModal('${o.id}')">생산 입력</button> <button class="btn btn-s btn-sm" onclick="openShipReqFor('${o.id}')">선적요청</button>`;
@@ -916,7 +947,28 @@ function openVendorModal(orderId) {
   if (!o) return;
   document.getElementById('vm-title').textContent = o.style_name;
   document.getElementById('vm-sub').textContent = `${o.style_no} · 오더 ${Number(o.order_qty).toLocaleString()}장`;
-  document.getElementById('vm-factory').value = o.factory_name||'';
+  
+  // 공장 드롭다운 채우기 (내 공장만)
+  const factorySel = document.getElementById('vm-factory');
+  const myFactories = allFactories.filter(f=>f.vendor_id===me.id);
+  const isKo = (localStorage.getItem('bls_lang')||'ko')==='ko';
+  if (!myFactories.length) {
+    factorySel.innerHTML = `<option value="">${isKo?'⚠️ 먼저 [공장 관리]에서 공장을 등록하세요':'⚠️ Please register factory first in [Factory Management]'}</option>`;
+  } else {
+    factorySel.innerHTML = `<option value="">${isKo?'선택하세요':'Select factory'}</option>` + myFactories.map(f=>`<option value="${f.name}" ${o.factory_name===f.name?'selected':''}>${f.name}${f.capa?' (월 '+Number(f.capa).toLocaleString()+'장)':''}</option>`).join('');
+  }
+  // 공장 선택 시 정보 표시
+  factorySel.onchange = () => {
+    const sel = factorySel.value;
+    const f = myFactories.find(x=>x.name===sel);
+    const info = document.getElementById('vm-factory-info');
+    if (f) {
+      info.style.display='block';
+      info.innerHTML = `📊 ${f.location||'-'} · ${isKo?'월 CAPA':'Monthly CAPA'} ${f.capa?Number(f.capa).toLocaleString()+'장':'-'} · ${isKo?'가동 라인':'Active Lines'} ${f.active_lines||'-'}`;
+    } else { info.style.display='none'; }
+  };
+  factorySel.dispatchEvent(new Event('change'));
+  
   document.getElementById('vm-line').value = o.production_line||'';
   document.getElementById('vm-produced').value = o.produced_qty||'';
   document.getElementById('vm-fail').value = o.vendor_fail_qty||'';
@@ -931,7 +983,7 @@ function openVendorModal(orderId) {
 async function saveVendorProduction() {
   if (!activeOrderId) return;
   const body = {
-    factory_name: document.getElementById('vm-factory').value.trim()||null,
+    factory_name: document.getElementById('vm-factory').value||null,
     production_line: document.getElementById('vm-line').value.trim()||null,
     produced_qty: parseInt(document.getElementById('vm-produced').value)||0,
     vendor_fail_qty: parseInt(document.getElementById('vm-fail').value)||0,
@@ -952,26 +1004,23 @@ async function saveVendorProduction() {
 
 // ── 선적 요청 ──
 function openShipReqFor(orderId) {
+  // 모달 열고 오더 셀렉트 자동 선택
   const sel = document.getElementById('sr-order');
-  if(sel) {
-    sel.innerHTML = '';
-    allOrders.filter(o=>o.vendor_id===me.id).forEach(o=>{
-      sel.innerHTML += `<option value="${o.id}" ${o.id===orderId?'selected':''}>${o.style_no} - ${o.style_name} (생산 ${o.produced_qty||0}/${o.order_qty})</option>`;
-    });
-    sel.onchange = updateSrInfo;
-  }
+  sel.innerHTML = '';
+  allOrders.filter(o=>o.vendor_id===me.id).forEach(o=>{
+    sel.innerHTML += `<option value="${o.id}" ${o.id===orderId?'selected':''}>${o.style_no} - ${o.style_name} (생산 ${o.produced_qty||0}/${o.order_qty})</option>`;
+  });
+  sel.onchange = updateSrInfo;
   updateSrInfo();
-  ['sr-etd','sr-qty','sr-invoice','sr-tracking','sr-notes'].forEach(id=>{ if(document.getElementById(id)) document.getElementById(id).value=''; });
-  if(document.getElementById('sr-alert')) document.getElementById('sr-alert').classList.remove('on');
+  ['sr-etd','sr-qty','sr-invoice','sr-tracking','sr-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sr-alert').classList.remove('on');
   document.getElementById('shipreq-modal').classList.add('on');
 }
 function updateSrInfo() {
-  const sel = document.getElementById('sr-order');
-  if(!sel) return;
-  const oid = sel.value;
+  const oid = document.getElementById('sr-order').value;
   const o = allOrders.find(x=>x.id===oid);
   const box = document.getElementById('sr-info');
-  if (!o || !box) { if(box) box.style.display='none'; return; }
+  if (!o) { box.style.display='none'; return; }
   box.style.display='block';
   box.innerHTML = `오더 <strong>${o.order_qty.toLocaleString()}장</strong> · 생산 <strong>${(o.produced_qty||0).toLocaleString()}장</strong> · 기선적 <strong>${(o.shipped_qty||0).toLocaleString()}장</strong>`;
 }
@@ -1031,6 +1080,7 @@ async function confirmShipReq(reqId, orderId, etd, qty) {
   if (!newEtd) return;
   try {
     await sb(`shipping_requests?id=eq.${reqId}`, 'PATCH', {status:'confirmed', confirmed_etd:newEtd, updated_at:new Date().toISOString()});
+    // 오더의 shipped_qty 누적
     const o = allOrders.find(x=>x.id===orderId);
     const newShipped = (o?.shipped_qty||0) + qty;
     await sb(`orders?id=eq.${orderId}`, 'PATCH', {shipped_qty:newShipped, etd_date:newEtd, ship_date:newEtd});
@@ -1093,6 +1143,7 @@ function renderInboundCalendar() {
   document.querySelectorAll('.cal-cell[data-day]').forEach(c=>c.addEventListener('click', ()=>showDayDetail(c.dataset.day, list, r=>r.etd, r=>({style_no:r.style_no,style_name:r.style_name,qty:r.booking_qty,vendor:r.vendor_name,category:r.category}))));
 }
 
+// ── 캘린더 빌더 ──
 function buildCal(data, year, month, prefix, getDate, getName, getQty) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month+1, 0);
@@ -1153,9 +1204,8 @@ function renderFactoryMine() {
           <button class="btn btn-s btn-sm" style="color:var(--red)" onclick="deleteFactory('${f.id}')">삭제</button>
         </div>
       </div>
-      <div class="factory-row"><span>일일 CAPA</span><strong>${f.capa?Number(f.capa).toLocaleString()+'장':'-'}</strong></div>
-      <div class="factory-row"><span>가동 라인</span><strong>${f.active_lines||'-'}개</strong></div>
-      ${f.products?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);font-size:12px;color:var(--muted)">📋 ${f.products}</div>`:''}
+      <div class="factory-row"><span data-ko="월 CAPA" data-en="Monthly CAPA">월 CAPA</span><strong>${f.capa?Number(f.capa).toLocaleString()+'장':'-'}</strong></div>
+      <div class="factory-row"><span data-ko="가동 라인" data-en="Active Lines">가동 라인</span><strong>${f.active_lines||'-'}개</strong></div>
     </div>`).join('');
 }
 function openFactoryModal(id) {
@@ -1166,7 +1216,6 @@ function openFactoryModal(id) {
   document.getElementById('fm-location').value = f?.location||'';
   document.getElementById('fm-capa').value = f?.capa||'';
   document.getElementById('fm-lines').value = f?.active_lines||'';
-  document.getElementById('fm-products').value = f?.products||'';
   document.getElementById('fm-alert').classList.remove('on');
   document.getElementById('factory-modal').classList.add('on');
 }
@@ -1177,8 +1226,7 @@ async function saveFactory() {
     vendor_id: me.id, name,
     location: document.getElementById('fm-location').value.trim()||null,
     capa: parseInt(document.getElementById('fm-capa').value)||null,
-    active_lines: parseInt(document.getElementById('fm-lines').value)||null,
-    products: document.getElementById('fm-products').value.trim()||null
+    active_lines: parseInt(document.getElementById('fm-lines').value)||null
   };
   const btn = document.getElementById('fm-save'); btn.disabled=true; btn.textContent='저장 중...';
   try {
@@ -1213,31 +1261,24 @@ function renderFactoryAll() {
     const totalLines = facs.reduce((s,f)=>s+(+f.active_lines||0),0);
     html += `<div style="margin-bottom:20px">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px">🏭 ${vname}</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">공장 ${facs.length}개 · 총 CAPA ${totalCapa.toLocaleString()}장/일 · 총 ${totalLines}개 라인</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">공장 ${facs.length}개 · 총 월 CAPA ${totalCapa.toLocaleString()}장/월 · 총 ${totalLines}개 라인</div>
       ${facs.map(f=>`<div class="factory-card">
         <div class="factory-name">${f.name}</div>
         <div class="factory-row"><span>위치</span><strong>${f.location||'-'}</strong></div>
-        <div class="factory-row"><span>일일 CAPA</span><strong>${f.capa?Number(f.capa).toLocaleString()+'장':'-'}</strong></div>
+        <div class="factory-row"><span>월 CAPA</span><strong>${f.capa?Number(f.capa).toLocaleString()+'장':'-'}</strong></div>
         <div class="factory-row"><span>가동 라인</span><strong>${f.active_lines||'-'}개</strong></div>
-        ${f.products?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);font-size:12px;color:var(--muted)">📋 ${f.products}</div>`:''}
       </div>`).join('')}
     </div>`;
   }
   document.getElementById('factory-grid').innerHTML = html;
 }
 
-// ── 🚨 CS 클레임 입력 패널 (요청 사양 1번: 스타일 전용 검색 무선 매핑) ──
+// ── CS 클레임 입력 ──
 function renderCs() {
-  const q = (document.getElementById('cs-search').value||'').toLowerCase().trim();
+  const q = (document.getElementById('cs-search').value||'').toLowerCase();
   let list = allOrders.slice();
-  
-  // 🚨 스타일 번호 또는 스타일명을 기준으로 단사 필터링 가동
-  if (q) {
-    list = list.filter(o=>(o.style_no||'').toLowerCase().includes(q)||(o.style_name||'').toLowerCase().includes(q));
-  }
-  
-  if (!list.length) { document.getElementById('cs-tbl').innerHTML='<div class="empty"><div class="empty-t">검색 결과와 일치하는 스타일 스펙이 없습니다.</div></div>'; return; }
-  
+  if (q) list = list.filter(o=>(o.style_no||'').toLowerCase().includes(q)||(o.style_name||'').toLowerCase().includes(q));
+  if (!list.length) { document.getElementById('cs-tbl').innerHTML='<div class="empty"><div class="empty-t">오더가 없습니다</div></div>'; return; }
   document.getElementById('cs-tbl').innerHTML = `
     <div class="tbl-wrap"><table>
     <thead><tr><th>스타일번호</th><th>스타일명</th><th>벤더</th><th>오더</th><th>벤더 불량</th><th>CS 확정 불량</th><th>불량률</th><th>관리</th></tr></thead>
@@ -1260,7 +1301,6 @@ function renderCs() {
     }).join('')}
     </tbody></table></div>`;
 }
-
 function openCsModal(orderId) {
   activeOrderId = orderId;
   const o = allOrders.find(x=>x.id===orderId);
@@ -1282,7 +1322,6 @@ function openCsModal(orderId) {
   previewCsRate();
   document.getElementById('cs-modal').classList.add('on');
 }
-
 function previewCsRate() {
   const o = allOrders.find(x=>x.id===activeOrderId);
   if (!o) return;
@@ -1290,8 +1329,6 @@ function previewCsRate() {
   const rate = o.order_qty ? ((qty/o.order_qty)*100).toFixed(1) : 0;
   document.getElementById('csm-rate').textContent = qty>0 ? `→ 불량률 ${rate}% (${qty}장 / ${o.order_qty.toLocaleString()}장)` : '';
 }
-
-// ── 🚨 CS 클레임 데이터 마감 커밋 (`saveCsDefect` 고도화) ──
 async function saveCsDefect() {
   const qty = parseInt(document.getElementById('csm-qty').value);
   if (isNaN(qty) || qty<0) return showAlert('csm-alert', '불량 수량을 입력해주세요');
@@ -1302,15 +1339,11 @@ async function saveCsDefect() {
     cs_inspected_date: document.getElementById('csm-date').value||null,
     inspection_result: qty>0 ? 'fail' : 'pass'
   };
-  const btn = document.getElementById('csm-save'); btn.disabled=true; btn.textContent='클라우드 커밋 중...';
+  const btn = document.getElementById('csm-save'); btn.disabled=true; btn.textContent='저장 중...';
   try {
-    // 🚨 요구사항 2번 가동: 불량수 확정 패치 실행
     await sb(`orders?id=eq.${activeOrderId}`, 'PATCH', body);
-    closeModal('csm'); 
-    
-    // 🚨 전 계정(마스터, MD, 벤더) 실시간 대시보드 강제 데이터 로드 피드 리프레시 동기화 가동
-    await loadAll(); 
-    alert('✓ CS 불량 및 클레임 데이터가 저장되었습니다. 전체 대시보드에 실시간 불량률이 즉시 공유됩니다.');
+    closeModal('csm'); await loadAll(); renderCs();
+    alert('CS 불량 데이터가 저장되었습니다');
   } catch(e) { showAlert('csm-alert', e.message); }
   finally { btn.disabled=false; btn.textContent='저장 확정'; }
 }
@@ -1392,13 +1425,52 @@ function genQR() {
   }
 }
 
+// ── 언어 토글 (한/영) ──
+function applyLang() {
+  const lang = localStorage.getItem('bls_lang') || 'ko';
+  document.querySelectorAll('[data-ko], [data-en]').forEach(el => {
+    const txt = el.getAttribute('data-' + lang);
+    if (txt != null) {
+      if (el.children.length === 0) el.textContent = txt;
+      else {
+        for (const node of el.childNodes) {
+          if (node.nodeType === 3 && node.textContent.trim()) { node.textContent = txt; break; }
+        }
+        if (![...el.childNodes].some(n=>n.nodeType===3 && n.textContent.trim())) el.textContent = txt;
+      }
+    }
+  });
+  document.querySelectorAll('[data-ko-ph], [data-en-ph]').forEach(el => {
+    const txt = el.getAttribute('data-' + lang + '-ph');
+    if (txt != null) el.placeholder = txt;
+  });
+  const t = document.getElementById('lang-toggle');
+  if (t) t.textContent = lang === 'ko' ? '🌐 EN' : '🌐 한';
+  // me가 로그인된 상태에서만 대시보드 다시 그리기
+  if (me && typeof renderDashboard === 'function' && document.getElementById('sec-dashboard')?.classList.contains('on')) {
+    try { renderDashboard(); } catch(e) {}
+  }
+}
+function toggleLang() {
+  const cur = localStorage.getItem('bls_lang') || 'ko';
+  localStorage.setItem('bls_lang', cur === 'ko' ? 'en' : 'ko');
+  applyLang();
+}
+// 토글 버튼은 앱 진입 후에만 활성화되어야 함
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('lang-toggle')?.addEventListener('click', toggleLang);
+});
+
+// ── 오류 자동 수집 ──
 function logErr(type, message, detail) {
-  if (!me) return;
-  sb('errors', 'POST', {
-    type, page: location.pathname.split('/').pop()||'index.html',
-    message: String(message).slice(0,500), detail: detail?String(detail).slice(0,300):null,
-    vendor_id: me.id, vendor_name: '['+me.role+'] '+me.company_name
-  }).catch(()=>{});
+  try {
+    if (!me || !me.id || !me.role) return; // 로그인 전이면 무시
+    sb('errors', 'POST', {
+      type, page: location.pathname.split('/').pop()||'index.html',
+      message: String(message).slice(0,500), detail: detail?String(detail).slice(0,300):null,
+      vendor_id: me.id, vendor_name: '['+me.role+'] '+(me.company_name||'')
+    }).catch(()=>{});
+  } catch(e) { /* 자체 오류는 무시 */ }
 }
 window.addEventListener('error', e=>logErr('JS_ERROR', e.message, `${e.filename}:${e.lineno}`));
 window.addEventListener('unhandledrejection', e=>logErr('PROMISE_ERROR', String(e.reason)));
