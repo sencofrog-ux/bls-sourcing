@@ -617,6 +617,9 @@ async function launchApp() {
   document.getElementById('sb-name').textContent = me.company_name;
   const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD') };
   document.getElementById('sb-role').textContent = roleMap[me.role] || me.role;
+  // 벤더는 다른 벤더 정보가 보이면 안 됨 → 벤더 필터 숨기기
+  const ordVendorSel = document.getElementById('ord-vendor');
+  if (ordVendorSel) ordVendorSel.style.display = me.role === 'vendor' ? 'none' : '';
   buildSidebar();
   bindAppEvents();
   await loadAll();
@@ -750,12 +753,20 @@ function closeModal(prefix) {
 // ── 전체 데이터 로드 ──
 async function loadAll() {
   try {
+    // 벤더는 본인 관련 데이터만 받기 (서버 측 필터링 — 보안)
+    const isVendor = me.role === 'vendor';
+    const ordersQuery = isVendor ? `orders?select=*&vendor_id=eq.${me.id}` : 'orders?select=*';
+    const factoriesQuery = isVendor ? `factories?select=*&vendor_id=eq.${me.id}` : 'factories?select=*';
+    const shipReqsQuery = isVendor ? `shipping_requests?select=*&vendor_id=eq.${me.id}` : 'shipping_requests?select=*';
+    // 벤더는 다른 사용자 정보 노출 안 함 — 본인 정보만
+    const usersQuery = isVendor ? `users?select=id,company_name,role&id=eq.${me.id}` : 'users?select=*';
+    
     [allUsers, allSeasons, allOrders, allFactories, allShipReqs, allErrors] = await Promise.all([
-      sb('users?select=*'),
+      sb(usersQuery),
       sb('seasons?select=*'),
-      sb('orders?select=*'),
-      sb('factories?select=*'),
-      sb('shipping_requests?select=*'),
+      sb(ordersQuery),
+      sb(factoriesQuery),
+      sb(shipReqsQuery),
       me.role==='master' ? sb('errors?select=*&order=created_at.desc') : Promise.resolve([])
     ]);
     setupFilters();
