@@ -991,6 +991,139 @@ function handleBulkExcelUpload(e) {
       const sheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
+      const START_ROW = 1;
+      const COL_PO_DATE = 10;
+      const COL_STYLE_NO = 12;
+      const COL_QTY = 19;
+      const COL_TARGET_ETD = 43;
+      const COL_DESC = 45;
+      const COL_SUPPLIER = 47;
+      const COL_FOB = 48;
+      const COL_CURRENCY = 49; // 🆕 통화 컬럼 (엑셀에 추가하면 자동 인식)
+
+      parsedBulkOrders = [];
+      const currentSeasonId = document.getElementById('reg-season').value;
+
+      if (!currentSeasonId) {
+        alert('엑셀 파일을 올리기 전, 오더 등록 폼에서 [시즌]을 먼저 선택해 주세요.');
+        e.target.value = '';
+        return;
+      }
+
+      // 🔑 벤더 이름 정규화 (대소문자, 공백, 특수문자 무시)
+      const normVendor = (n) => String(n||'').toLowerCase().replace(/[\s\-_\.()/\\]/g,'').trim();
+      
+      // 🔑 통화 자동 인식 함수
+      const normCurrency = (raw) => {
+        if (!raw) return 'USD';
+        const s = String(raw).toUpperCase().trim();
+        if (['USD','CNY','KRW','EUR','JPY','VND'].includes(s)) return s;
+        if (s.includes('USD') || s === '$' || s.includes('DOLLAR')) return 'USD';
+        if (s.includes('CNY') || s.includes('RMB') || s.includes('YUAN')) return 'CNY';
+        if (s.includes('KRW') || s.includes('WON') || s === '₩') return 'KRW';
+        if (s.includes('EUR') || s === '€') return 'EUR';
+        if (s.includes('JPY') || s.includes('YEN')) return 'JPY';
+        if (s.includes('VND') || s.includes('DONG') || s === '₫') return 'VND';
+        return 'USD';
+      };
+
+      const getDt = (v) => {
+        if (v instanceof Date) return v.toISOString().slice(0, 10);
+        if (!v) return '-';
+        return String(v).trim().slice(0,10);
+      };
+
+      const unmatchedSet = new Set();
+
+      for (let i = START_ROW; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+
+        const styleNo = row[COL_STYLE_NO] ? String(row[COL_STYLE_NO]).trim() : '';
+        if (!styleNo || styleNo.toLowerCase() === 'style') continue;
+
+        const poDate = getDt(row[COL_PO_DATE]);
+        const qty = parseInt(row[COL_QTY]) || 0;
+        const targetEtd = getDt(row[COL_TARGET_ETD]);
+        const desc = row[COL_DESC] ? String(row[COL_DESC]).trim().replace(/[\r\n\t]+/g, ' ') : '-';
+        const supplier = row[COL_SUPPLIER] ? String(row[COL_SUPPLIER]).trim() : '';
+        const fob = parseFloat(row[COL_FOB]) || 0;
+        const currency = normCurrency(row[COL_CURRENCY]); // 🆕 엑셀에서 통화 자동 인식
+
+        // 🔑 SUPPLIER 컬럼으로 시스템 벤더 자동 매칭
+        const targetName = normVendor(supplier);
+        let matchedVendor = allUsers.find(u => u.role==='vendor' && u.status==='active' && normVendor(u.company_name) === targetName);
+        if (!matchedVendor) {
+          matchedVendor = allUsers.find(u => {
+            if (u.role!=='vendor' || u.status!=='active') return false;
+            const n = normVendor(u.company_name);
+            return n && targetName && (n.includes(targetName) || targetName.includes(n));
+          });
+        }
+        if (!matchedVendor) {
+          unmatchedSet.add(supplier || '(빈칸)');
+          continue; // 매칭 실패한 행은 건너뜀
+        }
+
+        const serializedPoData = `__PO_DATA__||${poDate}||${styleNo}||${qty}||${targetEtd}||${desc}||${supplier}||${fob}||`;
+
+        parsedBulkOrders.push({
+          season_id: currentSeasonId,
+          vendor_id: matchedVendor.id, // 🔑 매칭된 벤더 ID 자동 할당
+          _matched_name: matchedVendor.company_name,
+          _excel_supplier: supplier,
+          style_no: styleNo,
+          style_name: desc.slice(0, 80),
+          category: 'CLOTHING',
+          color: 'AS SORTED',
+          order_qty: qty,
+          unit_price: fob,
+          currency: currency, // 🔑 엑셀에서 읽은 통화 사용
+          planned_ship_date: targetEtd !== '-' ? targetEtd : today(),
+          notes: serializedPoData,
+          shipped_qty: 0,
+          created_by_md: me.role === 'md' ? me.id : null
+        });
+      }
+
+      const unmatched = [...unmatchedSet];
+      if (parsedBulkOrders.length === 0 && unmatched.length === 0) {
+        alert('엑셀 시트 내부에 파싱 가능한 발주 정보 행이 존재하지 않습니다.');
+        document.getElementById('excel-preview-zone').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('preview-count-txt').textContent = `✓ 매칭 성공: ${parsedBulkOrders.length}건${unmatched.length>0?` (⚠️ 매칭 실패: ${unmatched.length}개 벤더)`:''}`;
+      let listHtml = parsedBulkOrders.map((o, idx) => {
+        const note = o._excel_supplier === o._matched_name ? '' : ` <span style="color:#888">[엑셀:${o._excel_supplier}]</span>`;
+        return `[${idx+1}] ${o.style_no} | ${o.order_qty.toLocaleString()}장 | <strong style="color:var(--grn)">→ ${o._matched_name}</strong>${note} | ${CUR_SYM[o.currency]||''}${o.unit_price} ${o.currency} | ETD: ${o.planned_ship_date}`;
+      }).join('<br>');
+      
+      if (unmatched.length > 0) {
+        listHtml += `<br><br><div style="color:var(--red);background:#fdf0ee;padding:8px 10px;border-radius:6px;border:1px solid #f0c0bb;font-family:'Noto Sans KR',sans-serif"><strong>⚠️ 매칭 실패한 벤더 (건너뜀):</strong><br>${unmatched.map(v=>'• '+v).join('<br>')}<br><br>👉 해당 벤더를 [승인 대기]에서 활성화 후 다시 업로드하세요.</div>`;
+      }
+      document.getElementById('preview-list-wrap').innerHTML = listHtml;
+      document.getElementById('excel-preview-zone').style.display = 'block';
+
+    } catch (err) {
+      console.error(err);
+      alert('엑셀 파일 분석 오류: ' + err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = evt.target.result;
+      const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
       // 공유해주신 정규 컬럼 맵핑값 세팅
       const START_ROW = 1;       
       const COL_PO_DATE = 10;    // Unnamed: 10 (PO SEND)
@@ -1075,6 +1208,34 @@ function handleBulkExcelUpload(e) {
 
 // ── 엑셀 데이터 Supabase 순차 일괄 Push ──
 async function submitBulkOrders() {
+  if (parsedBulkOrders.length === 0) return;
+  const btn = document.getElementById('bulk-submit-btn');
+  btn.disabled = true;
+
+  let ok = 0, err = 0;
+  for (let i = 0; i < parsedBulkOrders.length; i++) {
+    try {
+      btn.textContent = `업로드 처리 중... (${i+1}/${parsedBulkOrders.length})`;
+      // 미리보기용 임시 필드 제거 후 전송
+      const payload = {...parsedBulkOrders[i]};
+      delete payload._matched_name;
+      delete payload._excel_supplier;
+      await sb('orders', 'POST', payload);
+      ok++;
+    } catch (e) {
+      console.error(e);
+      err++;
+    }
+  }
+
+  alert(`일괄 처리 작업 완료\n- 정상 등록: ${ok}건\n- 업로드 실패: ${err}건`);
+  document.getElementById('excel-preview-zone').style.display = 'none';
+  parsedBulkOrders = [];
+  await loadAll();
+  btn.disabled = false;
+  btn.textContent = '✓ 위 목록 일괄 업로드하기';
+}
+  
   if (parsedBulkOrders.length === 0) return;
   const btn = document.getElementById('bulk-submit-btn');
   btn.disabled = true;
