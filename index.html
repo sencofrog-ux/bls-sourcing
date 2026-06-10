@@ -1611,13 +1611,16 @@ function renderShipReqs() {
     document.getElementById('sr-tbl').innerHTML = `
       <div style="margin-bottom:12px"><button class="btn btn-p" style="width:auto;padding:14px 24px;font-size:15px" onclick="openShipReqFor(null)">📦 새 선적 요청</button></div>
       <div class="tbl-wrap"><table>
-      <thead><tr><th>부킹 ETD</th><th>스타일</th><th>부킹수량</th><th>확정 ETD</th><th>상태</th></tr></thead>
+      <thead><tr><th>부킹 ETD</th><th>스타일</th><th>발주수량</th><th>잔량</th><th>부킹수량</th><th>확정 ETD</th><th>상태</th></tr></thead>
       <tbody>
       ${list.map(r=>{
         const o = allOrders.find(x=>x.id===r.order_id);
+        const remaining = (o?.order_qty||0) - (o?.shipped_qty||0);
         return `<tr>
           <td data-label="부킹 ETD" style="font-family:'DM Mono',monospace;font-weight:600">${r.booking_etd}</td>
           <td data-label="스타일">${o?.style_no||''}<br><span style="font-size:12px;color:var(--muted)">${o?.style_name||''}</span></td>
+          <td data-label="발주수량">${Number(o?.order_qty||0).toLocaleString()}장</td>
+          <td data-label="잔량"><strong style="color:${remaining>0?'var(--ora)':'var(--grn)'}">${remaining.toLocaleString()}장</strong></td>
           <td data-label="부킹수량"><strong>${Number(r.booking_qty).toLocaleString()}장</strong></td>
           <td data-label="확정 ETD" style="color:var(--grn)">${r.confirmed_etd||'-'}</td>
           <td data-label="상태"><span class="bdg ${smap[r.status]}">${slbl[r.status]}</span></td>
@@ -1629,11 +1632,12 @@ function renderShipReqs() {
 
   document.getElementById('sr-tbl').innerHTML = `
     <div class="tbl-wrap"><table>
-    <thead><tr><th>부킹 ETD</th><th>벤더</th><th>스타일</th><th>부킹수량</th><th>확정 ETD</th><th>상태</th><th>관리</th></tr></thead>
+    <thead><tr><th>부킹 ETD</th><th>벤더</th><th>스타일</th><th>발주수량</th><th>잔량</th><th>부킹수량</th><th>확정 ETD</th><th>상태</th><th>관리</th></tr></thead>
     <tbody>
     ${list.map(r=>{
       const o = allOrders.find(x=>x.id===r.order_id);
       const v = allUsers.find(u=>u.id===r.vendor_id);
+      const remaining = (o?.order_qty||0) - (o?.shipped_qty||0);
       let actBtn = '';
       if (r.status==='requested') actBtn = `<button class="btn btn-ok btn-sm" onclick="confirmShipReq('${r.id}','${r.order_id}','${r.booking_etd}',${r.booking_qty})">확정</button> <button class="btn btn-danger btn-sm" onclick="rejectShipReq('${r.id}')">거절</button>`;
       else actBtn = `<button class="btn btn-s btn-sm" onclick="resetShipReq('${r.id}')">되돌리기</button>`;
@@ -1641,6 +1645,8 @@ function renderShipReqs() {
         <td data-label="부킹 ETD" style="font-family:'DM Mono',monospace;font-weight:600">${r.booking_etd}</td>
         <td data-label="벤더"><strong>${v?.company_name||'-'}</strong></td>
         <td data-label="스타일">${o?.style_no||''}<br>${o?.style_name||''}</td>
+        <td data-label="발주수량">${Number(o?.order_qty||0).toLocaleString()}장</td>
+        <td data-label="잔량"><strong style="color:${remaining>0?'var(--ora)':'var(--grn)'}">${remaining.toLocaleString()}장</strong></td>
         <td data-label="부킹수량">${Number(r.booking_qty).toLocaleString()}장</td>
         <td data-label="확정 ETD" style="color:var(--grn)">${r.confirmed_etd||'-'}</td>
         <td data-label="상태"><span class="bdg ${smap[r.status]}">${slbl[r.status]}</span></td>
