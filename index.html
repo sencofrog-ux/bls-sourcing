@@ -88,6 +88,10 @@ tbody tr:hover{background:var(--bg)}
 .bdg-cs{background:var(--purplel);color:var(--purple)}
 .bdg-late{background:var(--redl);color:var(--red)}
 .bdg-urgent{background:#fde8e8;color:var(--red);font-weight:700;border:1px solid #f5c6c6}
+.bdg-cancelled{background:#e8e8e8;color:#888;border:1px solid #d0d0d0}
+.bulk-bar{display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--acl);border:1px solid var(--ac);border-radius:10px;margin-bottom:12px;flex-wrap:wrap}
+.bulk-bar.on{display:flex}
+.bulk-cnt{font-size:13px;font-weight:600;color:var(--ac);flex:1}
 .pend-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
 .pend-info{flex:1}
 .pend-name{font-size:15px;font-weight:600}
@@ -538,6 +542,20 @@ tbody tr:hover{background:var(--bg)}
   </div>
 </div>
 
+<div class="overlay" id="bulk-confirm-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="mhdr"><div><div class="mhdr-t" id="bcm-title">일괄 처리 확인</div></div><button class="mclose" onclick="document.getElementById('bulk-confirm-modal').classList.remove('on')">×</button></div>
+    <div class="mbody">
+      <p id="bcm-msg" style="font-size:15px;margin-bottom:14px;line-height:1.6;color:var(--txt)"></p>
+      <div id="bcm-detail" style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.6"></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" onclick="document.getElementById('bulk-confirm-modal').classList.remove('on')">취소</button>
+      <button class="btn btn-danger btn-sm" id="bcm-confirm-btn" onclick="executeBulkAction()">확인</button>
+    </div>
+  </div>
+</div>
+
 <div class="bls-footer">Copyright by BLS Korea Sourcing</div>
 
 <script>
@@ -551,6 +569,8 @@ let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allShipRe
 let activeOrderId = null, editFactoryId = null;
 let inboundCalYear, inboundCalMonth;
 let parsedBulkOrders = []; // 대량 엑셀 홀더
+let selectedOrderIds = new Set();
+let pendingBulkAction = null; // 'cancel' | 'delete'
 
 const CUR_SYM = {USD:'$',CNY:'¥',KRW:'₩',EUR:'€',JPY:'¥',VND:'₫'};
 function fmtPrice(p, c) { if (p == null) return '-'; return `${CUR_SYM[c]||''}${Number(p).toLocaleString()} ${c||'USD'}`; }
@@ -920,6 +940,8 @@ function renderDashboard() {
     <div class="sum-card ${delayed>0?'danger':''}"><div class="sum-lbl">납기 지연</div><div class="sum-val" style="color:${delayed>0?'var(--red)':''}">${delayed}</div><div class="sum-sub">${U.cases}</div></div>
     <div class="sum-card"><div class="sum-lbl">CS 확정</div><div class="sum-val" style="color:var(--purple)">${csConf}</div><div class="sum-sub">${U.cases}</div></div>`;
 
+  selectedOrderIds.clear();
+
   if (!list.length) { document.getElementById('ord-tbl').innerHTML = `<div class="empty"><div class="empty-t">오더가 없습니다</div></div>`; return; }
 
   if (me.role === 'vendor') {
@@ -927,9 +949,18 @@ function renderDashboard() {
     return;
   }
 
-  document.getElementById('ord-tbl').innerHTML = `
+  const isMaster = me.role === 'master';
+  const bulkBarHtml = isMaster ? `
+    <div class="bulk-bar" id="bulk-action-bar">
+      <span class="bulk-cnt" id="bulk-cnt-label">0건 선택됨</span>
+      <button class="btn btn-s btn-sm" onclick="openBulkConfirm('cancel')">선택 취소 처리</button>
+      <button class="btn btn-danger btn-sm" onclick="openBulkConfirm('delete')">선택 삭제</button>
+    </div>` : '';
+
+  document.getElementById('ord-tbl').innerHTML = bulkBarHtml + `
     <div class="tbl-wrap"><table>
     <thead><tr>
+      ${isMaster ? `<th style="width:36px;text-align:center"><input type="checkbox" id="chk-all" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ac)" onchange="toggleSelectAll(this.checked)"></th>` : ''}
       <th>벤더</th>
       <th>스타일번호</th>
       <th>스타일명</th>
@@ -947,7 +978,8 @@ function renderDashboard() {
     <tbody>
     ${list.map(o=>{
       const v = allUsers.find(u=>u.id===o.vendor_id);
-      const late = o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty;
+      const cancelled = o.status === 'cancelled';
+      const late = !cancelled && o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty;
       const pct = o.order_qty?Math.round((o.produced_qty||0)/o.order_qty*100):0;
       const fail = o.cs_defect_qty ?? o.vendor_fail_qty ?? 0;
       const def = o.order_qty && fail ? ((fail/o.order_qty)*100).toFixed(1) : '0.0';
@@ -965,7 +997,11 @@ function renderDashboard() {
           actBtn += `<button class="btn btn-purple btn-sm" onclick="openCsModal('${o.id}')">CS 입력</button>`;
         }
       }
-      return `<tr${o.is_urgent?' style="background:#fff8f8"':''}>
+      const statusBadge = cancelled
+        ? `<span class="bdg bdg-cancelled">취소됨</span>`
+        : `<span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?'지연':'정상'}</span>`;
+      return `<tr${o.is_urgent&&!cancelled?' style="background:#fff8f8"':cancelled?' style="opacity:.6"':''}>
+        ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ac)" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
         <td data-label="벤더"><strong>${v?.company_name||'-'}</strong></td>
         <td data-label="스타일번호" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${o.is_urgent?' <span class="bdg bdg-urgent" style="font-size:9px;padding:2px 5px">긴급</span>':''}</td>
         <td data-label="스타일명">${o.style_name}</td>
@@ -977,7 +1013,7 @@ function renderDashboard() {
         <td data-label="선적">${Number(o.shipped_qty||0).toLocaleString()}</td>
         <td data-label="불량률" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${o.cs_defect_qty!=null?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
         <td data-label="선적예정" style="font-size:12px">${(o.planned_ship_date||'-').slice(0,10)}</td>
-        <td data-label="상태"><span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?'지연':'정상'}</span></td>
+        <td data-label="상태">${statusBadge}</td>
         <td data-label="액션">${actBtn}</td>
       </tr>`;
     }).join('')}
@@ -1417,6 +1453,80 @@ async function submitBulkOrders() {
   btn.style.background = '';
 }
 
+// ── 오더 일괄 선택/삭제/취소 (마스터 전용) ──
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.ord-chk').forEach(cb => {
+    cb.checked = checked;
+    if (checked) selectedOrderIds.add(cb.dataset.id);
+    else selectedOrderIds.delete(cb.dataset.id);
+  });
+  updateBulkBar();
+}
+
+function toggleOrderSelect(id, checked) {
+  if (checked) selectedOrderIds.add(id);
+  else selectedOrderIds.delete(id);
+  const allCbs = document.querySelectorAll('.ord-chk');
+  const chkAll = document.getElementById('chk-all');
+  if (chkAll) chkAll.checked = allCbs.length > 0 && [...allCbs].every(cb => cb.checked);
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-action-bar');
+  if (!bar) return;
+  const cnt = selectedOrderIds.size;
+  document.getElementById('bulk-cnt-label').textContent = `${cnt}건 선택됨`;
+  cnt > 0 ? bar.classList.add('on') : bar.classList.remove('on');
+}
+
+function openBulkConfirm(action) {
+  if (selectedOrderIds.size === 0) { alert('처리할 오더를 먼저 선택하세요.'); return; }
+  pendingBulkAction = action;
+  const cnt = selectedOrderIds.size;
+  if (action === 'cancel') {
+    document.getElementById('bcm-title').textContent = '오더 일괄 취소 처리';
+    document.getElementById('bcm-msg').textContent = `선택한 ${cnt}건의 오더를 취소 처리하시겠습니까?`;
+    document.getElementById('bcm-detail').textContent = '취소 처리된 오더는 상태가 "취소됨"으로 변경됩니다. 데이터는 보존됩니다.';
+    document.getElementById('bcm-confirm-btn').textContent = '취소 처리';
+  } else {
+    document.getElementById('bcm-title').textContent = '오더 일괄 삭제';
+    document.getElementById('bcm-msg').textContent = `선택한 ${cnt}건의 오더를 영구 삭제하시겠습니까?`;
+    document.getElementById('bcm-detail').textContent = '⚠️ 삭제된 오더는 복구할 수 없습니다. 관련 선적 요청·CS 데이터도 함께 삭제될 수 있습니다.';
+    document.getElementById('bcm-confirm-btn').textContent = '영구 삭제';
+  }
+  document.getElementById('bulk-confirm-modal').classList.add('on');
+}
+
+async function executeBulkAction() {
+  if (!pendingBulkAction || selectedOrderIds.size === 0) return;
+  const action = pendingBulkAction;
+  const ids = [...selectedOrderIds];
+  const btn = document.getElementById('bcm-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = '처리 중...';
+  try {
+    if (action === 'cancel') {
+      for (const id of ids) {
+        await sb(`orders?id=eq.${id}`, 'PATCH', { status: 'cancelled', updated_at: new Date().toISOString() });
+      }
+    } else {
+      for (const id of ids) {
+        await sb(`orders?id=eq.${id}`, 'DELETE');
+      }
+    }
+    document.getElementById('bulk-confirm-modal').classList.remove('on');
+    selectedOrderIds.clear();
+    pendingBulkAction = null;
+    await loadAll();
+    renderDashboard();
+  } catch(e) {
+    alert('처리 중 오류가 발생했습니다: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = action === 'cancel' ? '취소 처리' : '영구 삭제';
+  }
+}
+
 // ── 생산현황 모달 및 마스터 상세공용 오픈 ──
 function openVendorModal(orderId) {
   activeOrderId = orderId;
@@ -1549,7 +1659,7 @@ function openShipReqFor(orderId) {
   const sel = document.getElementById('sr-order');
   sel.innerHTML = '';
   allOrders.filter(o=>o.vendor_id===me.id).forEach(o=>{
-    sel.innerHTML += `<option value="${o.id}" ${o.id===orderId?'selected':''}>${o.style_no} - ${o.style_name} (생산 ${o.produced_qty||0}/${o.order_qty})</option>`;
+    sel.innerHTML += `<option value="${o.id}" ${o.id===orderId?'selected':''}>${o.style_no} - ${o.style_name}</option>`;
   });
   sel.onchange = updateSrInfo;
   updateSrInfo();
@@ -1562,8 +1672,9 @@ function updateSrInfo() {
   const o = allOrders.find(x=>x.id===oid);
   const box = document.getElementById('sr-info');
   if (!o) { box.style.display='none'; return; }
+  const remaining = (o.order_qty||0) - (o.shipped_qty||0);
   box.style.display='block';
-  box.innerHTML = `오더 <strong>${o.order_qty.toLocaleString()}장</strong> · 생산 <strong>${(o.produced_qty||0).toLocaleString()}장</strong> · 기선적 <strong>${(o.shipped_qty||0).toLocaleString()}장</strong>`;
+  box.innerHTML = `오더 <strong>${o.order_qty.toLocaleString()}장</strong> · 잔량 <strong style="color:${remaining>0?'var(--ora)':'var(--grn)'}">${remaining.toLocaleString()}장</strong>`;
 }
 async function saveShipReq() {
   const order_id = document.getElementById('sr-order').value;
