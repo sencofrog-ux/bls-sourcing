@@ -89,6 +89,8 @@ tbody tr:hover{background:var(--bg)}
 .bdg-late{background:var(--redl);color:var(--red)}
 .bdg-urgent{background:#fde8e8;color:var(--red);font-weight:700;border:1px solid #f5c6c6}
 .bdg-cancelled{background:#e8e8e8;color:#888;border:1px solid #d0d0d0}
+.bdg-dday{background:var(--oral);color:var(--ora);font-weight:700;border:1px solid #f0d080}
+.bdg-dday0{background:#fff3cd;color:#856404;font-weight:700;border:1px solid #ffc107}
 .bulk-bar{display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--acl);border:1px solid var(--ac);border-radius:10px;margin-bottom:12px;flex-wrap:wrap}
 .bulk-bar.on{display:flex}
 .bulk-cnt{font-size:13px;font-weight:600;color:var(--ac);flex:1}
@@ -307,17 +309,15 @@ tbody tr:hover{background:var(--bg)}
               <div class="fg"><label class="fl">스타일 번호 *</label><input type="text" id="reg-styleno" placeholder="WJ-2025-001" style="font-family:'DM Mono',monospace"></div>
               <div class="fg"><label class="fl">스타일명 *</label><input type="text" id="reg-stylename" placeholder="울 블레이저"></div>
             </div>
-            <div class="row3">
+            <div class="row2">
               <div class="fg"><label class="fl">카테고리</label><input type="text" id="reg-cat" placeholder="T-SHIRTS"></div>
-              <div class="fg"><label class="fl">색상</label><input type="text" id="reg-color" placeholder="CHARCOAL"></div>
               <div class="fg"><label class="fl">오더 수량 *</label><input type="number" id="reg-qty" placeholder="1000"></div>
             </div>
             <div class="row3">
               <div class="fg"><label class="fl">통화</label><select id="reg-currency"><option value="USD">USD ($)</option><option value="CNY">CNY (¥)</option><option value="KRW">KRW (₩)</option><option value="EUR">EUR (€)</option><option value="JPY">JPY (¥)</option><option value="VND">VND (₫)</option></select></div>
               <div class="fg"><label class="fl">단가</label><input type="number" id="reg-price" step="0.01" placeholder="12.50"></div>
-              <div class="fg"><label class="fl">선적 예정일 *</label><input type="date" id="reg-shipdate"></div>
+              <div class="fg"><label class="fl">TARGET ETD *</label><input type="date" id="reg-shipdate"></div>
             </div>
-            <div class="fg"><label class="fl">납품처</label><input type="text" id="reg-dest" placeholder="서울 물류센터"></div>
             <div class="fg"><label class="fl">비고</label><textarea id="reg-notes"></textarea></div>
             <div class="fg" style="display:flex;align-items:center;gap:10px;margin-top:4px">
               <label class="fl" style="margin-bottom:0;flex-shrink:0">긴급 여부</label>
@@ -627,6 +627,12 @@ async function sb(path, method='GET', body=null) {
 function showPg(id) { document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on')); document.getElementById(id).classList.add('on'); }
 function showAlert(id, msg, type='e') { const el=document.getElementById(id); if(!el)return; el.textContent=msg; el.className='alert on alert-'+type; if(type!=='s')setTimeout(()=>el.classList.remove('on'),5000); }
 function today() { return new Date().toISOString().slice(0,10); }
+function calcDday(dateStr) {
+  if (!dateStr) return null;
+  const diff = Math.ceil((new Date(dateStr) - new Date(today())) / 86400000);
+  if (diff > 14 || diff < 0) return null;
+  return diff;
+}
 
 // 🌟 직렬화된 notes 복원 엔진 🌟
 function parsePoNotes(notesString) {
@@ -1012,7 +1018,7 @@ function renderDashboard() {
         <td data-label="진행율"><div class="stage-progbar">${stageSegs}</div><div style="font-size:11px;color:var(--muted)">${stageQty.toLocaleString()}장 / ${stagePct}%</div></td>
         <td data-label="선적">${Number(o.shipped_qty||0).toLocaleString()}</td>
         <td data-label="불량률" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${o.cs_defect_qty!=null?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
-        <td data-label="선적예정" style="font-size:12px">${(o.planned_ship_date||'-').slice(0,10)}</td>
+        <td data-label="선적예정" style="font-size:12px">${(()=>{const d=calcDday(o.planned_ship_date);const dday=d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;return `${(o.planned_ship_date||'-').slice(0,10)}${dday}`;})()}</td>
         <td data-label="상태">${statusBadge}</td>
         <td data-label="액션">${actBtn}</td>
       </tr>`;
@@ -1054,7 +1060,7 @@ function renderVendorOrderCards(list) {
             ${o.is_urgent?'<span class="bdg bdg-urgent">🚨 긴급</span>':''}
           </div>
           <div style="font-size:15px;font-weight:700">${o.style_name}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px">${qtyLabel} · ${(o.planned_ship_date||'-').slice(0,10)}${late?' <span style="color:var(--red);font-weight:600">⚠ 지연</span>':''}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${qtyLabel} · ${(o.planned_ship_date||'-').slice(0,10)}${(()=>{const d=calcDday(o.planned_ship_date);return d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;})()}${late?' <span style="color:var(--red);font-weight:600">⚠ 지연</span>':''}</div>
         </div>
         <div style="text-align:right">
           <div style="font-size:22px;font-weight:700;color:${pct===100?'var(--grn)':pct>0?'var(--ac)':'var(--muted)'}">${pct}%</div>
@@ -1233,12 +1239,10 @@ async function submitOrder() {
     style_no: document.getElementById('reg-styleno').value.trim(),
     style_name: document.getElementById('reg-stylename').value.trim(),
     category: document.getElementById('reg-cat').value.trim() || null,
-    color: document.getElementById('reg-color').value.trim() || null,
     order_qty: parseInt(document.getElementById('reg-qty').value)||0,
     unit_price: parseFloat(document.getElementById('reg-price').value)||null,
     currency: document.getElementById('reg-currency').value,
     planned_ship_date: document.getElementById('reg-shipdate').value || null,
-    destination: document.getElementById('reg-dest').value.trim() || null,
     notes: document.getElementById('reg-notes').value.trim() || null,
     shipped_qty: 0,
     is_urgent: document.getElementById('reg-urgent').checked
@@ -1250,7 +1254,7 @@ async function submitOrder() {
   try {
     await sb('orders', 'POST', body);
     showAlert('reg-alert', '✓ 오더가 등록되었습니다', 's');
-    ['reg-styleno','reg-stylename','reg-cat','reg-color','reg-qty','reg-price','reg-shipdate','reg-dest','reg-notes'].forEach(id=>document.getElementById(id).value='');
+    ['reg-styleno','reg-stylename','reg-cat','reg-qty','reg-price','reg-shipdate','reg-notes'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('reg-urgent').checked = false;
     document.getElementById('reg-urgent-label').textContent = '일반 오더';
     document.getElementById('reg-urgent-label').style.color = '';
@@ -1294,13 +1298,14 @@ function handleBulkExcelUpload(e) {
 
       const START_ROW = 1;
       const COL_PO_DATE    = findCol(['PO SEND','PO DATE','PO_DATE'], 10);
-      const COL_STYLE_NO   = findCol(['STYLE','STYLE NO','STYLE_NO'], 12);
+      const COL_STYLE_NO   = findCol(["STYLE NO.",'STYLE NO','STYLE_NO','STYLE'], 12);
       const COL_QTY        = findCol(["ORDER Q'TY",'ORDER QTY','QTY'], 19);
       const COL_TARGET_ETD = findCol(['TARGET ETD','TARGET_ETD','ETD'], 43);
       const COL_DESC       = findCol(['DESCRIPTION','DESC'], 45);
       const COL_SUPPLIER   = findCol(['SUPPLIER'], 47);
       const COL_FOB        = findCol(['FOB'], 48);
-      const COL_VENDOR_CODE = findCol(['VENDOR_CODE','VENDOR CODE','VENDORCODE'], -1); // 신규 열
+      const COL_CURRENCY   = findCol(['통화','CURRENCY'], -1);
+      const COL_VENDOR_CODE = findCol(['VENDOR_CODE','VENDOR CODE','VENDORCODE'], -1);
 
       parsedBulkOrders = [];
       const currentSeasonId = document.getElementById('reg-season').value;
@@ -1332,7 +1337,9 @@ function handleBulkExcelUpload(e) {
         const targetEtd = getDt(row[COL_TARGET_ETD]);
         const desc = row[COL_DESC] ? String(row[COL_DESC]).trim().replace(/[\r\n\t]+/g, ' ') : '-';
         const supplier = row[COL_SUPPLIER] ? String(row[COL_SUPPLIER]).trim() : '-';
-        const fob = parseFloat(row[COL_FOB]) || 0;
+        const fobRaw = row[COL_FOB];
+        const fob = parseFloat(String(fobRaw ?? '').replace(/[^0-9.]/g, '')) || 0;
+        const currency = (COL_CURRENCY >= 0 && row[COL_CURRENCY]) ? String(row[COL_CURRENCY]).trim().toUpperCase() : 'USD';
         // VENDOR_CODE 열이 있으면 우선 사용, 없으면 SUPPLIER로 매칭
         const vendorCodeCell = (COL_VENDOR_CODE >= 0 && row[COL_VENDOR_CODE])
           ? String(row[COL_VENDOR_CODE]).trim() : '';
@@ -1359,10 +1366,9 @@ function handleBulkExcelUpload(e) {
           style_no: styleNo,
           style_name: desc.slice(0, 40),
           category: 'CLOTHING',
-          color: 'AS SORTED',
           order_qty: qty,
           unit_price: fob,
-          currency: 'USD',
+          currency: currency || 'USD',
           planned_ship_date: targetEtd !== '-' ? targetEtd : today(),
           notes: serializedPoData,
           shipped_qty: 0,
