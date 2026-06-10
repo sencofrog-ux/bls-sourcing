@@ -442,7 +442,9 @@ tbody tr:hover{background:var(--bg)}
       <div class="alert alert-e" id="vm-alert"></div>
       
       <div id="po-info-top-zone"></div>
-      
+
+      <div id="vm-readonly-view" style="display:none"></div>
+
       <div id="vendor-input-fields">
         <div class="modal-section-title" data-ko="🏭 생산 공장 / 라인" data-en="🏭 Factory / Line">🏭 생산 공장 / 라인</div>
         <div class="row2">
@@ -971,10 +973,7 @@ function renderDashboard() {
       <th>벤더</th>
       <th>스타일번호</th>
       <th>스타일명</th>
-      <th>공장/라인</th>
       <th>오더</th>
-      <th>단가</th>
-      <th>생산</th>
       <th>진행율</th>
       <th>선적</th>
       <th>불량률</th>
@@ -1012,10 +1011,7 @@ function renderDashboard() {
         <td data-label="벤더"><strong>${v?.company_name||'-'}</strong></td>
         <td data-label="스타일번호" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${o.is_urgent?' <span class="bdg bdg-urgent" style="font-size:9px;padding:2px 5px">긴급</span>':''}</td>
         <td data-label="스타일명">${o.style_name}</td>
-        <td data-label="공장/라인" style="font-size:12px">${o.factory_name?o.factory_name+(o.production_line?' / '+o.production_line:''):`<span style="color:var(--ora)">미입력</span>`}</td>
         <td data-label="오더">${Number(o.order_qty).toLocaleString()}</td>
-        <td data-label="단가" style="font-size:12px">${fmtPrice(o.unit_price,o.currency)}</td>
-        <td data-label="생산"><div style="display:inline-flex;align-items:center;gap:5px"><div class="prog"><div class="prog-f" style="width:${pct}%"></div></div><span style="font-size:11px;color:var(--muted)">${pct}%</span></div></td>
         <td data-label="진행율"><div class="stage-progbar">${stageSegs}</div><div style="font-size:11px;color:var(--muted)">${stageQty.toLocaleString()}장 / ${stagePct}%</div></td>
         <td data-label="선적">${Number(o.shipped_qty||0).toLocaleString()}</td>
         <td data-label="불량률" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${o.cs_defect_qty!=null?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
@@ -1586,16 +1582,17 @@ function openVendorModal(orderId) {
     topZone.innerHTML = ''; // 엑셀 출처 오더가 아닌 수동 오더인 경우 공백 유지
   }
 
-  // 마스터/MD 권한일 때는 보기 권한 전용 모드로 폼 비활성화 처리
   const fieldsBlock = document.getElementById('vendor-input-fields');
   const footerBlock = document.getElementById('vm-footer-actions');
-  if (me.role === 'master' || me.role === 'md') {
-    fieldsBlock.style.opacity = '0.6';
-    fieldsBlock.style.pointerEvents = 'none';
+  const readonlyView = document.getElementById('vm-readonly-view');
+  const isMasterView = me.role === 'master' || me.role === 'md' || me.role === 'cs';
+  if (isMasterView) {
+    fieldsBlock.style.display = 'none';
+    readonlyView.style.display = 'block';
     footerBlock.style.display = 'none';
   } else {
-    fieldsBlock.style.opacity = '1';
-    fieldsBlock.style.pointerEvents = 'auto';
+    fieldsBlock.style.display = 'block';
+    readonlyView.style.display = 'none';
     footerBlock.style.display = 'flex';
   }
   
@@ -1629,6 +1626,54 @@ function openVendorModal(orderId) {
   let combinedNotes = delayPart && !baseNotes.includes(delayPart) ? (delayPart + (baseNotes ? '\n' + baseNotes : '')) : baseNotes;
   document.getElementById('vm-notes').value = combinedNotes;
   renderVmStageSection(o);
+
+  if (isMasterView) {
+    const vendorFactories = allFactories.filter(f => f.vendor_id === o.vendor_id);
+    const matchedFactory = o.factory_name ? vendorFactories.find(f => f.name === o.factory_name) : null;
+
+    let utilHtml = '공장 미입력';
+    if (matchedFactory && matchedFactory.capa) {
+      const factoryOrders = allOrders.filter(x => x.factory_name === o.factory_name && x.vendor_id === o.vendor_id);
+      const totalProduced = factoryOrders.reduce((s, x) => s + (x.produced_qty || 0), 0);
+      const util = ((totalProduced / matchedFactory.capa) * 100).toFixed(1);
+      utilHtml = `<strong style="color:var(--ac)">${util}%</strong> <span style="color:var(--muted);font-size:11px">(현생산 ${Number(totalProduced).toLocaleString()}장 / 월 CAPA ${Number(matchedFactory.capa).toLocaleString()}장)</span>`;
+    } else if (matchedFactory) {
+      utilHtml = 'CAPA 미등록';
+    } else if (o.factory_name) {
+      utilHtml = '공장 정보 없음';
+    }
+
+    const factoryLine = o.factory_name
+      ? `<strong>${o.factory_name}</strong>${o.production_line ? ' / ' + o.production_line : ''}`
+      : '<span style="color:var(--ora)">미입력</span>';
+    const locationHtml = matchedFactory?.location
+      ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${matchedFactory.location}</div>` : '';
+
+    const stageHtml = document.getElementById('vm-stage-section')?.innerHTML || '';
+
+    const baseNotes2 = po.isPo ? po.rawNotes : (o.notes || '');
+    const delayPart2 = o.delay_reason || '';
+    const displayNotes = delayPart2 && !baseNotes2.includes(delayPart2)
+      ? (delayPart2 + (baseNotes2 ? '\n' + baseNotes2 : ''))
+      : baseNotes2;
+    const notesHtml = displayNotes
+      ? displayNotes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      : '<span style="color:var(--muted)">메모 없음</span>';
+
+    readonlyView.innerHTML = `
+      <div class="modal-section-title">🏭 공장 / 라인</div>
+      <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px">
+        <div style="font-size:14px;margin-bottom:2px">${factoryLine}</div>
+        ${locationHtml}
+        <div style="margin-top:6px;font-size:12px;color:var(--muted)">현재 가동률: ${utilHtml}</div>
+      </div>
+      <div class="modal-section-title">📦 Production Status</div>
+      <div style="margin-bottom:14px">${stageHtml}</div>
+      <div class="modal-section-title">📝 벤더 메모</div>
+      <div style="background:var(--bg);border-radius:8px;padding:12px 14px;font-size:13px;white-space:pre-wrap;min-height:50px">${notesHtml}</div>
+    `;
+  }
+
   document.getElementById('vm-alert').classList.remove('on');
   document.getElementById('vendor-modal').classList.add('on');
 }
@@ -1739,7 +1784,7 @@ function renderShipReqs() {
       <tbody>
       ${list.map(r=>{
         const o = allOrders.find(x=>x.id===r.order_id);
-        const remaining = (o?.order_qty||0) - (o?.shipped_qty||0);
+        const remaining = r.remaining_qty != null ? r.remaining_qty : (o?.order_qty||0) - (o?.shipped_qty||0);
         return `<tr>
           <td data-label="부킹 ETD" style="font-family:'DM Mono',monospace;font-weight:600">${r.booking_etd}</td>
           <td data-label="스타일">${o?.style_no||''}<br><span style="font-size:12px;color:var(--muted)">${o?.style_name||''}</span></td>
@@ -1761,7 +1806,7 @@ function renderShipReqs() {
     ${list.map(r=>{
       const o = allOrders.find(x=>x.id===r.order_id);
       const v = allUsers.find(u=>u.id===r.vendor_id);
-      const remaining = (o?.order_qty||0) - (o?.shipped_qty||0);
+      const remaining = r.remaining_qty != null ? r.remaining_qty : (o?.order_qty||0) - (o?.shipped_qty||0);
       let actBtn = '';
       if (r.status==='requested') actBtn = `<button class="btn btn-ok btn-sm" onclick="confirmShipReq('${r.id}','${r.order_id}','${r.booking_etd}',${r.booking_qty})">확정</button> <button class="btn btn-danger btn-sm" onclick="rejectShipReq('${r.id}')">거절</button>`;
       else actBtn = `<button class="btn btn-s btn-sm" onclick="resetShipReq('${r.id}')">되돌리기</button>`;
@@ -1783,11 +1828,12 @@ async function confirmShipReq(reqId, orderId, etd, qty) {
   const newEtd = prompt('확정 ETD를 입력하세요 (YYYY-MM-DD)', etd);
   if (!newEtd) return;
   try {
-    await sb(`shipping_requests?id=eq.${reqId}`, 'PATCH', {status:'confirmed', confirmed_etd:newEtd, updated_at:new Date().toISOString()});
     const o = allOrders.find(x=>x.id===orderId);
     const newShipped = (o?.shipped_qty||0) + qty;
+    const remaining_qty = (o?.order_qty||0) - newShipped;
+    await sb(`shipping_requests?id=eq.${reqId}`, 'PATCH', {status:'confirmed', confirmed_etd:newEtd, remaining_qty, updated_at:new Date().toISOString()});
     await sb(`orders?id=eq.${orderId}`, 'PATCH', {shipped_qty:newShipped, etd_date:newEtd, ship_date:newEtd});
-    await loadAll(); renderShipReqs(); alert('확정되었습니다 (선적 누적 ' + newShipped + '장)');
+    await loadAll(); renderShipReqs(); alert('확정되었습니다 (선적 누적 ' + newShipped + '장 / 잔량 ' + remaining_qty + '장)');
   } catch(e) { alert(e.message); }
 }
 async function rejectShipReq(reqId) {
