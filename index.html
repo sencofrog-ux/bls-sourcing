@@ -319,6 +319,7 @@ tbody tr:hover{background:var(--bg)}
               <div class="fg"><label class="fl">TARGET ETD *</label><input type="date" id="reg-shipdate"></div>
             </div>
             <div class="fg"><label class="fl">비고</label><textarea id="reg-notes"></textarea></div>
+            <div class="fg"><label class="fl">PO SEND</label><input type="date" id="reg-po-send"></div>
             <div class="fg" style="display:flex;align-items:center;gap:10px;margin-top:4px">
               <label class="fl" style="margin-bottom:0;flex-shrink:0">긴급 여부</label>
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
@@ -1244,6 +1245,7 @@ async function submitOrder() {
     currency: document.getElementById('reg-currency').value,
     planned_ship_date: document.getElementById('reg-shipdate').value || null,
     notes: document.getElementById('reg-notes').value.trim() || null,
+    po_send: document.getElementById('reg-po-send').value || null,
     shipped_qty: 0,
     is_urgent: document.getElementById('reg-urgent').checked
   };
@@ -1254,7 +1256,7 @@ async function submitOrder() {
   try {
     await sb('orders', 'POST', body);
     showAlert('reg-alert', '✓ 오더가 등록되었습니다', 's');
-    ['reg-styleno','reg-stylename','reg-cat','reg-qty','reg-price','reg-shipdate','reg-notes'].forEach(id=>document.getElementById(id).value='');
+    ['reg-styleno','reg-stylename','reg-cat','reg-qty','reg-price','reg-shipdate','reg-notes','reg-po-send'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('reg-urgent').checked = false;
     document.getElementById('reg-urgent-label').textContent = '일반 오더';
     document.getElementById('reg-urgent-label').style.color = '';
@@ -1297,7 +1299,7 @@ function handleBulkExcelUpload(e) {
       };
 
       const START_ROW = 1;
-      const COL_PO_DATE    = findCol(['PO SEND','PO DATE','PO_DATE'], 10);
+      const COL_PO_SEND    = findCol(['PO SEND','PO_SEND'], 10);
       const COL_STYLE_NO   = findCol(["STYLE NO.",'STYLE NO','STYLE_NO','STYLE'], 12);
       const COL_QTY        = findCol(["ORDER Q'TY",'ORDER QTY','QTY'], 19);
       const COL_TARGET_ETD = findCol(['TARGET ETD','TARGET_ETD','ETD'], 43);
@@ -1332,7 +1334,7 @@ function handleBulkExcelUpload(e) {
         const styleNo = row[COL_STYLE_NO] ? String(row[COL_STYLE_NO]).trim() : '';
         if (!styleNo || styleNo === 'style') continue;
 
-        const poDate = getDt(row[COL_PO_DATE]);
+        const poSend = getDt(row[COL_PO_SEND]);
         const qty = parseInt(row[COL_QTY]) || 0;
         const targetEtd = getDt(row[COL_TARGET_ETD]);
         const desc = row[COL_DESC] ? String(row[COL_DESC]).trim().replace(/[\r\n\t]+/g, ' ') : '-';
@@ -1340,25 +1342,27 @@ function handleBulkExcelUpload(e) {
         const fobRaw = row[COL_FOB];
         const fob = parseFloat(String(fobRaw ?? '').replace(/[^0-9.]/g, '')) || 0;
         const currency = (COL_CURRENCY >= 0 && row[COL_CURRENCY]) ? String(row[COL_CURRENCY]).trim().toUpperCase() : 'USD';
-        // VENDOR_CODE 열이 있으면 우선 사용, 없으면 SUPPLIER로 매칭
         const vendorCodeCell = (COL_VENDOR_CODE >= 0 && row[COL_VENDOR_CODE])
           ? String(row[COL_VENDOR_CODE]).trim() : '';
 
-        // ── 벤더 매칭 우선순위: 드롭다운 > VENDOR_CODE 열 > SUPPLIER 열 ──
+        // ── 벤더 매칭 우선순위: 드롭다운 > VENDOR_CODE(vendor_code 정확 매칭) > SUPPLIER(company_name 매칭) ──
         let resolvedVendorId = currentVendorId || null;
         let matchedVendor = null;
         if (!resolvedVendorId) {
-          const matchKey = vendorCodeCell || supplier;
-          if (matchKey && matchKey !== '-') {
-            matchedVendor = matchVendorByName(matchKey);
-            if (matchedVendor) resolvedVendorId = matchedVendor.id;
+          if (vendorCodeCell) {
+            const vendors = allUsers.filter(u => u.role === 'vendor' && u.status === 'active');
+            matchedVendor = vendors.find(x => (x.vendor_code || '').toLowerCase() === vendorCodeCell.toLowerCase()) || null;
           }
+          if (!matchedVendor && supplier && supplier !== '-') {
+            matchedVendor = matchVendorByName(supplier);
+          }
+          if (matchedVendor) resolvedVendorId = matchedVendor.id;
         } else {
           matchedVendor = allUsers.find(u => u.id === resolvedVendorId) || null;
         }
         if (!resolvedVendorId) unmatchedCount++;
 
-        const serializedPoData = `__PO_DATA__||${poDate}||${styleNo}||${qty}||${targetEtd}||${desc}||${supplier}||${fob}||`;
+        const serializedPoData = `__PO_DATA__||${poSend}||${styleNo}||${qty}||${targetEtd}||${desc}||${supplier}||${fob}||`;
 
         parsedBulkOrders.push({
           season_id: currentSeasonId,
@@ -1371,6 +1375,7 @@ function handleBulkExcelUpload(e) {
           currency: currency || 'USD',
           planned_ship_date: targetEtd !== '-' ? targetEtd : today(),
           notes: serializedPoData,
+          po_send: poSend !== '-' ? poSend : null,
           shipped_qty: 0,
           created_by_md: me.role === 'md' ? me.id : null,
           _supplierName: supplier,
@@ -1540,7 +1545,9 @@ function openVendorModal(orderId) {
   if (!o) return;
   
   document.getElementById('vm-title').textContent = o.style_name;
-  document.getElementById('vm-sub').textContent = `${o.style_no} · 오더 ${Number(o.order_qty).toLocaleString()}장`;
+  const ddayVal = calcDday(o.planned_ship_date);
+  const ddayBadge = ddayVal === null ? '' : ` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`;
+  document.getElementById('vm-sub').innerHTML = `${o.style_no} · 오더 ${Number(o.order_qty).toLocaleString()}장${ddayBadge}`;
   
   // 🌟 notes 기저에서 발주 정보 역직렬화(복원) 🌟
   const po = parsePoNotes(o.notes);
@@ -1556,7 +1563,7 @@ function openVendorModal(orderId) {
             <div><strong>PO 발송일:</strong> ${po.poDate}</div>
             <div><strong>스타일 번호:</strong> ${po.styleNo}</div>
             <div><strong>Order Q'ty:</strong> ${po.qty.toLocaleString()}장</div>
-            <div><strong>Target ETD:</strong> ${po.targetEtd}</div>
+            <div><strong>Target ETD:</strong> ${po.targetEtd}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
             <div><strong>Supplier:</strong> ${po.supplier}</div>
             <div><strong>FOB Price:</strong> $${po.fob.toLocaleString()}</div>
           </div>
@@ -1570,7 +1577,7 @@ function openVendorModal(orderId) {
             <div><strong>PO 발송일:</strong> ${po.poDate}</div>
             <div><strong>스타일 번호:</strong> ${po.styleNo}</div>
             <div><strong>Order Q'ty:</strong> ${po.qty.toLocaleString()}장</div>
-            <div><strong>Target ETD:</strong> ${po.targetEtd}</div>
+            <div><strong>Target ETD:</strong> ${po.targetEtd}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
           </div>
           <div style="border-top: 1px dashed #eee; padding-top: 4px; margin-top: 4px; color:#555;"><strong>Description:</strong> ${po.desc}</div>
         </div>`;
