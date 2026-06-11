@@ -106,13 +106,14 @@ tbody tr:hover{background:var(--bg)}
 .cal-nav button{width:34px;height:34px;border:1px solid var(--bdr);background:var(--surf);border-radius:8px;cursor:pointer;font-size:14px}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .cal-dow{text-align:center;font-size:11px;font-weight:600;color:var(--muted);padding:8px 0;background:var(--bg);border-radius:4px}
-.cal-cell{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;min-height:95px;padding:6px;font-size:11px;cursor:pointer}
+.cal-cell{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;min-height:130px;padding:8px;font-size:11px;cursor:pointer}
 .cal-cell.has-events:hover{border-color:var(--ac)}
 .cal-cell.today{border-color:var(--ac);border-width:2px}
 .cal-date{font-weight:600;font-size:12px;margin-bottom:4px}
-.cal-event{background:var(--acl);color:var(--ac);border-radius:4px;padding:2px 5px;margin-bottom:2px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.cal-event{background:var(--acl);color:var(--ac);border-radius:4px;padding:2px 5px;margin-bottom:2px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;max-width:100%}
 .cal-event.confirmed{background:var(--grnl);color:var(--grn);border-left:3px solid var(--grn)}
 .cal-event.late{background:var(--redl);color:var(--red)}
+.inner:has(#view-inbound-cal.on){max-width:none}
 .modal-section-title{font-size:12px;font-weight:700;color:var(--ac);margin:16px 0 8px 0;border-bottom:1px solid var(--bdr);padding-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto}
 .overlay.on{display:flex}
@@ -170,7 +171,7 @@ tbody tr:hover{background:var(--bg)}
   tbody td:last-child{border-bottom:none;padding-top:12px;justify-content:center}
   tbody td::before{content:attr(data-label);font-weight:500;color:var(--muted);text-align:left;font-size:12px}
   .btn-sm{width:100%;padding:10px;font-size:13px}
-  .cal-cell{min-height:70px;padding:4px;font-size:10px}
+  .cal-cell{min-height:90px;padding:4px;font-size:10px}
   .cal-event{font-size:9px;padding:1px 3px}
   .pend-card .btn{width:100%}
   .bls-footer{font-size:9px;right:6px;bottom:6px}
@@ -1977,7 +1978,7 @@ function renderInbound() {
 function renderInboundCalendar() {
   const list = getInboundList();
   if (!inboundCalYear) { const n=new Date(); inboundCalYear=n.getFullYear(); inboundCalMonth=n.getMonth(); }
-  document.getElementById('inbound-cal').innerHTML = buildCal(list, inboundCalYear, inboundCalMonth, 'inbound', r=>r.arrival_date, r=>r.style_name, r=>r.booking_qty);
+  document.getElementById('inbound-cal').innerHTML = buildCal(list, inboundCalYear, inboundCalMonth, 'inbound', r=>r.arrival_date, r=>r.style_no, r=>r.booking_qty);
   document.querySelectorAll('[data-cal="inbound"]').forEach(b=>b.addEventListener('click', ()=>{
     inboundCalMonth += +b.dataset.dir;
     if (inboundCalMonth<0){inboundCalMonth=11;inboundCalYear--;}
