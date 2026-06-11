@@ -1028,7 +1028,7 @@ function renderVendorOrderCards(list) {
   if (!list.length) return `<div class="empty"><div class="empty-t">배정된 오더가 없습니다</div></div>`;
   const t = today();
   const STAGES = ['cut','artwork','sew','finish'];
-  const LABELS = {cut:'원단 컷팅',artwork:'아트웍',sew:'봉제',finish:'완료'};
+  const LABELS = {cut:'CUT',artwork:'ARTWORK',sew:'SEW',finish:'FINISH'};
   const ICONS  = {cut:'✂️',artwork:'🎨',sew:'🪡',finish:'✅'};
   return list.map(o=>{
     const done = STAGES.map(s=>!!o[s+'_done']);
@@ -1046,7 +1046,7 @@ function renderVendorOrderCards(list) {
       <div class="stage-chip ${done[i]?'done-'+s:''}" onclick="toggleStage('${o.id}','${s}')">
         <span class="stage-chip-icon">${ICONS[s]}</span>
         <div class="stage-chip-lbl">${LABELS[s]}</div>
-        <div class="stage-chip-st">${done[i]?'✓ 완료':'대기'}</div>
+        <div class="stage-chip-st">${done[i]?'✓ Done':'Pending'}</div>
       </div>`).join('');
     const segs = STAGES.map((s,i)=>`<div class="stage-progbar-seg ${done[i]?'seg-'+s:''}"></div>`).join('');
     return `<div class="order-card" id="ocard-${o.id}"${o.is_urgent?' style="border-color:var(--red);border-width:2px"':''}>
@@ -1080,7 +1080,7 @@ async function toggleStage(orderId, stage) {
   const field = stage+'_done';
   const newVal = !o[field];
   const STAGES = ['cut','artwork','sew','finish'];
-  const LABELS = {cut:'원단 컷팅',artwork:'아트웍',sew:'봉제',finish:'완료'};
+  const LABELS = {cut:'CUT',artwork:'ARTWORK',sew:'SEW',finish:'FINISH'};
   const idx = STAGES.indexOf(stage);
   if (newVal) {
     for (let i=0;i<idx;i++) {
@@ -1110,7 +1110,7 @@ function renderVmStageSection(o) {
   const el = document.getElementById('vm-stage-section');
   if (!el) return;
   const STAGES = ['cut','artwork','sew','finish'];
-  const LABELS = {cut:'원단 컷팅',artwork:'아트웍',sew:'봉제',finish:'완료'};
+  const LABELS = {cut:'CUT',artwork:'ARTWORK',sew:'SEW',finish:'FINISH'};
   const ICONS  = {cut:'✂️',artwork:'🎨',sew:'🪡',finish:'✅'};
   const done = STAGES.map(s=>!!o[s+'_done']);
   const cnt = done.filter(Boolean).length;
@@ -1123,10 +1123,10 @@ function renderVmStageSection(o) {
         <div class="stage-chip ${done[i]?'done-'+s:''}" ${isVendor?`onclick="vmToggleStage('${o.id}','${s}')"`:''} style="${isVendor?'':'cursor:default'}">
           <span class="stage-chip-icon">${ICONS[s]}</span>
           <div class="stage-chip-lbl">${LABELS[s]}</div>
-          <div class="stage-chip-st">${done[i]?'✓ 완료':'대기'}</div>
+          <div class="stage-chip-st">${done[i]?'✓ Done':'Pending'}</div>
         </div>`).join('')}
     </div>
-    <div style="font-size:13px;margin:2px 0 6px;color:var(--muted)">단계 진행율: <strong style="color:var(--ac)">${pct}%</strong> · ${qty.toLocaleString()}장</div>
+    <div style="font-size:13px;margin:2px 0 6px;color:var(--muted)">Progress: <strong style="color:var(--ac)">${pct}%</strong> · ${qty.toLocaleString()}장</div>
     <div class="stage-progbar" style="margin-bottom:0">${STAGES.map((s,i)=>`<div class="stage-progbar-seg ${done[i]?'seg-'+s:''}"></div>`).join('')}</div>`;
 }
 
@@ -1136,7 +1136,7 @@ async function vmToggleStage(orderId, stage) {
   const field = stage+'_done';
   const newVal = !o[field];
   const STAGES = ['cut','artwork','sew','finish'];
-  const LABELS = {cut:'원단 컷팅',artwork:'아트웍',sew:'봉제',finish:'완료'};
+  const LABELS = {cut:'CUT',artwork:'ARTWORK',sew:'SEW',finish:'FINISH'};
   const idx = STAGES.indexOf(stage);
   if (newVal) {
     for (let i=0;i<idx;i++) {
@@ -1547,6 +1547,7 @@ function openVendorModal(orderId) {
   
   // 🌟 notes 기저에서 발주 정보 역직렬화(복원) 🌟
   const po = parsePoNotes(o.notes);
+  const v = allUsers.find(u=>u.id===o.vendor_id);
   const topZone = document.getElementById('po-info-top-zone');
   
   if (po.isPo) {
@@ -1556,26 +1557,26 @@ function openVendorModal(orderId) {
         <div style="background: var(--acl); padding: 14px; border-radius: var(--r); margin-bottom: 16px; border: 1px solid var(--bdr);">
           <h4 style="margin-bottom: 8px; font-size: 13px; color: var(--ac); font-weight:700;">📦 발주 상세 정보 (PO 정보)</h4>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color:var(--txt);">
-            <div><strong>PO 발송일:</strong> ${po.poDate}</div>
-            <div><strong>스타일 번호:</strong> ${po.styleNo}</div>
-            <div><strong>Order Q'ty:</strong> ${po.qty.toLocaleString()}장</div>
-            <div><strong>Target ETD:</strong> ${po.targetEtd}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
-            <div><strong>Supplier:</strong> ${po.supplier}</div>
-            <div><strong>FOB Price:</strong> $${po.fob.toLocaleString()}</div>
+            <div><strong>PO 발송일:</strong> ${o.po_send||'-'}</div>
+            <div><strong>스타일 번호:</strong> ${o.style_no||'-'}</div>
+            <div><strong>Order Q'ty:</strong> ${Number(o.order_qty||0).toLocaleString()}</div>
+            <div><strong>Target ETD:</strong> ${(o.planned_ship_date||'-')}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
+            <div><strong>Supplier:</strong> ${v?.company_name||'-'}</div>
+            <div><strong>FOB Price:</strong> ${fmtPrice(o.unit_price, o.currency)}</div>
           </div>
-          <div style="margin-top: 6px; font-size: 13px; border-top: 1px dashed var(--bdr); padding-top: 6px; color:#333;"><strong>Description:</strong> ${po.desc}</div>
+          <div style="margin-top: 6px; font-size: 13px; border-top: 1px dashed var(--bdr); padding-top: 6px; color:#333;"><strong>Description:</strong> ${o.style_name||'-'}</div>
         </div>`;
     } else {
       // 🏭 벤더용 버전: 가격/공급원 제외 5가지 정보만 노출 🏭
       topZone.innerHTML = `
         <div style="background: #f9f9f9; padding: 12px; border-radius: var(--r); margin-bottom: 16px; border-left: 4px solid var(--grn); font-size: 13px;">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; color:var(--txt);">
-            <div><strong>PO 발송일:</strong> ${po.poDate}</div>
-            <div><strong>스타일 번호:</strong> ${po.styleNo}</div>
-            <div><strong>Order Q'ty:</strong> ${po.qty.toLocaleString()}장</div>
-            <div><strong>Target ETD:</strong> ${po.targetEtd}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
+            <div><strong>PO 발송일:</strong> ${o.po_send||'-'}</div>
+            <div><strong>스타일 번호:</strong> ${o.style_no||'-'}</div>
+            <div><strong>Order Q'ty:</strong> ${Number(o.order_qty||0).toLocaleString()}</div>
+            <div><strong>Target ETD:</strong> ${(o.planned_ship_date||'-')}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
           </div>
-          <div style="border-top: 1px dashed #eee; padding-top: 4px; margin-top: 4px; color:#555;"><strong>Description:</strong> ${po.desc}</div>
+          <div style="border-top: 1px dashed #eee; padding-top: 4px; margin-top: 4px; color:#555;"><strong>Description:</strong> ${o.style_name||'-'}</div>
         </div>`;
     }
   } else {
@@ -1686,7 +1687,7 @@ async function saveVendorProduction() {
   let finalNotes = document.getElementById('vm-notes').value.trim();
   // 🌟 기존 오더가 엑셀 구조였다면 토큰 구조를 유지하면서 후단 비고 텍스트만 업데이트 🌟
   if (po.isPo) {
-    finalNotes = `__PO_DATA__|${po.poDate}||${po.styleNo}||${po.qty}||${po.targetEtd}||${po.desc}||${po.supplier}||${po.fob}||${finalNotes}`;
+    finalNotes = `__PO_DATA__||${po.poDate}||${po.styleNo}||${po.qty}||${po.targetEtd}||${po.desc}||${po.supplier}||${po.fob}||${finalNotes}`;
   }
 
   const body = {
