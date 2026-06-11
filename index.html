@@ -209,38 +209,41 @@ tbody tr:hover{background:var(--bg)}
 <div class="pg on" id="pg-auth">
   <div class="auth-wrap">
     <div class="auth-box">
+      <div style="text-align:right;margin-bottom:8px">
+        <button id="auth-lang-toggle" style="background:var(--bg);border:1px solid var(--bdr);color:var(--muted);padding:5px 10px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">🌐 EN</button>
+      </div>
       <div class="logo">
         <div class="logo-brand">BLS Korea Sourcing</div>
-        <div class="logo-title">생산현황 관리 시스템</div>
-        <div class="logo-sub">통합 포털</div>
+        <div class="logo-title" data-ko="생산현황 관리 시스템" data-en="Production Management System">생산현황 관리 시스템</div>
+        <div class="logo-sub" data-ko="통합 포털" data-en="Integrated Portal">통합 포털</div>
       </div>
       <div class="tabs">
-        <button class="tab on" id="tab-login-btn">로그인</button>
-        <button class="tab" id="tab-reg-btn">회원가입</button>
+        <button class="tab on" id="tab-login-btn" data-ko="로그인" data-en="Login">로그인</button>
+        <button class="tab" id="tab-reg-btn" data-ko="회원가입" data-en="Sign Up">회원가입</button>
       </div>
       <div id="frm-login">
         <div class="alert alert-e" id="login-alert"></div>
-        <div class="fg"><label class="fl">이메일</label><input type="email" id="l-email" placeholder="name@company.com" autocomplete="username"></div>
-        <div class="fg"><label class="fl">비밀번호</label><input type="password" id="l-pw" placeholder="••••••••" autocomplete="current-password"></div>
-        <button class="btn btn-p" id="login-btn">로그인</button>
+        <div class="fg"><label class="fl" data-ko="이메일" data-en="Email">이메일</label><input type="email" id="l-email" placeholder="name@company.com" autocomplete="username"></div>
+        <div class="fg"><label class="fl" data-ko="비밀번호" data-en="Password">비밀번호</label><input type="password" id="l-pw" placeholder="••••••••" autocomplete="current-password"></div>
+        <button class="btn btn-p" id="login-btn" data-ko="로그인" data-en="Login">로그인</button>
       </div>
       <div id="frm-reg" style="display:none">
         <div class="alert alert-e" id="reg-alert"></div>
-        <div class="fg"><label class="fl">권한 *</label>
+        <div class="fg"><label class="fl" data-ko="권한 *" data-en="Role *">권한 *</label>
           <select id="r-role">
-            <option value="vendor">벤더 (생산 입력)</option>
-            <option value="cs">CS팀 (불량 확정)</option>
-            <option value="md">MD (오더 등록)</option>
+            <option value="vendor" data-ko="벤더 (생산 입력)" data-en="Vendor (Production Input)">벤더 (생산 입력)</option>
+            <option value="cs" data-ko="CS팀 (불량 확정)" data-en="CS Team">CS팀 (불량 확정)</option>
+            <option value="md" data-ko="MD (오더 등록)" data-en="MD">MD (오더 등록)</option>
           </select>
         </div>
-        <div class="fg"><label class="fl">회사명/부서명 *</label><input type="text" id="r-company" placeholder="예: 닝보진룽 / MD팀"></div>
+        <div class="fg"><label class="fl" data-ko="회사명/부서명 *" data-en="Company / Department *">회사명/부서명 *</label><input type="text" id="r-company" data-ko-ph="예: 닝보진룽 / MD팀" data-en-ph="e.g. Ningbo Jinlong / MD Dept" placeholder="예: 닝보진룽 / MD팀"></div>
         <div class="row2">
-          <div class="fg"><label class="fl">담당자명 *</label><input type="text" id="r-name" placeholder="홍길동"></div>
-          <div class="fg"><label class="fl">연락처</label><input type="tel" id="r-phone" placeholder="010-0000-0000"></div>
+          <div class="fg"><label class="fl" data-ko="담당자명 *" data-en="Contact Name *">담당자명 *</label><input type="text" id="r-name" data-ko-ph="홍길동" data-en-ph="John Doe" placeholder="홍길동"></div>
+          <div class="fg"><label class="fl" data-ko="연락처" data-en="Phone">연락처</label><input type="tel" id="r-phone" placeholder="010-0000-0000"></div>
         </div>
-        <div class="fg"><label class="fl">이메일 *</label><input type="email" id="r-email" placeholder="id@company.com"></div>
-        <div class="fg"><label class="fl">비밀번호 *</label><input type="password" id="r-pw" placeholder="6자 이상"></div>
-        <button class="btn btn-p" id="reg-btn">회원가입 신청</button>
+        <div class="fg"><label class="fl" data-ko="이메일 *" data-en="Email *">이메일 *</label><input type="email" id="r-email" placeholder="id@company.com"></div>
+        <div class="fg"><label class="fl" data-ko="비밀번호 *" data-en="Password *">비밀번호 *</label><input type="password" id="r-pw" data-ko-ph="6자 이상" data-en-ph="Min. 6 characters" placeholder="6자 이상"></div>
+        <button class="btn btn-p" id="reg-btn" data-ko="회원가입 신청" data-en="Request Registration">회원가입 신청</button>
       </div>
     </div>
   </div>
@@ -675,6 +678,7 @@ function parsePoNotes(notesString) {
 // ── 초기화 ──
 window.addEventListener('load', () => {
   bindAuth();
+  applyLang();
   const saved = localStorage.getItem('bls_user');
   if (saved) { try { me = JSON.parse(saved); launchApp(); } catch{} }
 });
@@ -686,6 +690,7 @@ function bindAuth() {
   document.getElementById('login-btn').addEventListener('click', doLogin);
   document.getElementById('reg-btn').addEventListener('click', doRegister);
   document.getElementById('l-pw').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  document.getElementById('auth-lang-toggle').addEventListener('click', toggleLang);
 }
 function switchAuthTab(t) {
   document.getElementById('tab-login-btn').classList.toggle('on', t==='login');
@@ -696,19 +701,19 @@ function switchAuthTab(t) {
 async function doLogin() {
   const email = document.getElementById('l-email').value.trim();
   const pw = document.getElementById('l-pw').value;
-  if (!email || !pw) return showAlert('login-alert', '이메일과 비밀번호를 입력해주세요');
-  const btn = document.getElementById('login-btn'); btn.disabled=true; btn.textContent='로그인 중...';
+  if (!email || !pw) return showAlert('login-alert', L('이메일과 비밀번호를 입력해주세요','Please enter your email and password'));
+  const btn = document.getElementById('login-btn'); btn.disabled=true; btn.textContent=L('로그인 중...','Logging in...');
   try {
     const res = await sb(`users?email=eq.${encodeURIComponent(email)}&password_hash=eq.${encodeURIComponent(pw)}`);
-    if (!res.length) return showAlert('login-alert', '이메일 또는 비밀번호가 올바르지 않습니다');
+    if (!res.length) return showAlert('login-alert', L('이메일 또는 비밀번호가 올바르지 않습니다','Invalid email or password'));
     const user = res[0];
-    if (user.status === 'pending') return showAlert('login-alert', '승인 대기 중입니다. 마스터 승인 후 이용 가능합니다.');
-    if (user.status === 'inactive') return showAlert('login-alert', '비활성화된 계정입니다');
+    if (user.status === 'pending') return showAlert('login-alert', L('승인 대기 중입니다. 마스터 승인 후 이용 가능합니다.','Pending approval. Please wait for master approval.'));
+    if (user.status === 'inactive') return showAlert('login-alert', L('비활성화된 계정입니다','This account is inactive'));
     me = user;
     localStorage.setItem('bls_user', JSON.stringify(me));
     launchApp();
   } catch(e) { showAlert('login-alert', e.message); }
-  finally { btn.disabled=false; btn.textContent='로그인'; }
+  finally { btn.disabled=false; btn.textContent=L('로그인','Login'); }
 }
 async function doRegister() {
   const body = {
@@ -721,18 +726,18 @@ async function doRegister() {
     status: 'pending'
   };
   if (!body.email || !body.password_hash || !body.company_name || !body.contact_name)
-    return showAlert('reg-alert', '필수 항목을 모두 입력해주세요');
-  if (body.password_hash.length < 6) return showAlert('reg-alert', '비밀번호는 6자 이상이어야 합니다');
-  const btn = document.getElementById('reg-btn'); btn.disabled=true; btn.textContent='신청 중...';
+    return showAlert('reg-alert', L('필수 항목을 모두 입력해주세요','Please fill in all required fields'));
+  if (body.password_hash.length < 6) return showAlert('reg-alert', L('비밀번호는 6자 이상이어야 합니다','Password must be at least 6 characters'));
+  const btn = document.getElementById('reg-btn'); btn.disabled=true; btn.textContent=L('신청 중...','Submitting...');
   try {
     await sb('users', 'POST', body);
-    showAlert('reg-alert', '✓ 회원가입 완료! 마스터 승인 후 로그인 가능합니다.', 's');
+    showAlert('reg-alert', L('✓ 회원가입 완료! 마스터 승인 후 로그인 가능합니다.','✓ Registration submitted! Login available after master approval.'), 's');
     setTimeout(()=>switchAuthTab('login'), 2500);
   } catch(e) {
-    if (String(e.message).includes('duplicate')) showAlert('reg-alert', '이미 등록된 이메일입니다');
+    if (String(e.message).includes('duplicate')) showAlert('reg-alert', L('이미 등록된 이메일입니다','This email is already registered'));
     else showAlert('reg-alert', e.message);
   }
-  finally { btn.disabled=false; btn.textContent='회원가입 신청'; }
+  finally { btn.disabled=false; btn.textContent=L('회원가입 신청','Request Registration'); }
 }
 
 // ── 앱 시작 ──
@@ -2387,6 +2392,8 @@ function applyLang() {
   });
   const t = document.getElementById('lang-toggle');
   if (t) t.textContent = lang === 'ko' ? '🌐 EN' : '🌐 한';
+  const authT = document.getElementById('auth-lang-toggle');
+  if (authT) authT.textContent = lang === 'ko' ? '🌐 EN' : '🌐 한';
   if (me) {
     const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD') };
     const sbRole = document.getElementById('sb-role');
