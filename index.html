@@ -197,6 +197,9 @@ tbody tr:hover{background:var(--bg)}
 .stage-progbar-seg.seg-artwork{background:#e67e22}
 .stage-progbar-seg.seg-sew{background:#2980b9}
 .stage-progbar-seg.seg-finish{background:var(--grn)}
+.util-donut-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:20px;margin-bottom:16px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.util-bar-track{width:100%;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:5px}
+.util-bar-fill{height:100%;border-radius:4px;transition:width .4s ease}
 </style>
 </head>
 <body class="theme-master">
@@ -365,8 +368,12 @@ tbody tr:hover{background:var(--bg)}
         </div>
 
         <div class="sec" id="sec-factory-all">
-          <div class="sec-hdr"><div><div class="sec-title">공장 현황</div><div class="sec-sub">벤더별 생산 공장 CAPA 및 가동 라인</div></div></div>
+          <div class="sec-hdr">
+            <div><div class="sec-title">공장 현황</div><div class="sec-sub">벤더별 생산 공장 CAPA 및 가동 라인</div></div>
+            <select class="fsel" id="fac-season-filter"><option value="">전체 시즌</option></select>
+          </div>
           <div class="filter-row"><select class="fsel" id="fac-vendor-filter"><option value="">전체 벤더</option></select></div>
+          <div id="util-donut-wrap"></div>
           <div id="factory-grid"></div>
         </div>
 
@@ -378,7 +385,7 @@ tbody tr:hover{background:var(--bg)}
 
         <div class="sec" id="sec-members">
           <div class="sec-hdr"><div><div class="sec-title">회원 관리</div><div class="sec-sub">전체 벤더/CS/MD 계정 관리</div></div></div>
-          <div class="filter-row"><select class="fsel" id="mem-filter"><option value="">전체</option><option value="vendor">벤더</option><option value="cs">CS팀</option><option value="md">MD</option></select></div>
+          <div class="filter-row"><select class="fsel" id="mem-filter"><option value="">전체</option><option value="vendor">벤더</option><option value="cs">CS팀</option><option value="md">MD</option></select><input class="fsearch" type="text" id="mem-search" placeholder="회사명/벤더코드 검색"></div>
           <div id="members-tbl"></div>
         </div>
 
@@ -576,7 +583,7 @@ let selectedOrderIds = new Set();
 let pendingBulkAction = null; // 'cancel' | 'delete'
 
 const CUR_SYM = {USD:'$',CNY:'¥',KRW:'₩',EUR:'€',JPY:'¥',VND:'₫'};
-function fmtPrice(p, c) { if (p == null) return '-'; return `${CUR_SYM[c]||''}${Number(p).toLocaleString()} ${c||'USD'}`; }
+function fmtPrice(p, c) { if (p == null) return '-'; const sym = CUR_SYM[c]; return sym ? `${sym}${Number(p).toLocaleString()}` : `${c||'USD'} ${Number(p).toLocaleString()}`; }
 
 // ── 벤더 코드 자동 생성 (VND-001 형식) ──
 function generateVendorCode() {
@@ -635,6 +642,16 @@ function calcDday(dateStr) {
   const diff = Math.ceil((new Date(dateStr) - new Date(today())) / 86400000);
   if (diff > 14 || diff < 0) return null;
   return diff;
+}
+function addBusinessDays(dateStr, days) {
+  let d = new Date(dateStr + 'T00:00:00');
+  let added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) added++;
+  }
+  return d.toISOString().slice(0, 10);
 }
 
 // 🌟 직렬화된 notes 복원 엔진 🌟
@@ -821,8 +838,10 @@ function bindAppEvents() {
 
   document.getElementById('new-factory-btn').addEventListener('click', ()=>openFactoryModal(null));
   document.getElementById('fac-vendor-filter').addEventListener('change', renderFactoryAll);
+  document.getElementById('fac-season-filter')?.addEventListener('change', renderFactoryAll);
   document.getElementById('cs-search').addEventListener('input', renderCs);
   document.getElementById('mem-filter').addEventListener('change', renderMembers);
+  document.getElementById('mem-search').addEventListener('input', renderMembers);
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
@@ -903,6 +922,11 @@ function setupFilters() {
     facV.innerHTML += `<option value="${v.id}">${v.company_name}${code}</option>`;
     if (regV) regV.innerHTML += `<option value="${v.id}">${v.company_name}${code}</option>`;
   });
+  const facSeasonSel = document.getElementById('fac-season-filter');
+  if (facSeasonSel) {
+    facSeasonSel.innerHTML = `<option value="">전체 시즌</option>`;
+    allSeasons.forEach(s => { facSeasonSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`; });
+  }
 }
 
 function getVisibleOrders() {
@@ -910,10 +934,16 @@ function getVisibleOrders() {
   if (me.role === 'vendor') list = list.filter(o=>o.vendor_id===me.id);
   const sid = document.getElementById('dash-season').value;
   const vid = document.getElementById('ord-vendor').value;
-  const q = document.getElementById('ord-search').value.toLowerCase();
+  const q = document.getElementById('ord-search').value.trim().toLowerCase();
   if (sid) list = list.filter(o=>o.season_id===sid);
   if (vid) list = list.filter(o=>o.vendor_id===vid);
-  if (q) list = list.filter(o=>(o.style_no||'').toLowerCase().includes(q)||(o.style_name||'').toLowerCase().includes(q));
+  if (q) {
+    const terms = q.split(/\s+/).filter(Boolean);
+    list = list.filter(o => {
+      const combined = `${(o.style_no||'')} ${(o.style_name||'')}`.toLowerCase();
+      return terms.every(t => combined.includes(t));
+    });
+  }
   // 긴급건 최상단 고정, 이후 target ETD 오름차순
   list.sort((a,b)=>{
     if (!!b.is_urgent !== !!a.is_urgent) return b.is_urgent ? 1 : -1;
@@ -1012,7 +1042,7 @@ function renderDashboard() {
         <td data-label="스타일번호" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${o.is_urgent?' <span class="bdg bdg-urgent" style="font-size:9px;padding:2px 5px">긴급</span>':''}</td>
         <td data-label="스타일명">${o.style_name}</td>
         <td data-label="오더">${Number(o.order_qty).toLocaleString()}</td>
-        <td data-label="진행율"><div class="stage-progbar">${stageSegs}</div><div style="font-size:11px;color:var(--muted)">${stageQty.toLocaleString()}장 / ${stagePct}%</div></td>
+        <td data-label="진행율"><div class="stage-progbar">${stageSegs}</div></td>
         <td data-label="선적">${Number(o.shipped_qty||0).toLocaleString()}</td>
         <td data-label="불량률" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${o.cs_defect_qty!=null?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
         <td data-label="선적예정" style="font-size:12px">${(()=>{const d=calcDday(o.planned_ship_date);const dday=d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;return `${(o.planned_ship_date||'-').slice(0,10)}${dday}`;})()}</td>
@@ -1058,10 +1088,6 @@ function renderVendorOrderCards(list) {
           </div>
           <div style="font-size:15px;font-weight:700">${o.style_name}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px">${qtyLabel} · ${(o.planned_ship_date||'-').slice(0,10)}${(()=>{const d=calcDday(o.planned_ship_date);return d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;})()}${late?' <span style="color:var(--red);font-weight:600">⚠ 지연</span>':''}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:22px;font-weight:700;color:${pct===100?'var(--grn)':pct>0?'var(--ac)':'var(--muted)'}">${pct}%</div>
-          <div style="font-size:11px;color:var(--muted)">${qty.toLocaleString()}장</div>
         </div>
       </div>
       <div class="stage-grid">${chips}</div>
@@ -1316,7 +1342,12 @@ function handleBulkExcelUpload(e) {
       }
 
       const getDt = (v) => {
-        if (v instanceof Date) return v.toISOString().slice(0, 10);
+        if (v instanceof Date) {
+          const y = v.getFullYear();
+          const m = String(v.getMonth() + 1).padStart(2, '0');
+          const d = String(v.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        }
         if (!v) return '-';
         return String(v).trim().slice(0, 10);
       };
@@ -1398,7 +1429,7 @@ function handleBulkExcelUpload(e) {
         const vendorTag = o._unmatched
           ? `<span style="color:#c0392b;font-weight:700">[미매칭]</span>`
           : `<span style="color:#1e7e4a;font-weight:700">[${o._matchedVendorCode ? o._matchedVendorCode + ' ' : ''}${o._matchedVendorName}]</span>`;
-        return `[${idx + 1}] ${vendorTag} ${po.styleNo} | ${po.qty.toLocaleString()}장 | Supplier: ${o._supplierName} | FOB: $${po.fob}`;
+        return `[${idx + 1}] ${vendorTag} ${po.styleNo} | ${po.qty.toLocaleString()}장 | Supplier: ${o._supplierName} | FOB: ${fmtPrice(po.fob, o.currency)}`;
       }).join('<br>');
 
       document.getElementById('excel-preview-zone').style.display = 'block';
@@ -1832,9 +1863,10 @@ async function confirmShipReq(reqId, orderId, etd, qty) {
     const o = allOrders.find(x=>x.id===orderId);
     const newShipped = (o?.shipped_qty||0) + qty;
     const remaining_qty = (o?.order_qty||0) - newShipped;
-    await sb(`shipping_requests?id=eq.${reqId}`, 'PATCH', {status:'confirmed', confirmed_etd:newEtd, remaining_qty, updated_at:new Date().toISOString()});
+    const arrival_date = addBusinessDays(newEtd, 4);
+    await sb(`shipping_requests?id=eq.${reqId}`, 'PATCH', {status:'confirmed', confirmed_etd:newEtd, arrival_date, remaining_qty, updated_at:new Date().toISOString()});
     await sb(`orders?id=eq.${orderId}`, 'PATCH', {shipped_qty:newShipped, etd_date:newEtd, ship_date:newEtd});
-    await loadAll(); renderShipReqs(); alert('확정되었습니다 (선적 누적 ' + newShipped + '장 / 잔량 ' + remaining_qty + '장)');
+    await loadAll(); renderShipReqs(); alert('확정되었습니다 (입고 예정일 ' + arrival_date + ' · 선적 누적 ' + newShipped + '장 / 잔량 ' + remaining_qty + '장)');
   } catch(e) { alert(e.message); }
 }
 async function rejectShipReq(reqId) {
@@ -1851,12 +1883,16 @@ async function resetShipReq(reqId) {
 
 // ── 입고 일정표 ──
 function getInboundList() {
-  return allShipReqs.filter(r=>r.status==='confirmed'||r.status==='requested').map(r=>{
-    const o = allOrders.find(x=>x.id===r.order_id);
-    const v = allUsers.find(u=>u.id===r.vendor_id);
-    const s = o ? allSeasons.find(x=>x.id===o.season_id) : null;
-    return { ...r, style_no:o?.style_no, style_name:o?.style_name, category:o?.category, order_qty:o?.order_qty, vendor_name:v?.company_name, season_name:s?.name, destination:o?.destination, etd:r.confirmed_etd||r.booking_etd };
-  }).sort((a,b)=>(a.etd||'').localeCompare(b.etd||''));
+  return allShipReqs
+    .filter(r=>(r.status==='confirmed'||r.status==='requested') && allOrders.find(x=>x.id===r.order_id))
+    .map(r=>{
+      const o = allOrders.find(x=>x.id===r.order_id);
+      const v = allUsers.find(u=>u.id===r.vendor_id);
+      const s = o ? allSeasons.find(x=>x.id===o.season_id) : null;
+      const etd = r.confirmed_etd||r.booking_etd;
+      const arrival_date = r.arrival_date || (etd ? addBusinessDays(etd, 4) : null);
+      return { ...r, style_no:o?.style_no, style_name:o?.style_name, category:o?.category, order_qty:o?.order_qty, vendor_name:v?.company_name, season_name:s?.name, destination:o?.destination, etd, arrival_date };
+    }).sort((a,b)=>(a.arrival_date||a.etd||'').localeCompare(b.arrival_date||b.etd||''));
 }
 function renderInbound() {
   const list = getInboundList();
@@ -1865,10 +1901,11 @@ function renderInbound() {
   const slbl = {requested:'요청(미확정)',confirmed:'확정'};
   document.getElementById('inbound-tbl').innerHTML = `
     <div class="tbl-wrap"><table>
-    <thead><tr><th>입고 ETD</th><th>벤더</th><th>스타일</th><th>카테고리</th><th>입고수량</th><th>납품처</th><th>시즌</th><th>상태</th></tr></thead>
+    <thead><tr><th>선적 ETD</th><th>입고 예정일</th><th>벤더</th><th>스타일</th><th>카테고리</th><th>입고수량</th><th>납품처</th><th>시즌</th><th>상태</th></tr></thead>
     <tbody>
     ${list.map(r=>`<tr>
-      <td data-label="입고 ETD" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--ac)">${r.etd}</td>
+      <td data-label="선적 ETD" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${r.etd||'-'}</td>
+      <td data-label="입고 예정일" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--ac)">${r.arrival_date||'-'}</td>
       <td data-label="벤더"><strong>${r.vendor_name||'-'}</strong></td>
       <td data-label="스타일">${r.style_no||''}<br>${r.style_name||''}</td>
       <td data-label="카테고리">${r.category||'-'}</td>
@@ -1883,16 +1920,56 @@ function renderInbound() {
 function renderInboundCalendar() {
   const list = getInboundList();
   if (!inboundCalYear) { const n=new Date(); inboundCalYear=n.getFullYear(); inboundCalMonth=n.getMonth(); }
-  document.getElementById('inbound-cal').innerHTML = buildCal(list, inboundCalYear, inboundCalMonth, 'inbound', r=>r.etd, r=>r.style_name, r=>r.booking_qty);
+  document.getElementById('inbound-cal').innerHTML = buildCal(list, inboundCalYear, inboundCalMonth, 'inbound', r=>r.arrival_date, r=>r.style_name, r=>r.booking_qty);
   document.querySelectorAll('[data-cal="inbound"]').forEach(b=>b.addEventListener('click', ()=>{
     inboundCalMonth += +b.dataset.dir;
     if (inboundCalMonth<0){inboundCalMonth=11;inboundCalYear--;}
     if (inboundCalMonth>11){inboundCalMonth=0;inboundCalYear++;}
     renderInboundCalendar();
   }));
-  document.querySelectorAll('.cal-cell[data-day]').forEach(c=>c.addEventListener('click', ()=>showDayDetail(c.dataset.day, list, r=>r.etd, r=>({style_no:r.style_no,style_name:r.style_name,qty:r.booking_qty,vendor:r.vendor_name,category:r.category}))));
+  document.querySelectorAll('.cal-cell[data-day]').forEach(c=>c.addEventListener('click', ()=>showInboundDayDetail(c.dataset.day, list)));
 }
 
+function showInboundDayDetail(dateStr, list) {
+  const items = list.filter(r=>r.arrival_date===dateStr);
+  document.getElementById('dm-title').textContent = dateStr + ' 입고 예정';
+  document.getElementById('dm-sub').textContent = `${items.length}개 항목`;
+  let totalQty = 0;
+  const rows = items.map(it=>{
+    totalQty += it.booking_qty||0;
+    return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${it.style_no||''}</div><strong>${it.style_name||''}</strong>${it.vendor_name?'<div style="font-size:11px;color:var(--muted)">'+it.vendor_name+'</div>':''}</div>
+        <div style="text-align:right"><strong>${Number(it.booking_qty||0).toLocaleString()}장</strong>${it.category?'<div style="font-size:11px;color:var(--muted)">'+it.category+'</div>':''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+        <span style="font-size:12px;color:var(--muted);white-space:nowrap">입고일 변경:</span>
+        <input type="date" value="${it.arrival_date||''}" style="padding:4px 8px;border:1px solid var(--bdr);border-radius:6px;font-family:inherit;font-size:12px;flex:1;max-width:160px" onchange="updateArrivalDate('${it.id}', this.value, this)">
+        <span style="font-size:11px;color:var(--muted)">ETD: ${it.etd||'-'}</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('dm-body').innerHTML = items.length
+    ? rows + `<div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--bdr);display:flex;justify-content:space-between;font-weight:700"><span>합계</span><span>${totalQty.toLocaleString()}장</span></div>`
+    : '<div class="empty"><div class="empty-t">항목이 없습니다</div></div>';
+  document.getElementById('day-modal').classList.add('on');
+}
+async function updateArrivalDate(reqId, newDate, inputEl) {
+  if (!newDate) return;
+  const prev = inputEl.defaultValue;
+  inputEl.disabled = true;
+  try {
+    await sb(`shipping_requests?id=eq.${reqId}`, 'PATCH', {arrival_date:newDate, updated_at:new Date().toISOString()});
+    await loadAll();
+    closeModal('dm');
+    renderInboundCalendar();
+  } catch(e) {
+    alert(e.message);
+    inputEl.value = prev;
+  } finally {
+    inputEl.disabled = false;
+  }
+}
 function buildCal(data, year, month, prefix, getDate, getName, getQty) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month+1, 0);
@@ -1992,26 +2069,114 @@ async function deleteFactory(id) {
 }
 
 // ── 공장 현황 (마스터) ──
+function utilColor(pct) {
+  return pct >= 90 ? '#c0392b' : pct >= 70 ? '#b7770d' : '#1e7e4a';
+}
+function utilCssVar(pct) {
+  return pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--ora)' : 'var(--grn)';
+}
+function buildDonutSvg(pct) {
+  const r = 38, cx = 50, cy = 50;
+  const circ = 2 * Math.PI * r;
+  const safePct = Math.min(Math.max(pct, 0), 100);
+  const dash = (safePct / 100 * circ).toFixed(2);
+  const color = utilColor(pct);
+  return `<svg width="150" height="150" viewBox="0 0 100 100">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e8e8e8" stroke-width="14"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="14"
+      stroke-dasharray="${dash} ${circ.toFixed(2)}"
+      transform="rotate(-90 ${cx} ${cy})" stroke-linecap="butt"/>
+    <text x="${cx}" y="${cy}" text-anchor="middle" dy="0.35em"
+      font-family="'Noto Sans KR',sans-serif" font-size="16" font-weight="700" fill="${color}">${pct.toFixed(1)}%</text>
+  </svg>`;
+}
+
 function renderFactoryAll() {
   const vid = document.getElementById('fac-vendor-filter').value;
+  const sid = document.getElementById('fac-season-filter')?.value || '';
   let list = allFactories.slice();
   if (vid) list = list.filter(f=>f.vendor_id===vid);
-  if (!list.length) { document.getElementById('factory-grid').innerHTML='<div class="empty"><div class="empty-t">등록된 공장이 없습니다</div></div>'; return; }
+
+  const donutWrap = document.getElementById('util-donut-wrap');
+  if (!list.length) {
+    document.getElementById('factory-grid').innerHTML='<div class="empty"><div class="empty-t">등록된 공장이 없습니다</div></div>';
+    if (donutWrap) donutWrap.innerHTML='';
+    return;
+  }
+
+  // 벤더별 가동률 계산
+  const vendorIds = [...new Set(list.map(f=>f.vendor_id))];
+  const vendorUtils = {};
+  let grandCapa = 0, grandProduced = 0;
+  vendorIds.forEach(vId => {
+    const vFacs = allFactories.filter(f=>f.vendor_id===vId);
+    const capa = vFacs.reduce((s,f)=>s+(+f.capa||0), 0);
+    let orders = allOrders.filter(o=>o.vendor_id===vId);
+    if (sid) orders = orders.filter(o=>o.season_id===sid);
+    const produced = orders.reduce((s,o)=>s+(o.produced_qty||0), 0);
+    grandCapa += capa;
+    grandProduced += produced;
+    vendorUtils[vId] = {capa, produced, pct: capa ? produced/capa*100 : null};
+  });
+
+  // 전체 가동률 도넛 차트
+  const overallPct = grandCapa ? grandProduced/grandCapa*100 : 0;
+  const seasonLabel = sid ? (allSeasons.find(s=>s.id===sid)?.name||'선택 시즌') : '전체 시즌';
+  const oColor = utilColor(overallPct);
+  if (donutWrap) {
+    donutWrap.innerHTML = `<div class="util-donut-card">
+      <div style="flex-shrink:0">${buildDonutSvg(overallPct)}</div>
+      <div style="flex:1;min-width:160px">
+        <div style="font-size:16px;font-weight:700;color:var(--txt);margin-bottom:10px">${seasonLabel} · 전체 가동률</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px">
+          <div><div style="font-size:11px;color:var(--muted)">현재생산</div><div style="font-size:18px;font-weight:700">${Number(grandProduced).toLocaleString()}장</div></div>
+          <div><div style="font-size:11px;color:var(--muted)">월 총 CAPA</div><div style="font-size:18px;font-weight:700">${Number(grandCapa).toLocaleString()}장</div></div>
+          <div><div style="font-size:11px;color:var(--muted)">가동률</div><div style="font-size:18px;font-weight:700;color:${oColor}">${overallPct.toFixed(1)}%</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap">
+          <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#1e7e4a;margin-right:4px;vertical-align:middle"></span>70% 미만: 정상</span>
+          <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#b7770d;margin-right:4px;vertical-align:middle"></span>70~89%: 주의</span>
+          <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#c0392b;margin-right:4px;vertical-align:middle"></span>90% 이상: 과부하</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // 벤더별 카드 렌더링
   const byVendor = {};
   list.forEach(f=>{
     const v = allUsers.find(u=>u.id===f.vendor_id);
     const vname = v?.company_name||'미상';
-    if (!byVendor[vname]) byVendor[vname]=[];
-    byVendor[vname].push(f);
+    if (!byVendor[vname]) byVendor[vname]={facs:[],vendorId:f.vendor_id};
+    byVendor[vname].facs.push(f);
   });
+
   let html = '';
-  for (const [vname, facs] of Object.entries(byVendor)) {
-    const totalCapa = facs.reduce((s,f)=>s+(+f.capa||0),0);
+  for (const [vname, data] of Object.entries(byVendor)) {
+    const {facs, vendorId} = data;
+    const util = vendorUtils[vendorId] || {capa:0, produced:0, pct:null};
+    const totalCapaV = facs.reduce((s,f)=>s+(+f.capa||0),0);
     const totalLines = facs.reduce((s,f)=>s+(+f.active_lines||0),0);
-    html += `<div style="margin-bottom:20px">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">🏭 ${vname}</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">공장 ${facs.length}개 · 총 월 CAPA ${totalCapa.toLocaleString()}장/월 · 총 ${totalLines}개 라인</div>
-      ${facs.map(f=>`<div class="factory-card">
+    const pct = util.pct;
+    const pctStr = pct !== null ? pct.toFixed(1)+'%' : (totalCapaV ? '0.0%' : 'CAPA 미등록');
+    const barW = pct !== null ? Math.min(pct,100).toFixed(1) : 0;
+    const bColor = pct !== null ? utilColor(pct) : '#ccc';
+    const vCssVar = pct !== null ? utilCssVar(pct) : 'var(--muted)';
+
+    html += `<div style="margin-bottom:22px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:2px">
+        <div>
+          <div style="font-size:15px;font-weight:700">🏭 ${vname}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:1px">공장 ${facs.length}개 · 총 월 CAPA ${totalCapaV.toLocaleString()}장/월 · ${totalLines}개 라인</div>
+        </div>
+        <div style="text-align:right;line-height:1.2">
+          <div style="font-size:22px;font-weight:700;color:${vCssVar}">${pctStr}</div>
+          <div style="font-size:11px;color:var(--muted)">가동률</div>
+        </div>
+      </div>
+      <div class="util-bar-track"><div class="util-bar-fill" style="width:${barW}%;background:${bColor}"></div></div>
+      ${util.produced>0?`<div style="font-size:11px;color:var(--muted);margin-top:3px">현재생산 ${util.produced.toLocaleString()}장 / 월CAPA ${util.capa.toLocaleString()}장</div>`:''}
+      ${facs.map(f=>`<div class="factory-card" style="margin-top:8px">
         <div class="factory-name">${f.name}</div>
         <div class="factory-row"><span>위치</span><strong>${f.location||'-'}</strong></div>
         <div class="factory-row"><span>월 CAPA</span><strong>${f.capa?Number(f.capa).toLocaleString()+'장':'-'}</strong></div>
@@ -2100,8 +2265,16 @@ async function saveCsDefect() {
 // ── 회원 관리 (마스터) ──
 function renderMembers() {
   const filter = document.getElementById('mem-filter').value;
+  const q = (document.getElementById('mem-search').value||'').trim().toLowerCase();
   let list = allUsers.filter(u=>u.role!=='master');
   if (filter) list = list.filter(u=>u.role===filter);
+  if (q) {
+    const terms = q.split(/\s+/).filter(Boolean);
+    list = list.filter(u => {
+      const combined = `${(u.company_name||'')} ${(u.vendor_code||'')}`.toLowerCase();
+      return terms.every(t => combined.includes(t));
+    });
+  }
   list.sort((a,b)=>a.company_name.localeCompare(b.company_name));
   if (!list.length) { document.getElementById('members-tbl').innerHTML='<div class="empty"><div class="empty-t">회원이 없습니다</div></div>'; return; }
   const rlbl = {vendor:'벤더',cs:'CS팀',md:'MD'};
