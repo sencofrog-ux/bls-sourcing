@@ -13,6 +13,7 @@ body.theme-master{--ac:#1e3a5f;--acl:#e8eef6;--ach:#152b47;--bg:#f0ede8}
 body.theme-cs{--ac:#6b3fa0;--acl:#f0eaf8;--ach:#4e2d78;--bg:#f5f0f8}
 body.theme-md{--ac:#b5443a;--acl:#fbeae8;--ach:#8f3129;--bg:#faf2f0}
 body.theme-vendor{--ac:#1e7e4a;--acl:#edf7f1;--ach:#145c34;--bg:#ebf2ee}
+body.theme-viewer{--ac:#5a5a52;--acl:#eeede9;--ach:#3f3f38;--bg:#f3f2ef}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.6;min-height:100vh}
 .pg{display:none}.pg.on{display:block}
@@ -114,6 +115,7 @@ tbody tr:hover{background:var(--bg)}
 .cal-event{background:var(--acl);color:var(--ac);border-radius:4px;padding:2px 5px;margin-bottom:2px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;max-width:100%}
 .cal-event.confirmed{background:var(--grnl);color:var(--grn);border-left:3px solid var(--grn)}
 .cal-event.late{background:var(--redl);color:var(--red)}
+.cal-event.manual{opacity:.5}
 .inner:has(#view-inbound-cal.on){max-width:none}
 .modal-section-title{font-size:12px;font-weight:700;color:var(--ac);margin:16px 0 8px 0;border-bottom:1px solid var(--bdr);padding-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto}
@@ -236,6 +238,7 @@ tbody tr:hover{background:var(--bg)}
             <option value="vendor" data-ko="벤더 (생산 입력)" data-en="Vendor (Production Input)">벤더 (생산 입력)</option>
             <option value="cs" data-ko="CS팀 (불량 확정)" data-en="CS Team">CS팀 (불량 확정)</option>
             <option value="md" data-ko="MD (오더 등록)" data-en="MD">MD (오더 등록)</option>
+            <option value="viewer" data-ko="내부 직원 (조회 전용)" data-en="Internal Staff (View Only)">내부 직원 (조회 전용)</option>
           </select>
         </div>
         <div class="fg"><label class="fl" data-ko="회사명/부서명 *" data-en="Company / Department *">회사명/부서명 *</label><input type="text" id="r-company" data-ko-ph="예: 닝보진룽 / MD팀" data-en-ph="e.g. Ningbo Jinlong / MD Dept" placeholder="예: 닝보진룽 / MD팀"></div>
@@ -356,7 +359,10 @@ tbody tr:hover{background:var(--bg)}
 
         <div class="sec" id="sec-inbound">
           <div class="sec-hdr"><div><div class="sec-title" data-ko="입고 일정표" data-en="Inbound Schedule">입고 일정표</div><div class="sec-sub" data-ko="확정된 선적 기준 입고 일정" data-en="Inbound schedule based on confirmed shipments">확정된 선적 기준 입고 일정</div></div>
-            <button class="btn btn-s btn-sm" id="inbound-print" data-ko="🖨️ 인쇄" data-en="🖨️ Print">🖨️ 인쇄</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-p btn-sm" id="cal-add-event-btn" style="width:auto;display:none" data-ko="➕ 임의 일정 추가" data-en="➕ Add Custom Event">➕ 임의 일정 추가</button>
+              <button class="btn btn-s btn-sm" id="inbound-print" data-ko="🖨️ 인쇄" data-en="🖨️ Print">🖨️ 인쇄</button>
+            </div>
           </div>
           <div class="view-tabs">
             <button class="view-tab on" data-iview="list" data-ko="📋 목록" data-en="📋 List">📋 목록</button>
@@ -397,7 +403,7 @@ tbody tr:hover{background:var(--bg)}
 
         <div class="sec" id="sec-members">
           <div class="sec-hdr"><div><div class="sec-title" data-ko="회원 관리" data-en="Member Management">회원 관리</div><div class="sec-sub" data-ko="전체 벤더/CS/MD 계정 관리" data-en="Manage all Vendor / CS / MD accounts">전체 벤더/CS/MD 계정 관리</div></div></div>
-          <div class="filter-row"><select class="fsel" id="mem-filter"><option value="" data-ko="전체" data-en="All">전체</option><option value="vendor" data-ko="벤더" data-en="Vendor">벤더</option><option value="cs" data-ko="CS팀" data-en="CS Team">CS팀</option><option value="md" data-ko="MD" data-en="MD">MD</option></select><input class="fsearch" type="text" id="mem-search" data-ko-ph="회사명/벤더코드 검색" data-en-ph="Search company/vendor code" placeholder="회사명/벤더코드 검색"></div>
+          <div class="filter-row"><select class="fsel" id="mem-filter"><option value="" data-ko="전체" data-en="All">전체</option><option value="vendor" data-ko="벤더" data-en="Vendor">벤더</option><option value="cs" data-ko="CS팀" data-en="CS Team">CS팀</option><option value="md" data-ko="MD" data-en="MD">MD</option><option value="viewer" data-ko="내부 직원" data-en="Viewer">내부 직원</option></select><input class="fsearch" type="text" id="mem-search" data-ko-ph="회사명/벤더코드 검색" data-en-ph="Search company/vendor code" placeholder="회사명/벤더코드 검색"></div>
           <div id="members-tbl"></div>
         </div>
 
@@ -564,6 +570,25 @@ tbody tr:hover{background:var(--bg)}
   </div>
 </div>
 
+<div class="overlay" id="calevent-modal">
+  <div class="modal" style="max-width:460px">
+    <div class="mhdr"><div><div class="mhdr-t" id="cev-title" data-ko="임의 일정 추가" data-en="Add Custom Event">임의 일정 추가</div></div><button class="mclose" id="cev-close">×</button></div>
+    <div class="mbody">
+      <div class="alert alert-e" id="cev-alert"></div>
+      <div class="fg"><label class="fl" data-ko="스타일명 *" data-en="Style Name *">스타일명 *</label><input type="text" id="cev-name" data-ko-ph="예: 울 블레이저" data-en-ph="e.g. Wool Blazer" placeholder="예: 울 블레이저"></div>
+      <div class="row2">
+        <div class="fg"><label class="fl" data-ko="수량" data-en="Qty">수량</label><input type="number" id="cev-qty" placeholder="500"></div>
+        <div class="fg"><label class="fl" data-ko="입고예정일 *" data-en="Expected Arrival *">입고예정일 *</label><input type="date" id="cev-date"></div>
+      </div>
+      <div class="fg"><label class="fl" data-ko="메모" data-en="Memo">메모</label><textarea id="cev-memo"></textarea></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="cev-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="cev-save" style="width:auto" data-ko="저장" data-en="Save">저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="bulk-confirm-modal">
   <div class="modal" style="max-width:420px">
     <div class="mhdr"><div><div class="mhdr-t" id="bcm-title" data-ko="일괄 처리 확인" data-en="Bulk Action Confirm">일괄 처리 확인</div></div><button class="mclose" onclick="document.getElementById('bulk-confirm-modal').classList.remove('on')">×</button></div>
@@ -663,8 +688,8 @@ const SUPABASE_KEY = "sb_publishable_b19kpVsItvdlFneFpzYb2Q_Z_Xc3ccr";
 
 // ── 전역 상태 ──
 let me = null;
-let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allShipReqs = [], allErrors = [];
-let activeOrderId = null, editFactoryId = null;
+let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allShipReqs = [], allErrors = [], allCalendarEvents = [];
+let activeOrderId = null, editFactoryId = null, editCalEventId = null;
 let inboundCalYear, inboundCalMonth;
 let inboundSearchDates = new Set();
 let parsedBulkOrders = []; // 대량 엑셀 홀더
@@ -832,11 +857,13 @@ async function launchApp() {
   showPg('pg-app');
   document.body.className = 'theme-' + me.role;
   document.getElementById('sb-name').textContent = me.company_name;
-  const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD') };
+  const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD'), viewer: L('내부 직원','Viewer') };
   document.getElementById('sb-role').textContent = roleMap[me.role] || me.role;
   
   const ordVendorSel = document.getElementById('ord-vendor');
   if (ordVendorSel) ordVendorSel.style.display = me.role === 'vendor' ? 'none' : '';
+  const calAddBtn = document.getElementById('cal-add-event-btn');
+  if (calAddBtn) calAddBtn.style.display = me.role === 'master' ? '' : 'none';
   buildSidebar();
   bindAppEvents();
   await loadAll();
@@ -874,6 +901,9 @@ function buildSidebar() {
       <button class="nav-btn on" data-sec="dashboard" data-ko="📋 전체 오더 현황" data-en="📋 All Orders">📋 전체 오더 현황</button>
       <button class="nav-btn" data-sec="order-reg" data-ko="➕ 오더 등록" data-en="➕ Order Registration">➕ 오더 등록</button>
       <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
+  } else if (me.role === 'viewer') {
+    menu = `
+      <button class="nav-btn on" data-sec="inbound" data-ko="📅 입고 일정표" data-en="📅 Inbound Schedule">📅 입고 일정표</button>`;
   }
   nav.innerHTML = menu;
   nav.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click', ()=>switchSec(b.dataset.sec)));
@@ -881,6 +911,14 @@ function buildSidebar() {
   if (me.role === 'cs') {
     document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
     document.getElementById('sec-cs').classList.add('on');
+  }
+  if (me.role === 'viewer') {
+    document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+    document.getElementById('sec-inbound').classList.add('on');
+    const viewTabs = document.querySelector('#sec-inbound .view-tabs');
+    if (viewTabs) viewTabs.style.display = 'none';
+    document.getElementById('view-inbound-list')?.classList.remove('on');
+    document.getElementById('view-inbound-cal')?.classList.add('on');
   }
 }
 
@@ -891,7 +929,7 @@ function switchSec(id) {
   closeSidebar();
   if (id === 'pending') renderPending();
   if (id === 'shipreq') renderShipReqs();
-  if (id === 'inbound') renderInbound();
+  if (id === 'inbound') { renderInbound(); if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderInboundCalendar(); }
   if (id === 'factory-all') renderFactoryAll();
   if (id === 'factory-mine') renderFactoryMine();
   if (id === 'cs') renderCs();
@@ -940,7 +978,7 @@ function bindAppEvents() {
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
-  ['vm','sr','csm','fm','dm','oe','fim'].forEach(prefix=>{
+  ['vm','sr','csm','fm','dm','oe','fim','cev'].forEach(prefix=>{
     document.getElementById(prefix+'-close')?.addEventListener('click', ()=>closeModal(prefix));
     document.getElementById(prefix+'-cancel')?.addEventListener('click', ()=>closeModal(prefix));
   });
@@ -951,6 +989,7 @@ function bindAppEvents() {
   document.getElementById('day-modal').addEventListener('click', e=>{ if(e.target.id==='day-modal') closeModal('dm'); });
   document.getElementById('order-edit-modal').addEventListener('click', e=>{ if(e.target.id==='order-edit-modal') closeModal('oe'); });
   document.getElementById('finish-modal').addEventListener('click', e=>{ if(e.target.id==='finish-modal') closeModal('fim'); });
+  document.getElementById('calevent-modal').addEventListener('click', e=>{ if(e.target.id==='calevent-modal') closeModal('cev'); });
   document.getElementById('fim-confirm').addEventListener('click', executeBulkFinish);
 
   document.getElementById('vm-save').addEventListener('click', saveVendorProduction);
@@ -958,6 +997,8 @@ function bindAppEvents() {
   document.getElementById('csm-save').addEventListener('click', saveCsDefect);
   document.getElementById('fm-save').addEventListener('click', saveFactory);
   document.getElementById('oe-save').addEventListener('click', saveOrderEdit);
+  document.getElementById('cal-add-event-btn')?.addEventListener('click', ()=>openCalEventModal(null));
+  document.getElementById('cev-save').addEventListener('click', saveCalEvent);
   document.getElementById('oe-urgent').addEventListener('change', ()=>{
     const on = document.getElementById('oe-urgent').checked;
     document.getElementById('oe-urgent-label').textContent = on ? L('긴급 오더 (Reorder)','Urgent Order (Reorder)') : L('일반 오더','Normal Order');
@@ -967,7 +1008,7 @@ function bindAppEvents() {
   document.getElementById('csm-qty').addEventListener('input', previewCsRate);
 }
 function closeModal(prefix) {
-  const map = {vm:'vendor-modal', sr:'shipreq-modal', csm:'cs-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal'};
+  const map = {vm:'vendor-modal', sr:'shipreq-modal', csm:'cs-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', cev:'calevent-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
@@ -980,13 +1021,14 @@ async function loadAll() {
     const shipReqsQuery = isVendor ? `shipping_requests?select=*&vendor_id=eq.${me.id}` : 'shipping_requests?select=*';
     const usersQuery = isVendor ? `users?select=id,company_name,role&id=eq.${me.id}` : 'users?select=*';
     
-    [allUsers, allSeasons, allOrders, allFactories, allShipReqs, allErrors] = await Promise.all([
+    [allUsers, allSeasons, allOrders, allFactories, allShipReqs, allErrors, allCalendarEvents] = await Promise.all([
       sb(usersQuery),
       sb('seasons?select=*'),
       sb(ordersQuery),
       sb(factoriesQuery),
       sb(shipReqsQuery),
-      me.role==='master' ? sb('errors?select=*&order=created_at.desc') : Promise.resolve([])
+      me.role==='master' ? sb('errors?select=*&order=created_at.desc') : Promise.resolve([]),
+      sb('calendar_events?select=*')
     ]);
     setupFilters();
     renderDashboard();
@@ -1333,7 +1375,7 @@ async function vmToggleStage(orderId, stage) {
 function renderPending() {
   const list = allUsers.filter(u=>u.status==='pending').sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||''));
   if (!list.length) { document.getElementById('pend-list').innerHTML = `<div class="empty"><div class="empty-t">${L('승인 대기 중인 계정이 없습니다','No accounts pending approval')}</div></div>`; return; }
-  const rlbl = {vendor:L('벤더','Vendor'),cs:L('CS팀','CS Team'),md:L('MD','MD')};
+  const rlbl = {vendor:L('벤더','Vendor'),cs:L('CS팀','CS Team'),md:L('MD','MD'),viewer:L('내부 직원','Viewer')};
   // 승인 대기 벤더들에게 순서대로 예정 코드 미리보기
   const withCode = allUsers.filter(u => u.role === 'vendor' && u.vendor_code);
   let nextNum = (() => {
@@ -2195,8 +2237,12 @@ function renderInbound() {
 }
 function renderInboundCalendar() {
   const list = getInboundList();
+  const combined = [
+    ...list.map(r=>({date:r.arrival_date, name:r.style_no, qty:r.booking_qty, manual:false})),
+    ...allCalendarEvents.map(e=>({date:e.event_date, name:e.style_name, qty:e.qty, manual:true}))
+  ];
   if (!inboundCalYear) { const n=new Date(); inboundCalYear=n.getFullYear(); inboundCalMonth=n.getMonth(); }
-  document.getElementById('inbound-cal').innerHTML = buildCal(list, inboundCalYear, inboundCalMonth, 'inbound', r=>r.arrival_date, r=>r.style_no, r=>r.booking_qty, inboundSearchDates);
+  document.getElementById('inbound-cal').innerHTML = buildCal(combined, inboundCalYear, inboundCalMonth, 'inbound', r=>r.date, r=>r.name, r=>r.qty, inboundSearchDates, r=>r.manual);
   document.querySelectorAll('[data-cal="inbound"]').forEach(b=>b.addEventListener('click', ()=>{
     inboundCalMonth += +b.dataset.dir;
     if (inboundCalMonth<0){inboundCalMonth=11;inboundCalYear--;}
@@ -2254,27 +2300,93 @@ function showInboundHistoryPopup(sorted) {
 }
 function showInboundDayDetail(dateStr, list) {
   const items = list.filter(r=>r.arrival_date===dateStr);
+  const manualItems = allCalendarEvents.filter(e=>e.event_date===dateStr);
   document.getElementById('dm-title').textContent = dateStr + L(' 입고 예정',' Inbound Schedule');
-  document.getElementById('dm-sub').textContent = L(`${items.length}개 항목`,`${items.length} item(s)`);
+  document.getElementById('dm-sub').textContent = L(`${items.length+manualItems.length}개 항목`,`${items.length+manualItems.length} item(s)`);
   let totalQty = 0;
   const rows = items.map(it=>{
     totalQty += it.booking_qty||0;
+    const dateEditRow = me.role === 'master'
+      ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+        <span style="font-size:12px;color:var(--muted);white-space:nowrap">입고일 변경:</span>
+        <input type="date" value="${it.arrival_date||''}" style="padding:4px 8px;border:1px solid var(--bdr);border-radius:6px;font-family:inherit;font-size:12px;flex:1;max-width:160px" onchange="updateArrivalDate('${it.id}', this.value, this)">
+        <span style="font-size:11px;color:var(--muted)">ETD: ${it.etd||'-'}</span>
+      </div>`
+      : `<div style="font-size:11px;color:var(--muted);margin-top:8px">ETD: ${it.etd||'-'}</div>`;
     return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${it.style_no||''}</div><strong>${it.style_name||''}</strong>${it.vendor_name?'<div style="font-size:11px;color:var(--muted)">'+it.vendor_name+'</div>':''}</div>
         <div style="text-align:right"><strong>${Number(it.booking_qty||0).toLocaleString()}장</strong>${it.category?'<div style="font-size:11px;color:var(--muted)">'+it.category+'</div>':''}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
-        <span style="font-size:12px;color:var(--muted);white-space:nowrap">입고일 변경:</span>
-        <input type="date" value="${it.arrival_date||''}" style="padding:4px 8px;border:1px solid var(--bdr);border-radius:6px;font-family:inherit;font-size:12px;flex:1;max-width:160px" onchange="updateArrivalDate('${it.id}', this.value, this)">
-        <span style="font-size:11px;color:var(--muted)">ETD: ${it.etd||'-'}</span>
-      </div>
+      ${dateEditRow}
     </div>`;
   }).join('');
-  document.getElementById('dm-body').innerHTML = items.length
-    ? rows + `<div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--bdr);display:flex;justify-content:space-between;font-weight:700"><span>${L('합계','Total')}</span><span>${totalQty.toLocaleString()}${L('장','pcs')}</span></div>`
+  const manualRows = manualItems.map(it=>{
+    totalQty += it.qty||0;
+    const actions = me.role === 'master'
+      ? `<div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn btn-s btn-sm" onclick="openCalEventModal('${it.id}')">${L('✎ 수정','✎ Edit')}</button>
+          <button class="btn btn-s btn-sm" style="color:var(--red)" onclick="deleteCalEvent('${it.id}')">${L('✗ 삭제','✗ Delete')}</button>
+        </div>` : '';
+    return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px;opacity:.6">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><span class="bdg" style="background:var(--bdr);color:var(--muted)">${L('임의 일정','Custom')}</span><div style="margin-top:4px"><strong>${it.style_name||''}</strong></div>${it.memo?'<div style="font-size:11px;color:var(--muted)">'+it.memo+'</div>':''}</div>
+        <div style="text-align:right"><strong>${it.qty?Number(it.qty).toLocaleString()+'장':'-'}</strong></div>
+      </div>
+      ${actions}
+    </div>`;
+  }).join('');
+  const allRows = rows + manualRows;
+  document.getElementById('dm-body').innerHTML = (items.length+manualItems.length)
+    ? allRows + `<div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--bdr);display:flex;justify-content:space-between;font-weight:700"><span>${L('합계','Total')}</span><span>${totalQty.toLocaleString()}${L('장','pcs')}</span></div>`
     : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`;
   document.getElementById('day-modal').classList.add('on');
+}
+function openCalEventModal(id) {
+  editCalEventId = id;
+  const e = id ? allCalendarEvents.find(x=>x.id===id) : null;
+  document.getElementById('cev-title').textContent = id ? L('임의 일정 수정','Edit Custom Event') : L('임의 일정 추가','Add Custom Event');
+  document.getElementById('cev-name').value = e?.style_name || '';
+  document.getElementById('cev-qty').value = e?.qty ?? '';
+  document.getElementById('cev-date').value = e?.event_date || '';
+  document.getElementById('cev-memo').value = e?.memo || '';
+  document.getElementById('cev-alert').classList.remove('on');
+  document.getElementById('calevent-modal').classList.add('on');
+}
+async function saveCalEvent() {
+  const style_name = document.getElementById('cev-name').value.trim();
+  const event_date = document.getElementById('cev-date').value;
+  const qtyRaw = document.getElementById('cev-qty').value;
+  const memo = document.getElementById('cev-memo').value.trim() || null;
+  if (!style_name || !event_date) return showAlert('cev-alert', L('스타일명과 입고예정일은 필수입니다','Style name and expected arrival date are required'));
+  const body = { style_name, event_date, qty: qtyRaw ? parseInt(qtyRaw) : null, memo };
+  const btn = document.getElementById('cev-save'); btn.disabled = true;
+  try {
+    if (editCalEventId) {
+      await sb(`calendar_events?id=eq.${editCalEventId}`, 'PATCH', {...body, updated_at:new Date().toISOString()});
+    } else {
+      await sb('calendar_events', 'POST', {...body, created_by: me.id});
+    }
+    await loadAll();
+    closeModal('cev');
+    closeModal('dm');
+    renderInboundCalendar();
+  } catch(e) {
+    showAlert('cev-alert', e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+async function deleteCalEvent(id) {
+  if (!confirm(L('이 임의 일정을 삭제하시겠습니까?','Delete this custom event?'))) return;
+  try {
+    await sb(`calendar_events?id=eq.${id}`, 'DELETE');
+    await loadAll();
+    closeModal('dm');
+    renderInboundCalendar();
+  } catch(e) {
+    alert(e.message);
+  }
 }
 async function updateArrivalDate(reqId, newDate, inputEl) {
   if (!newDate) return;
@@ -2292,7 +2404,7 @@ async function updateArrivalDate(reqId, newDate, inputEl) {
     inputEl.disabled = false;
   }
 }
-function buildCal(data, year, month, prefix, getDate, getName, getQty, highlightDates) {
+function buildCal(data, year, month, prefix, getDate, getName, getQty, highlightDates, getManual) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month+1, 0);
   const startDow = first.getDay();
@@ -2302,7 +2414,7 @@ function buildCal(data, year, month, prefix, getDate, getName, getQty, highlight
   data.forEach(r=>{
     const d = getDate(r); if(!d) return;
     if (!events[d]) events[d] = [];
-    events[d].push({name:getName(r), qty:getQty?getQty(r):null});
+    events[d].push({name:getName(r), qty:getQty?getQty(r):null, manual: getManual?!!getManual(r):false});
   });
   const months = L(['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']);
   const yearLabel = L(`${year}년 ${months[month]}`, `${months[month]} ${year}`);
@@ -2316,7 +2428,7 @@ function buildCal(data, year, month, prefix, getDate, getName, getQty, highlight
     const hasEv = evs.length>0;
     const isHighlight = !!(highlightDates && highlightDates.has(dateStr));
     html += `<div class="cal-cell ${isToday?'today':''} ${hasEv?'has-events':''} ${isHighlight?'cal-highlight':''}" ${hasEv?`data-day="${dateStr}"`:'style="cursor:default"'}><div class="cal-date">${d}</div>`;
-    evs.slice(0,3).forEach(e=>html+=`<div class="cal-event confirmed">${e.name}</div>`);
+    evs.slice(0,3).forEach(e=>html+=`<div class="cal-event ${e.manual?'manual':'confirmed'}">${e.name}</div>`);
     if (evs.length>3) html += `<div style="font-size:9px;color:var(--muted)">+${evs.length-3}건</div>`;
     html += '</div>';
   }
@@ -2601,7 +2713,7 @@ function renderMembers() {
   }
   list.sort((a,b)=>a.company_name.localeCompare(b.company_name));
   if (!list.length) { document.getElementById('members-tbl').innerHTML=`<div class="empty"><div class="empty-t">${L('회원이 없습니다','No members found')}</div></div>`; return; }
-  const rlbl = {vendor:L('벤더','Vendor'),cs:L('CS팀','CS Team'),md:L('MD','MD')};
+  const rlbl = {vendor:L('벤더','Vendor'),cs:L('CS팀','CS Team'),md:L('MD','MD'),viewer:L('내부 직원','Viewer')};
   document.getElementById('members-tbl').innerHTML = `
     <div class="tbl-wrap"><table>
     <thead><tr><th>${L('회사명','Company')}</th><th>${L('벤더코드','Vendor Code')}</th><th>${L('역할','Role')}</th><th>${L('담당자','Contact')}</th><th>${L('이메일','Email')}</th><th>${L('가입일','Joined')}</th><th>${L('상태','Status')}</th><th>${L('관리','Action')}</th></tr></thead>
@@ -2714,7 +2826,7 @@ function applyLang() {
   const authT = document.getElementById('auth-lang-toggle');
   if (authT) authT.textContent = lang === 'ko' ? '🌐 EN' : '🌐 한';
   if (me) {
-    const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD') };
+    const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD'), viewer: L('내부 직원','Viewer') };
     const sbRole = document.getElementById('sb-role');
     if (sbRole) sbRole.textContent = roleMap[me.role] || me.role;
     if (typeof setupFilters === 'function' && allUsers.length) {
@@ -2740,6 +2852,9 @@ function applyLang() {
     }
     if (typeof renderInbound === 'function' && document.getElementById('sec-inbound')?.classList.contains('on')) {
       try { renderInbound(); } catch(e) {}
+      if (document.getElementById('view-inbound-cal')?.classList.contains('on')) {
+        try { renderInboundCalendar(); } catch(e) {}
+      }
     }
     if (typeof renderCs === 'function' && document.getElementById('sec-cs')?.classList.contains('on')) {
       try { renderCs(); } catch(e) {}
