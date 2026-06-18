@@ -1919,7 +1919,7 @@ function openVendorModal(orderId) {
 
     let utilHtml = L('공장 미입력','Factory not entered');
     if (matchedFactory && matchedFactory.capa) {
-      const factoryOrders = allOrders.filter(x => x.factory_name === o.factory_name && x.vendor_id === o.vendor_id && !x.finish_done);
+      const factoryOrders = allOrders.filter(x => x.factory_name === o.factory_name && x.vendor_id === o.vendor_id && !x.finish_done && x.status !== 'cancelled');
       const totalProduced = factoryOrders.reduce((s, x) => s + (x.order_qty || 0), 0);
       const util = ((totalProduced / matchedFactory.capa) * 100).toFixed(1);
       utilHtml = `<strong style="color:var(--ac)">${util}%</strong> <span style="color:var(--muted);font-size:11px">(${L('현생산','Current')} ${Number(totalProduced).toLocaleString()}${L('장','pcs')} / ${L('월 CAPA','Monthly CAPA')} ${Number(matchedFactory.capa).toLocaleString()}${L('장','pcs')})</span>`;
@@ -2379,7 +2379,7 @@ function renderFactoryAll() {
     const capa = vFacs.reduce((s,f)=>s+(+f.capa||0), 0);
     let orders = allOrders.filter(o=>o.vendor_id===vId);
     if (sid) orders = orders.filter(o=>o.season_id===sid);
-    const produced = orders.filter(o=>!o.finish_done).reduce((s,o)=>s+(o.order_qty||0), 0);
+    const produced = orders.filter(o=>!o.finish_done && o.status !== 'cancelled').reduce((s,o)=>s+(o.order_qty||0), 0);
     grandCapa += capa;
     grandProduced += produced;
     vendorUtils[vId] = {capa, produced, pct: capa ? produced/capa*100 : null};
