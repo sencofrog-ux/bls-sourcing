@@ -897,9 +897,9 @@ function bindAppEvents() {
   document.getElementById('sb-shade').addEventListener('click', closeSidebar);
   document.getElementById('logout-btn').addEventListener('click', ()=>{ localStorage.removeItem('bls_user'); location.reload(); });
 
-  document.getElementById('dash-season').addEventListener('change', renderDashboard);
-  document.getElementById('ord-vendor').addEventListener('change', renderDashboard);
-  document.getElementById('ord-search').addEventListener('input', renderDashboard);
+  document.getElementById('dash-season').addEventListener('change', ()=>{ saveDashFilters(); renderDashboard(); });
+  document.getElementById('ord-vendor').addEventListener('change', ()=>{ saveDashFilters(); renderDashboard(); });
+  document.getElementById('ord-search').addEventListener('input', ()=>{ saveDashFilters(); renderDashboard(); });
 
   document.getElementById('reg-submit').addEventListener('click', submitOrder);
   document.getElementById('add-season-btn').addEventListener('click', addSeason);
@@ -990,6 +990,28 @@ function updateBadges() {
   const eb=document.getElementById('err-badge'); if(eb){ eb.textContent=eCount; eb.classList.toggle('on',eCount>0); }
 }
 
+// ── 대시보드 필터(시즌/벤더/검색어) 상태 유지 ──
+function dashFilterKey() { return 'pm_dash_filters_' + me.id; }
+function saveDashFilters() {
+  const state = {
+    season: document.getElementById('dash-season').value,
+    vendor: document.getElementById('ord-vendor').value,
+    search: document.getElementById('ord-search').value
+  };
+  try { sessionStorage.setItem(dashFilterKey(), JSON.stringify(state)); } catch(e) {}
+}
+function restoreDashFilters() {
+  let saved;
+  try { saved = JSON.parse(sessionStorage.getItem(dashFilterKey()) || 'null'); } catch(e) { saved = null; }
+  if (!saved) return;
+  const seasonSel = document.getElementById('dash-season');
+  const vendorSel = document.getElementById('ord-vendor');
+  const searchInput = document.getElementById('ord-search');
+  if (saved.season && seasonSel.querySelector(`option[value="${saved.season}"]`)) seasonSel.value = saved.season;
+  if (saved.vendor && vendorSel.querySelector(`option[value="${saved.vendor}"]`)) vendorSel.value = saved.vendor;
+  if (saved.search) searchInput.value = saved.search;
+}
+
 function setupFilters() {
   const dashSel = document.getElementById('dash-season');
   const regSel = document.getElementById('reg-season');
@@ -1019,6 +1041,7 @@ function setupFilters() {
     facSeasonSel.innerHTML = `<option value="">${L('전체 시즌','All Seasons')}</option>`;
     allSeasons.forEach(s => { facSeasonSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`; });
   }
+  restoreDashFilters();
 }
 
 function getVisibleOrders() {
@@ -1238,11 +1261,11 @@ function renderVmStageSection(o) {
   const cnt = done.filter(Boolean).length;
   const pct = cnt * 25;
   const qty = Math.round((o.order_qty||0) * cnt / 4);
-  const isVendor = me.role === 'vendor';
+  const canToggle = me.role === 'vendor' || me.role === 'master';
   el.innerHTML = `
     <div class="stage-grid">
       ${STAGES.map((s,i)=>`
-        <div class="stage-chip ${done[i]?'done-'+s:''}" ${isVendor?`onclick="vmToggleStage('${o.id}','${s}')"`:''} style="${isVendor?'':'cursor:default'}">
+        <div class="stage-chip ${done[i]?'done-'+s:''}" ${canToggle?`onclick="vmToggleStage('${o.id}','${s}')"`:''} style="${canToggle?'':'cursor:default'}">
           <span class="stage-chip-icon">${ICONS[s]}</span>
           <div class="stage-chip-lbl">${LABELS[s]}</div>
           <div class="stage-chip-st">${done[i]?'✓ Done':'Pending'}</div>
@@ -1260,13 +1283,16 @@ async function vmToggleStage(orderId, stage) {
   const STAGES = ['cut','artwork','sew','finish'];
   const LABELS = {cut:'CUT',artwork:'ARTWORK',sew:'SEW',finish:'FINISH'};
   const idx = STAGES.indexOf(stage);
-  if (newVal) {
-    for (let i=0;i<idx;i++) {
-      if (!o[STAGES[i]+'_done']) { alert(L(`먼저 '${LABELS[STAGES[i]]}' 단계를 완료해주세요`,`Please complete the '${LABELS[STAGES[i]]}' stage first`)); return; }
-    }
-  } else {
-    for (let i=idx+1;i<STAGES.length;i++) {
-      if (o[STAGES[i]+'_done']) { alert(L(`먼저 '${LABELS[STAGES[i]]}' 단계를 해제해주세요`,`Please uncheck the '${LABELS[STAGES[i]]}' stage first`)); return; }
+  const isMasterForce = me.role === 'master';
+  if (!isMasterForce) {
+    if (newVal) {
+      for (let i=0;i<idx;i++) {
+        if (!o[STAGES[i]+'_done']) { alert(L(`먼저 '${LABELS[STAGES[i]]}' 단계를 완료해주세요`,`Please complete the '${LABELS[STAGES[i]]}' stage first`)); return; }
+      }
+    } else {
+      for (let i=idx+1;i<STAGES.length;i++) {
+        if (o[STAGES[i]+'_done']) { alert(L(`먼저 '${LABELS[STAGES[i]]}' 단계를 해제해주세요`,`Please uncheck the '${LABELS[STAGES[i]]}' stage first`)); return; }
+      }
     }
   }
   const cnt = STAGES.reduce((n,s)=>n+((s===stage?newVal:!!o[s+'_done'])?1:0),0);
