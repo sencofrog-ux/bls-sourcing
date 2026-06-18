@@ -109,6 +109,7 @@ tbody tr:hover{background:var(--bg)}
 .cal-cell{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;min-height:130px;padding:8px;font-size:11px;cursor:pointer}
 .cal-cell.has-events:hover{border-color:var(--ac)}
 .cal-cell.today{border-color:var(--ac);border-width:2px}
+.cal-cell.cal-highlight{background:var(--oral);border-color:var(--ora);border-width:2px;box-shadow:0 0 0 2px var(--ora) inset}
 .cal-date{font-weight:600;font-size:12px;margin-bottom:4px}
 .cal-event{background:var(--acl);color:var(--ac);border-radius:4px;padding:2px 5px;margin-bottom:2px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;max-width:100%}
 .cal-event.confirmed{background:var(--grnl);color:var(--grn);border-left:3px solid var(--grn)}
@@ -362,7 +363,13 @@ tbody tr:hover{background:var(--bg)}
             <button class="view-tab" data-iview="cal" data-ko="📅 캘린더" data-en="📅 Calendar">📅 캘린더</button>
           </div>
           <div class="view-pane on" id="view-inbound-list"><div id="inbound-tbl"></div></div>
-          <div class="view-pane" id="view-inbound-cal"><div id="inbound-cal"></div></div>
+          <div class="view-pane" id="view-inbound-cal">
+            <div class="filter-row">
+              <input class="fsearch" type="text" id="inbound-search" data-ko-ph="스타일번호/스타일명 검색" data-en-ph="Search style no./name" placeholder="스타일번호/스타일명 검색">
+              <button class="btn btn-s btn-sm" id="inbound-search-btn" style="width:auto" data-ko="🔍 검색" data-en="🔍 Search">🔍 검색</button>
+            </div>
+            <div id="inbound-cal"></div>
+          </div>
         </div>
 
         <div class="sec" id="sec-factory-mine">
@@ -659,6 +666,7 @@ let me = null;
 let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allShipReqs = [], allErrors = [];
 let activeOrderId = null, editFactoryId = null;
 let inboundCalYear, inboundCalMonth;
+let inboundSearchDates = new Set();
 let parsedBulkOrders = []; // 대량 엑셀 홀더
 let bulkUploadRowErrors = []; // ACTION 검증 실패 등으로 스킵된 행
 let selectedOrderIds = new Set();
@@ -919,6 +927,9 @@ function bindAppEvents() {
     document.getElementById('view-inbound-'+b.dataset.iview).classList.add('on');
     if (b.dataset.iview === 'cal') renderInboundCalendar();
   }));
+  document.getElementById('inbound-search-btn').addEventListener('click', searchInboundHistory);
+  document.getElementById('inbound-search').addEventListener('keydown', e=>{ if (e.key==='Enter') searchInboundHistory(); });
+  document.getElementById('inbound-search').addEventListener('input', e=>{ if (!e.target.value.trim()) { inboundSearchDates = new Set(); renderInboundCalendar(); } });
 
   document.getElementById('new-factory-btn').addEventListener('click', ()=>openFactoryModal(null));
   document.getElementById('fac-vendor-filter').addEventListener('change', renderFactoryAll);
@@ -2185,7 +2196,7 @@ function renderInbound() {
 function renderInboundCalendar() {
   const list = getInboundList();
   if (!inboundCalYear) { const n=new Date(); inboundCalYear=n.getFullYear(); inboundCalMonth=n.getMonth(); }
-  document.getElementById('inbound-cal').innerHTML = buildCal(list, inboundCalYear, inboundCalMonth, 'inbound', r=>r.arrival_date, r=>r.style_no, r=>r.booking_qty);
+  document.getElementById('inbound-cal').innerHTML = buildCal(list, inboundCalYear, inboundCalMonth, 'inbound', r=>r.arrival_date, r=>r.style_no, r=>r.booking_qty, inboundSearchDates);
   document.querySelectorAll('[data-cal="inbound"]').forEach(b=>b.addEventListener('click', ()=>{
     inboundCalMonth += +b.dataset.dir;
     if (inboundCalMonth<0){inboundCalMonth=11;inboundCalYear--;}
@@ -2195,6 +2206,52 @@ function renderInboundCalendar() {
   document.querySelectorAll('.cal-cell[data-day]').forEach(c=>c.addEventListener('click', ()=>showInboundDayDetail(c.dataset.day, list)));
 }
 
+function searchInboundHistory() {
+  const q = (document.getElementById('inbound-search').value||'').trim().toLowerCase();
+  if (!q) { inboundSearchDates = new Set(); renderInboundCalendar(); return; }
+  const list = getInboundList();
+  const matches = list.filter(r=>(r.style_no||'').toLowerCase().includes(q) || (r.style_name||'').toLowerCase().includes(q));
+  if (!matches.length) {
+    inboundSearchDates = new Set();
+    renderInboundCalendar();
+    alert(L('일치하는 스타일이 없습니다','No matching style found'));
+    return;
+  }
+  const sorted = [...matches].sort((a,b)=>(a.arrival_date||a.etd||'').localeCompare(b.arrival_date||b.etd||''));
+  inboundSearchDates = new Set(sorted.map(r=>r.arrival_date).filter(Boolean));
+  const t = today();
+  const target = sorted.find(r=>r.arrival_date && r.arrival_date>=t) || sorted[sorted.length-1];
+  if (target && target.arrival_date) {
+    const d = new Date(target.arrival_date);
+    inboundCalYear = d.getFullYear(); inboundCalMonth = d.getMonth();
+  }
+  renderInboundCalendar();
+  showInboundHistoryPopup(sorted);
+}
+function showInboundHistoryPopup(sorted) {
+  const first = sorted[0];
+  const label = first ? `${first.style_no||''} ${first.style_name||''}`.trim() : '';
+  const t = today();
+  document.getElementById('dm-title').textContent = label + L(' 입고 히스토리',' Inbound History');
+  document.getElementById('dm-sub').textContent = L(`${sorted.length}건`,`${sorted.length} record(s)`);
+  const rows = sorted.map(it=>{
+    const done = !!(it.arrival_date && it.arrival_date <= t);
+    return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${it.style_no||''}</div>
+        <strong>${it.style_name||''}</strong>
+        ${it.vendor_name?'<div style="font-size:11px;color:var(--muted)">'+it.vendor_name+'</div>':''}
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">${L('입고일','Arrival')}: <strong style="color:var(--ac)">${it.arrival_date||'-'}</strong></div>
+      </div>
+      <div style="text-align:right">
+        <strong>${Number(it.booking_qty||0).toLocaleString()}${L('장','pcs')}</strong>
+        <div style="margin-top:6px"><span class="bdg ${done?'bdg-ok':'bdg-pend'}">${done?L('입고완료','Received'):L('입고예정','Scheduled')}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('dm-body').innerHTML = rows || `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`;
+  document.getElementById('day-modal').classList.add('on');
+}
 function showInboundDayDetail(dateStr, list) {
   const items = list.filter(r=>r.arrival_date===dateStr);
   document.getElementById('dm-title').textContent = dateStr + L(' 입고 예정',' Inbound Schedule');
@@ -2235,7 +2292,7 @@ async function updateArrivalDate(reqId, newDate, inputEl) {
     inputEl.disabled = false;
   }
 }
-function buildCal(data, year, month, prefix, getDate, getName, getQty) {
+function buildCal(data, year, month, prefix, getDate, getName, getQty, highlightDates) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month+1, 0);
   const startDow = first.getDay();
@@ -2257,7 +2314,8 @@ function buildCal(data, year, month, prefix, getDate, getName, getQty) {
     const evs = events[dateStr]||[];
     const isToday = dateStr===t;
     const hasEv = evs.length>0;
-    html += `<div class="cal-cell ${isToday?'today':''} ${hasEv?'has-events':''}" ${hasEv?`data-day="${dateStr}"`:'style="cursor:default"'}><div class="cal-date">${d}</div>`;
+    const isHighlight = !!(highlightDates && highlightDates.has(dateStr));
+    html += `<div class="cal-cell ${isToday?'today':''} ${hasEv?'has-events':''} ${isHighlight?'cal-highlight':''}" ${hasEv?`data-day="${dateStr}"`:'style="cursor:default"'}><div class="cal-date">${d}</div>`;
     evs.slice(0,3).forEach(e=>html+=`<div class="cal-event confirmed">${e.name}</div>`);
     if (evs.length>3) html += `<div style="font-size:9px;color:var(--muted)">+${evs.length-3}건</div>`;
     html += '</div>';
