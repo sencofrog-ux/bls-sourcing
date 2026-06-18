@@ -612,6 +612,40 @@ tbody tr:hover{background:var(--bg)}
   </div>
 </div>
 
+<div class="overlay" id="finish-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="mhdr">
+      <div>
+        <div class="mhdr-t" style="color:var(--grn)" data-ko="✅ 생산완료 처리" data-en="✅ Mark Production Complete">✅ 생산완료 처리</div>
+        <div class="mhdr-s" id="fim-sub"></div>
+      </div>
+      <button class="mclose" id="fim-close">×</button>
+    </div>
+    <div class="mbody">
+      <div class="alert alert-e" id="fim-alert"></div>
+      <div id="fim-orders-list" style="margin-bottom:14px;max-height:160px;overflow-y:auto;background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.8;color:var(--txt)"></div>
+      <div class="modal-section-title" data-ko="완료 처리 내용" data-en="Completion Details">완료 처리 내용</div>
+      <div style="background:var(--grnl);border:1px solid #b8e4c8;border-radius:8px;padding:12px 14px;font-size:13px;color:var(--grn);margin-bottom:14px;line-height:1.8">
+        <div>✓ ✂️ CUT · 🎨 ARTWORK · 🪡 SEW · ✅ FINISH 전 단계 완료 처리</div>
+        <div>✓ <span data-ko="완료일 자동 기록" data-en="Completion date auto-recorded">완료일 자동 기록</span>: <strong id="fim-today-date"></strong></div>
+        <div>✓ <span data-ko="완료 처리 후 공장 CAPA에서 자동 차감" data-en="Auto-deducted from factory CAPA">완료 처리 후 공장 CAPA에서 자동 차감</span></div>
+      </div>
+      <div class="modal-section-title" data-ko="📦 선적일 입력 (선택사항)" data-en="📦 Actual ETD (Optional)">📦 선적일 입력 (선택사항)</div>
+      <div class="fg" style="margin-bottom:6px">
+        <label class="fl" data-ko="Actual ETD (입력 시 입고 일정표 자동 반영)" data-en="Actual ETD (auto-added to Inbound Schedule)">Actual ETD (입력 시 입고 일정표 자동 반영)</label>
+        <input type="date" id="fim-actual-etd">
+      </div>
+      <div style="font-size:12px;color:var(--muted);padding:8px 10px;background:var(--acl);border-radius:6px" data-ko="선적일 입력 시 입고 일정표 캘린더에 자동 등록됩니다. (선적일 기준 영업일 +4일 = 입고 예정일) 입력하지 않으면 생산완료만 기록됩니다." data-en="When entered, the shipment is auto-added to the Inbound Schedule calendar (ETD + 4 business days = expected arrival). Leave blank to record production completion only.">
+        선적일 입력 시 입고 일정표 캘린더에 자동 등록됩니다. (선적일 기준 영업일 +4일 = 입고 예정일) 입력하지 않으면 생산완료만 기록됩니다.
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="fim-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-ok btn-sm" id="fim-confirm" style="width:auto" data-ko="✅ 완료 처리 확정" data-en="✅ Confirm Completion">✅ 완료 처리 확정</button>
+    </div>
+  </div>
+</div>
+
 <div class="bls-footer">Copyright by BLS Korea Sourcing</div>
 
 <script>
@@ -893,7 +927,7 @@ function bindAppEvents() {
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
-  ['vm','sr','csm','fm','dm','oe'].forEach(prefix=>{
+  ['vm','sr','csm','fm','dm','oe','fim'].forEach(prefix=>{
     document.getElementById(prefix+'-close')?.addEventListener('click', ()=>closeModal(prefix));
     document.getElementById(prefix+'-cancel')?.addEventListener('click', ()=>closeModal(prefix));
   });
@@ -903,6 +937,8 @@ function bindAppEvents() {
   document.getElementById('factory-modal').addEventListener('click', e=>{ if(e.target.id==='factory-modal') closeModal('fm'); });
   document.getElementById('day-modal').addEventListener('click', e=>{ if(e.target.id==='day-modal') closeModal('dm'); });
   document.getElementById('order-edit-modal').addEventListener('click', e=>{ if(e.target.id==='order-edit-modal') closeModal('oe'); });
+  document.getElementById('finish-modal').addEventListener('click', e=>{ if(e.target.id==='finish-modal') closeModal('fim'); });
+  document.getElementById('fim-confirm').addEventListener('click', executeBulkFinish);
 
   document.getElementById('vm-save').addEventListener('click', saveVendorProduction);
   document.getElementById('sr-save').addEventListener('click', saveShipReq);
@@ -918,7 +954,7 @@ function bindAppEvents() {
   document.getElementById('csm-qty').addEventListener('input', previewCsRate);
 }
 function closeModal(prefix) {
-  const map = {vm:'vendor-modal', sr:'shipreq-modal', csm:'cs-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal'};
+  const map = {vm:'vendor-modal', sr:'shipreq-modal', csm:'cs-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
@@ -1048,6 +1084,7 @@ function renderDashboard() {
   const bulkBarHtml = isMaster ? `
     <div class="bulk-bar" id="bulk-action-bar">
       <span class="bulk-cnt" id="bulk-cnt-label">${L('0건 선택됨','0 selected')}</span>
+      <button class="btn btn-ok btn-sm" onclick="openBulkFinish()">${L('✅ 완료 처리','✅ Mark Complete')}</button>
       <button class="btn btn-s btn-sm" onclick="openBulkConfirm('cancel')">${L('선택 취소 처리','Mark Cancelled')}</button>
       <button class="btn btn-danger btn-sm" onclick="openBulkConfirm('delete')">${L('선택 삭제','Delete Selected')}</button>
     </div>` : '';
@@ -2573,6 +2610,74 @@ async function saveOrderEdit() {
     alert(L('오더가 수정되었습니다','Order updated successfully'));
   } catch(e) { showAlert('oe-alert', e.message); }
   finally { btn.disabled = false; btn.textContent = L('저장','Save'); }
+}
+
+// ── 마스터 생산완료 처리 ──
+function openBulkFinish() {
+  if (selectedOrderIds.size === 0) { alert(L('처리할 오더를 먼저 선택하세요.','Please select orders first.')); return; }
+  const ids = [...selectedOrderIds];
+  const orders = ids.map(id => allOrders.find(o => o.id === id)).filter(Boolean);
+  document.getElementById('fim-sub').textContent = L(`${ids.length}건 선택됨`,`${ids.length} orders selected`);
+  document.getElementById('fim-today-date').textContent = today();
+  document.getElementById('fim-actual-etd').value = '';
+  document.getElementById('fim-orders-list').innerHTML = orders.map((o, i) => {
+    const v = allUsers.find(u => u.id === o.vendor_id);
+    const alreadyDone = o.cut_done && o.artwork_done && o.sew_done && o.finish_done;
+    const doneTag = alreadyDone ? ` <span style="color:var(--grn);font-size:11px">(${L('이미 완료됨','already complete')})</span>` : '';
+    return `[${i+1}] <strong style="font-family:'DM Mono',monospace;color:var(--ac)">${o.style_no}</strong> ${o.style_name} · ${v?.company_name||'-'} · ${Number(o.order_qty).toLocaleString()}${L('장','pcs')}${doneTag}`;
+  }).join('<br>');
+  document.getElementById('fim-alert').classList.remove('on');
+  document.getElementById('finish-modal').classList.add('on');
+}
+
+async function executeBulkFinish() {
+  const ids = [...selectedOrderIds];
+  if (!ids.length) return;
+  const actualEtd = document.getElementById('fim-actual-etd').value;
+  const btn = document.getElementById('fim-confirm');
+  btn.disabled = true; btn.textContent = L('처리 중...','Processing...');
+  try {
+    const completionDate = today();
+    for (const id of ids) {
+      const o = allOrders.find(x => x.id === id);
+      if (!o) continue;
+      const patch = {
+        cut_done: true, artwork_done: true, sew_done: true, finish_done: true,
+        produced_qty: o.order_qty,
+        actual_complete_date: completionDate,
+        updated_at: new Date().toISOString()
+      };
+      if (actualEtd) { patch.etd_date = actualEtd; patch.ship_date = actualEtd; }
+      await sb(`orders?id=eq.${id}`, 'PATCH', patch);
+      if (actualEtd) {
+        const remainingQty = Math.max(0, (o.order_qty || 0) - (o.shipped_qty || 0));
+        if (remainingQty > 0) {
+          const arrival_date = addBusinessDays(actualEtd, 4);
+          await sb('shipping_requests', 'POST', {
+            order_id: id,
+            vendor_id: o.vendor_id,
+            booking_etd: actualEtd,
+            booking_qty: remainingQty,
+            status: 'confirmed',
+            confirmed_etd: actualEtd,
+            arrival_date,
+            remaining_qty: 0
+          });
+          await sb(`orders?id=eq.${id}`, 'PATCH', { shipped_qty: (o.shipped_qty || 0) + remainingQty, updated_at: new Date().toISOString() });
+        }
+      }
+    }
+    closeModal('fim');
+    selectedOrderIds.clear();
+    await loadAll();
+    renderDashboard();
+    const etdMsg = actualEtd ? `\n📅 ${L('입고 예정일','Est. arrival')}: ${addBusinessDays(actualEtd, 4)}` : '';
+    alert(`✅ ${ids.length}${L('건 생산완료 처리 완료',' orders marked as complete.')}\n📦 ${L('완료일','Completion date')}: ${completionDate}${etdMsg}`);
+  } catch(e) {
+    showAlert('fim-alert', e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = L('✅ 완료 처리 확정','✅ Confirm Completion');
+  }
 }
 
 // ── 오류 자동 수집 ──
