@@ -2256,7 +2256,11 @@ function searchInboundHistory() {
   const q = (document.getElementById('inbound-search').value||'').trim().toLowerCase();
   if (!q) { inboundSearchDates = new Set(); renderInboundCalendar(); return; }
   const list = getInboundList();
-  const matches = list.filter(r=>(r.style_no||'').toLowerCase().includes(q) || (r.style_name||'').toLowerCase().includes(q));
+  const orderMatches = list.filter(r=>(r.style_no||'').toLowerCase().includes(q) || (r.style_name||'').toLowerCase().includes(q))
+    .map(r=>({...r, manual:false}));
+  const manualMatches = allCalendarEvents.filter(e=>(e.style_name||'').toLowerCase().includes(q))
+    .map(e=>({...e, arrival_date:e.event_date, booking_qty:e.qty, manual:true}));
+  const matches = [...orderMatches, ...manualMatches];
   if (!matches.length) {
     inboundSearchDates = new Set();
     renderInboundCalendar();
@@ -2276,17 +2280,19 @@ function searchInboundHistory() {
 }
 function showInboundHistoryPopup(sorted) {
   const first = sorted[0];
-  const label = first ? `${first.style_no||''} ${first.style_name||''}`.trim() : '';
+  const label = first ? (first.manual ? `${first.style_name||''}`.trim() : `${first.style_no||''} ${first.style_name||''}`.trim()) : '';
   const t = today();
   document.getElementById('dm-title').textContent = label + L(' 입고 히스토리',' Inbound History');
   document.getElementById('dm-sub').textContent = L(`${sorted.length}건`,`${sorted.length} record(s)`);
   const rows = sorted.map(it=>{
     const done = !!(it.arrival_date && it.arrival_date <= t);
+    const memoIcon = it.manual ? `<span title="${L('임의입력 항목','Manually entered item')}" style="margin-left:4px;font-size:11px">📝</span>` : '';
     return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${it.style_no||''}</div>
-        <strong>${it.style_name||''}</strong>
+        ${it.manual ? '' : `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${it.style_no||''}</div>`}
+        <strong>${it.style_name||''}${memoIcon}</strong>
         ${it.vendor_name?'<div style="font-size:11px;color:var(--muted)">'+it.vendor_name+'</div>':''}
+        ${it.manual && it.memo?'<div style="font-size:11px;color:var(--muted)">'+it.memo+'</div>':''}
         <div style="font-size:12px;color:var(--muted);margin-top:4px">${L('입고일','Arrival')}: <strong style="color:var(--ac)">${it.arrival_date||'-'}</strong></div>
       </div>
       <div style="text-align:right">
