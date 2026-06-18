@@ -294,12 +294,13 @@ tbody tr:hover{background:var(--bg)}
           <div class="card" style="max-width:680px; border: 2px dashed #b7770d; background: #fef9ec;">
             <div class="card-body" style="text-align: center; padding: 20px;">
               <label class="fl" style="color: #b7770d; font-weight: 700; text-align: center; margin-bottom: 4px; font-size:14px;" data-ko="📊 EXCEL 발주서 대량 일괄 등록" data-en="📊 Bulk Excel PO Upload">📊 EXCEL 발주서 대량 일괄 등록</label>
-              <p style="font-size: 11px; color: var(--muted); margin-bottom: 12px;" data-ko="엑셀의 SUPPLIER 컬럼을 분석해 벤더를 자동 매칭합니다. [시즌]만 먼저 선택 후 엑셀을 올리세요. (벤더 선택 시 선택값 우선 적용)" data-en="Auto-matches vendors from the SUPPLIER column. Select [Season] first, then upload. (Manual vendor selection takes priority)">엑셀의 SUPPLIER 컬럼을 분석해 벤더를 <strong>자동 매칭</strong>합니다. [시즌]만 먼저 선택 후 엑셀을 올리세요. (벤더 선택 시 선택값 우선 적용)</p>
+              <p style="font-size: 11px; color: var(--muted); margin-bottom: 12px;" data-ko="ACTION 컬럼(NEW/UPDATE/REORDER/CANCEL)에 따라 행별로 다르게 처리됩니다. SUPPLIER 컬럼으로 벤더를 자동 매칭합니다. [시즌]만 먼저 선택 후 엑셀을 올리세요." data-en="Each row is processed differently based on the ACTION column (NEW/UPDATE/REORDER/CANCEL). Vendors are auto-matched from the SUPPLIER column. Select [Season] first, then upload.">ACTION 컬럼(<strong>NEW/UPDATE/REORDER/CANCEL</strong>)에 따라 행별로 다르게 처리됩니다. SUPPLIER 컬럼으로 벤더를 자동 매칭합니다. [시즌]만 먼저 선택 후 엑셀을 올리세요.</p>
               <input type="file" id="bulk-excel-file" accept=".xlsx, .xls" style="display: none;">
               <button class="btn btn-s" type="button" onclick="document.getElementById('bulk-excel-file').click()" style="background: #fff; width: auto; font-size: 13px; border-color: #ddd9d2;" data-ko="엑셀 파일 선택" data-en="Select Excel File">엑셀 파일 선택</button>
               
               <div id="excel-preview-zone" style="display: none; margin-top: 16px; border-top: 1px solid var(--bdr); padding-top: 14px; text-align: left;">
                 <h4 style="font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--txt);" id="preview-count-txt">준비된 오더: 0건</h4>
+                <div id="preview-error-wrap" style="display:none; margin-bottom:8px; background:#fdecea; border:1px solid #f1b0b7; border-radius:6px; padding:8px; font-size:11px; color:#c0392b; max-height:100px; overflow-y:auto; font-family:monospace; line-height:1.4;"></div>
                 <div id="preview-list-wrap" style="max-height: 140px; overflow-y: auto; background: #fff; border: 1px solid var(--bdr); border-radius: 6px; padding: 8px; font-size: 11px; font-family: monospace; line-height:1.4;"></div>
                 <button class="btn btn-ok btn-sm" id="bulk-submit-btn" style="width: 100%; margin-top: 10px; font-weight: 700;" data-ko="✓ 위 목록 일괄 업로드하기" data-en="✓ Bulk Upload All">✓ 위 목록 일괄 업로드하기</button>
               </div>
@@ -659,6 +660,7 @@ let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allShipRe
 let activeOrderId = null, editFactoryId = null;
 let inboundCalYear, inboundCalMonth;
 let parsedBulkOrders = []; // 대량 엑셀 홀더
+let bulkUploadRowErrors = []; // ACTION 검증 실패 등으로 스킵된 행
 let selectedOrderIds = new Set();
 let pendingBulkAction = null; // 'cancel' | 'delete'
 
@@ -1122,6 +1124,7 @@ function renderDashboard() {
       <th>${L('오더','Order')}</th>
       <th>${L('진행율','Progress')}</th>
       <th>${L('선적','Shipped')}</th>
+      <th>${L('차이율','Variance')}</th>
       <th>${L('불량률','Defect')}</th>
       <th>${L('선적예정','Target ETD')}</th>
       <th>${L('상태','Status')}</th>
@@ -1141,6 +1144,8 @@ function renderDashboard() {
       const stagePct = stageCnt * 25;
       const stageQty = Math.round((o.order_qty||0) * stageCnt / 4);
       const stageSegs = STAGES.map((s,i)=>`<div class="stage-progbar-seg ${stageDone[i]?'seg-'+s:''}"></div>`).join('');
+      const hasActualQty = o.actual_qty != null;
+      const varInfo = hasActualQty ? fimVarianceLabel(o.actual_qty, o.order_qty) : { text: '-', color: 'var(--muted)' };
 
       let actBtn = '';
       if (me.role === 'master' || me.role === 'md' || me.role === 'cs') {
@@ -1163,6 +1168,7 @@ function renderDashboard() {
         <td data-label="${L('오더','Order')}">${Number(o.order_qty).toLocaleString()}</td>
         <td data-label="${L('진행율','Progress')}"><div class="stage-progbar">${stageSegs}</div></td>
         <td data-label="${L('선적','Shipped')}">${Number(o.shipped_qty||0).toLocaleString()}</td>
+        <td data-label="${L('차이율','Variance')}" style="color:${varInfo.color};font-weight:${hasActualQty?'600':''}">${varInfo.text}</td>
         <td data-label="${L('불량률','Defect')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${o.cs_defect_qty!=null?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
         <td data-label="${L('선적예정','Target ETD')}" style="font-size:12px">${(()=>{const d=calcDday(o.planned_ship_date);const dday=d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;return `${(o.planned_ship_date||'-').slice(0,10)}${dday}`;})()}</td>
         <td data-label="${L('상태','Status')}">${statusBadge}</td>
@@ -1419,7 +1425,9 @@ async function addSeason() {
   } catch(e) { alert(e.message); }
 }
 
-// 🌟 ── 대량 엑셀 업로드/파싱 핸들러 (벤더 자동 매칭) ── 🌟
+// 🌟 ── 대량 엑셀 업로드/파싱 핸들러 (ACTION 컬럼 기반: NEW/UPDATE/REORDER/CANCEL) ── 🌟
+const BULK_VALID_ACTIONS = ['NEW', 'UPDATE', 'REORDER', 'CANCEL'];
+
 function handleBulkExcelUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -1443,6 +1451,7 @@ function handleBulkExcelUpload(e) {
       };
 
       const START_ROW = 1;
+      const COL_ACTION     = findCol(['ACTION'], -1);
       const COL_PO_SEND    = findCol(['PO SEND','PO_SEND'], 10);
       const COL_STYLE_NO   = findCol(["STYLE NO.",'STYLE NO','STYLE_NO','STYLE'], 12);
       const COL_QTY        = findCol(["ORDER Q'TY",'ORDER QTY','QTY'], 19);
@@ -1454,6 +1463,7 @@ function handleBulkExcelUpload(e) {
       const COL_VENDOR_CODE = findCol(['VENDOR_CODE','VENDOR CODE','VENDORCODE'], -1);
 
       parsedBulkOrders = [];
+      bulkUploadRowErrors = [];
       const currentSeasonId = document.getElementById('reg-season').value;
       const currentVendorId = document.getElementById('reg-vendor').value;
 
@@ -1475,6 +1485,7 @@ function handleBulkExcelUpload(e) {
       };
 
       let unmatchedCount = 0;
+      const claimedNewStyles = new Set(); // 같은 시트 내 NEW 중복 스타일번호 검출용
 
       for (let i = START_ROW; i < rows.length; i++) {
         const row = rows[i];
@@ -1483,75 +1494,156 @@ function handleBulkExcelUpload(e) {
         const styleNo = row[COL_STYLE_NO] ? String(row[COL_STYLE_NO]).trim() : '';
         if (!styleNo || styleNo === 'style') continue;
 
-        const poSend = getDt(row[COL_PO_SEND]);
-        const qty = parseInt(row[COL_QTY]) || 0;
-        const targetEtd = getDt(row[COL_TARGET_ETD]);
-        const desc = row[COL_DESC] ? String(row[COL_DESC]).trim().replace(/[\r\n\t]+/g, ' ') : '-';
-        const supplier = row[COL_SUPPLIER] ? String(row[COL_SUPPLIER]).trim() : '-';
-        const fobRaw = row[COL_FOB];
-        const fob = parseFloat(String(fobRaw ?? '').replace(/[^0-9.]/g, '')) || 0;
-        const currency = (COL_CURRENCY >= 0 && row[COL_CURRENCY]) ? String(row[COL_CURRENCY]).trim().toUpperCase() : 'USD';
-        const vendorCodeCell = (COL_VENDOR_CODE >= 0 && row[COL_VENDOR_CODE])
-          ? String(row[COL_VENDOR_CODE]).trim() : '';
+        const rowNum = i + 1;
+        const actionRaw = COL_ACTION >= 0 ? row[COL_ACTION] : undefined;
+        const action = actionRaw != null ? String(actionRaw).trim().toUpperCase() : '';
 
-        // ── 벤더 매칭 우선순위: 드롭다운 > VENDOR_CODE(vendor_code 정확 매칭) > SUPPLIER(company_name 매칭) ──
-        let resolvedVendorId = currentVendorId || null;
-        let matchedVendor = null;
-        if (!resolvedVendorId) {
-          if (vendorCodeCell) {
-            const vendors = allUsers.filter(u => u.role === 'vendor' && u.status === 'active');
-            matchedVendor = vendors.find(x => (x.vendor_code || '').toLowerCase() === vendorCodeCell.toLowerCase()) || null;
-          }
-          if (!matchedVendor && supplier && supplier !== '-') {
-            matchedVendor = matchVendorByName(supplier);
-          }
-          if (matchedVendor) resolvedVendorId = matchedVendor.id;
-        } else {
-          matchedVendor = allUsers.find(u => u.id === resolvedVendorId) || null;
+        if (!BULK_VALID_ACTIONS.includes(action)) {
+          bulkUploadRowErrors.push({ rowNum, styleNo, reason: L('ACTION 값이 없거나 올바르지 않습니다 (NEW/UPDATE/REORDER/CANCEL 중 하나여야 함)','Missing or invalid ACTION value (must be NEW/UPDATE/REORDER/CANCEL)') });
+          continue;
         }
-        if (!resolvedVendorId) unmatchedCount++;
 
-        const serializedPoData = `__PO_DATA__||${poSend}||${styleNo}||${qty}||${targetEtd}||${desc}||${supplier}||${fob}||`;
+        // 기존 오더와의 매칭: 같은 스타일번호 (벤더 드롭다운 선택 시 해당 벤더로 한정)
+        const existingMatches = allOrders.filter(o => o.style_no === styleNo && (!currentVendorId || o.vendor_id === currentVendorId));
 
-        parsedBulkOrders.push({
-          season_id: currentSeasonId,
-          vendor_id: resolvedVendorId,
-          style_no: styleNo,
-          style_name: desc.slice(0, 40),
-          category: 'CLOTHING',
-          order_qty: qty,
-          unit_price: fob,
-          currency: currency || 'USD',
-          planned_ship_date: targetEtd !== '-' ? targetEtd : today(),
-          notes: serializedPoData,
-          po_send: poSend !== '-' ? poSend : null,
-          shipped_qty: 0,
-          created_by_md: me.role === 'md' ? me.id : null,
-          _supplierName: supplier,
-          _matchedVendorName: matchedVendor?.company_name || null,
-          _matchedVendorCode: matchedVendor?.vendor_code || null,
-          _unmatched: !resolvedVendorId
-        });
+        if (action === 'NEW') {
+          if (existingMatches.length > 0 || claimedNewStyles.has(styleNo)) {
+            bulkUploadRowErrors.push({ rowNum, styleNo, reason: L('이미 존재하는 스타일번호입니다 (NEW는 신규 등록만 가능)','Style number already exists (NEW only allows new registration)') });
+            continue;
+          }
+          claimedNewStyles.add(styleNo);
+
+          const poSend = getDt(row[COL_PO_SEND]);
+          const qty = parseInt(row[COL_QTY]) || 0;
+          const targetEtd = getDt(row[COL_TARGET_ETD]);
+          const desc = row[COL_DESC] ? String(row[COL_DESC]).trim().replace(/[\r\n\t]+/g, ' ') : '-';
+          const supplier = row[COL_SUPPLIER] ? String(row[COL_SUPPLIER]).trim() : '-';
+          const fobRaw = row[COL_FOB];
+          const fob = parseFloat(String(fobRaw ?? '').replace(/[^0-9.]/g, '')) || 0;
+          const currency = (COL_CURRENCY >= 0 && row[COL_CURRENCY]) ? String(row[COL_CURRENCY]).trim().toUpperCase() : 'USD';
+          const vendorCodeCell = (COL_VENDOR_CODE >= 0 && row[COL_VENDOR_CODE])
+            ? String(row[COL_VENDOR_CODE]).trim() : '';
+
+          // ── 벤더 매칭 우선순위: 드롭다운 > VENDOR_CODE(vendor_code 정확 매칭) > SUPPLIER(company_name 매칭) ──
+          let resolvedVendorId = currentVendorId || null;
+          let matchedVendor = null;
+          if (!resolvedVendorId) {
+            if (vendorCodeCell) {
+              const vendors = allUsers.filter(u => u.role === 'vendor' && u.status === 'active');
+              matchedVendor = vendors.find(x => (x.vendor_code || '').toLowerCase() === vendorCodeCell.toLowerCase()) || null;
+            }
+            if (!matchedVendor && supplier && supplier !== '-') {
+              matchedVendor = matchVendorByName(supplier);
+            }
+            if (matchedVendor) resolvedVendorId = matchedVendor.id;
+          } else {
+            matchedVendor = allUsers.find(u => u.id === resolvedVendorId) || null;
+          }
+          if (!resolvedVendorId) unmatchedCount++;
+
+          const serializedPoData = `__PO_DATA__||${poSend}||${styleNo}||${qty}||${targetEtd}||${desc}||${supplier}||${fob}||`;
+
+          parsedBulkOrders.push({
+            _action: 'NEW',
+            _rowNum: rowNum,
+            season_id: currentSeasonId,
+            vendor_id: resolvedVendorId,
+            style_no: styleNo,
+            style_name: desc.slice(0, 40),
+            category: 'CLOTHING',
+            order_qty: qty,
+            unit_price: fob,
+            currency: currency || 'USD',
+            planned_ship_date: targetEtd !== '-' ? targetEtd : today(),
+            notes: serializedPoData,
+            po_send: poSend !== '-' ? poSend : null,
+            shipped_qty: 0,
+            created_by_md: me.role === 'md' ? me.id : null,
+            _supplierName: supplier,
+            _matchedVendorName: matchedVendor?.company_name || null,
+            _matchedVendorCode: matchedVendor?.vendor_code || null,
+            _unmatched: !resolvedVendorId
+          });
+          continue;
+        }
+
+        // UPDATE / REORDER / CANCEL: 기존 오더가 존재해야 함
+        if (existingMatches.length === 0) {
+          bulkUploadRowErrors.push({ rowNum, styleNo, reason: L('일치하는 기존 오더를 찾을 수 없습니다','No matching existing order found') });
+          continue;
+        }
+        if (existingMatches.length > 1) {
+          bulkUploadRowErrors.push({ rowNum, styleNo, reason: L('동일 스타일번호의 오더가 여러 건이라 특정할 수 없습니다 (벤더를 선택해 범위를 좁혀주세요)','Multiple orders share this style number — select a vendor to narrow the match') });
+          continue;
+        }
+        const existingOrder = existingMatches[0];
+
+        if (action === 'UPDATE') {
+          const newQty = parseInt(row[COL_QTY]) || 0;
+          parsedBulkOrders.push({
+            _action: 'UPDATE', _rowNum: rowNum, style_no: styleNo,
+            _existingId: existingOrder.id, _existingQty: existingOrder.order_qty, _newQty: newQty
+          });
+        } else if (action === 'REORDER') {
+          const addQty = parseInt(row[COL_QTY]) || 0;
+          parsedBulkOrders.push({
+            _action: 'REORDER', _rowNum: rowNum, style_no: styleNo,
+            _existingId: existingOrder.id, _existingQty: existingOrder.order_qty,
+            _addQty: addQty, _newQty: existingOrder.order_qty + addQty
+          });
+        } else if (action === 'CANCEL') {
+          parsedBulkOrders.push({
+            _action: 'CANCEL', _rowNum: rowNum, style_no: styleNo,
+            _existingId: existingOrder.id, _existingQty: existingOrder.order_qty
+          });
+        }
       }
 
-      if (parsedBulkOrders.length === 0) {
+      if (parsedBulkOrders.length === 0 && bulkUploadRowErrors.length === 0) {
         alert(L('엑셀 시트 내부에 파싱 가능한 발주 정보 행이 존재하지 않습니다.','No parseable order rows found in the Excel sheet.'));
         document.getElementById('excel-preview-zone').style.display = 'none';
         return;
       }
 
-      const matchedCount = parsedBulkOrders.length - unmatchedCount;
-      const statusMsg = unmatchedCount > 0
-        ? ` — ✓ ${L('매칭','Matched')} ${matchedCount}${L('건','cases')} / ⚠️ ${L('미매칭','Unmatched')} ${unmatchedCount}${L('건','cases')}`
-        : ` — ✓ ${L('전체 벤더 자동 매칭 완료','All vendors auto-matched')}`;
-      document.getElementById('preview-count-txt').textContent = `${L('검출된 발주 데이터: 총','Detected orders:')} ${parsedBulkOrders.length}${L('건','cases')}${statusMsg}`;
+      const errWrap = document.getElementById('preview-error-wrap');
+      if (bulkUploadRowErrors.length > 0) {
+        errWrap.style.display = 'block';
+        errWrap.innerHTML = `⚠️ ${L('스킵된 행','Skipped rows')} ${bulkUploadRowErrors.length}${L('건','cases')}<br>` +
+          bulkUploadRowErrors.map(er => `· Row ${er.rowNum} [${er.styleNo || '-'}] — ${er.reason}`).join('<br>');
+      } else {
+        errWrap.style.display = 'none';
+        errWrap.innerHTML = '';
+      }
+
+      const newCnt = parsedBulkOrders.filter(o => o._action === 'NEW').length;
+      const updCnt = parsedBulkOrders.filter(o => o._action === 'UPDATE').length;
+      const reoCnt = parsedBulkOrders.filter(o => o._action === 'REORDER').length;
+      const canCnt = parsedBulkOrders.filter(o => o._action === 'CANCEL').length;
+      const matchedCount = newCnt - unmatchedCount;
+      const vendorMsg = newCnt > 0
+        ? (unmatchedCount > 0
+          ? ` — ✓ ${L('벤더 매칭','Vendor matched')} ${matchedCount}${L('건','cases')} / ⚠️ ${L('미매칭','Unmatched')} ${unmatchedCount}${L('건','cases')}`
+          : ` — ✓ ${L('NEW 전체 벤더 자동 매칭 완료','All NEW vendors auto-matched')}`)
+        : '';
+      document.getElementById('preview-count-txt').textContent =
+        `${L('검출된 처리 대상: 총','Detected rows:')} ${parsedBulkOrders.length}${L('건','cases')} ` +
+        `(NEW ${newCnt} / UPDATE ${updCnt} / REORDER ${reoCnt} / CANCEL ${canCnt})${vendorMsg}`;
 
       document.getElementById('preview-list-wrap').innerHTML = parsedBulkOrders.map((o, idx) => {
-        const po = parsePoNotes(o.notes);
-        const vendorTag = o._unmatched
-          ? `<span style="color:#c0392b;font-weight:700">[${L('미매칭','Unmatched')}]</span>`
-          : `<span style="color:#1e7e4a;font-weight:700">[${o._matchedVendorCode ? o._matchedVendorCode + ' ' : ''}${o._matchedVendorName}]</span>`;
-        return `[${idx + 1}] ${vendorTag} ${po.styleNo} | ${po.qty.toLocaleString()}${L('장','pcs')} | Supplier: ${o._supplierName} | FOB: ${fmtPrice(po.fob, o.currency)}`;
+        if (o._action === 'NEW') {
+          const po = parsePoNotes(o.notes);
+          const vendorTag = o._unmatched
+            ? `<span style="color:#c0392b;font-weight:700">[${L('미매칭','Unmatched')}]</span>`
+            : `<span style="color:#1e7e4a;font-weight:700">[${o._matchedVendorCode ? o._matchedVendorCode + ' ' : ''}${o._matchedVendorName}]</span>`;
+          return `[${idx + 1}] <b>NEW</b> ${vendorTag} ${po.styleNo} | ${po.qty.toLocaleString()}${L('장','pcs')} | Supplier: ${o._supplierName} | FOB: ${fmtPrice(po.fob, o.currency)}`;
+        }
+        if (o._action === 'UPDATE') {
+          return `[${idx + 1}] <b>UPDATE</b> ${o.style_no} | ${o._existingQty.toLocaleString()} → ${o._newQty.toLocaleString()}${L('장','pcs')}`;
+        }
+        if (o._action === 'REORDER') {
+          return `[${idx + 1}] <b>REORDER</b> ${o.style_no} | ${o._existingQty.toLocaleString()} + ${o._addQty.toLocaleString()} = ${o._newQty.toLocaleString()}${L('장','pcs')}`;
+        }
+        return `[${idx + 1}] <b>CANCEL</b> ${o.style_no} | ${L('상태를 취소됨으로 변경','Status will be set to cancelled')}`;
       }).join('<br>');
 
       document.getElementById('excel-preview-zone').style.display = 'block';
@@ -1573,40 +1665,81 @@ function handleBulkExcelUpload(e) {
   reader.readAsBinaryString(file);
 }
 
-// ── 엑셀 데이터 Supabase 순차 일괄 Push ──
+// ── 엑셀 데이터 Supabase 순차 일괄 Push (ACTION별 처리) ──
 async function submitBulkOrders() {
   if (parsedBulkOrders.length === 0) return;
   const btn = document.getElementById('bulk-submit-btn');
 
-  // 미매칭 행은 건너뛰고 매칭된 것만 업로드
-  const toUpload = parsedBulkOrders.filter(o => o.vendor_id);
+  // NEW 중 벤더 미매칭 행은 건너뛰고 나머지(UPDATE/REORDER/CANCEL 및 매칭된 NEW)만 업로드
+  const toUpload = parsedBulkOrders.filter(o => o._action !== 'NEW' || o.vendor_id);
   const skipped = parsedBulkOrders.length - toUpload.length;
 
   if (toUpload.length === 0) {
     alert(L('업로드할 오더가 없습니다.\n모든 행의 벤더가 미매칭 상태입니다.\n벤더 드롭다운에서 직접 선택하거나, 벤더 코드/회사명을 SUPPLIER 컬럼에 입력해주세요.','No orders to upload.\nAll rows are unmatched.\nSelect a vendor from the dropdown or enter a vendor code/name in the SUPPLIER column.'));
     return;
   }
-  if (skipped > 0 && !confirm(L(`미매칭 벤더 ${skipped}건은 건너뜁니다.\n매칭된 ${toUpload.length}건만 업로드할까요?`,`${skipped} unmatched rows will be skipped.\nUpload ${toUpload.length} matched orders only?`))) return;
+  if (skipped > 0 && !confirm(L(`미매칭 벤더 ${skipped}건은 건너뜁니다.\n나머지 ${toUpload.length}건만 업로드할까요?`,`${skipped} unmatched rows will be skipped.\nUpload the remaining ${toUpload.length} rows?`))) return;
 
   btn.disabled = true;
-  let ok = 0, err = 0;
+  const counts = { NEW: 0, UPDATE: 0, REORDER: 0, CANCEL: 0 };
+  const failures = [];
+
   for (let i = 0; i < toUpload.length; i++) {
+    const item = toUpload[i];
+    btn.textContent = L(`업로드 처리 중... (${i + 1}/${toUpload.length})`,`Uploading... (${i + 1}/${toUpload.length})`);
     try {
-      btn.textContent = L(`업로드 처리 중... (${i + 1}/${toUpload.length})`,`Uploading... (${i + 1}/${toUpload.length})`);
-      // _로 시작하는 클라이언트 전용 필드 제거 후 전송
-      const { _supplierName, _matchedVendorName, _matchedVendorCode, _unmatched, ...orderData } = toUpload[i];
-      await sb('orders', 'POST', orderData);
-      ok++;
+      if (item._action === 'NEW') {
+        // _로 시작하는 클라이언트 전용 필드 제거 후 전송
+        const { _action, _rowNum, _supplierName, _matchedVendorName, _matchedVendorCode, _unmatched, ...orderData } = item;
+        await sb('orders', 'POST', orderData);
+        counts.NEW++;
+      } else if (item._action === 'UPDATE') {
+        const history = Array.isArray(allOrders.find(o => o.id === item._existingId)?.quantity_history)
+          ? allOrders.find(o => o.id === item._existingId).quantity_history.slice() : [];
+        if (item._newQty !== item._existingQty) {
+          history.push({ before: item._existingQty, after: item._newQty, changed_at: new Date().toISOString() });
+        }
+        await sb(`orders?id=eq.${item._existingId}`, 'PATCH', {
+          order_qty: item._newQty, quantity_history: history, updated_at: new Date().toISOString()
+        });
+        counts.UPDATE++;
+      } else if (item._action === 'REORDER') {
+        const history = Array.isArray(allOrders.find(o => o.id === item._existingId)?.quantity_history)
+          ? allOrders.find(o => o.id === item._existingId).quantity_history.slice() : [];
+        history.push({ before: item._existingQty, after: item._newQty, changed_at: new Date().toISOString() });
+        await sb(`orders?id=eq.${item._existingId}`, 'PATCH', {
+          order_qty: item._newQty, quantity_history: history, updated_at: new Date().toISOString()
+        });
+        counts.REORDER++;
+      } else if (item._action === 'CANCEL') {
+        await sb(`orders?id=eq.${item._existingId}`, 'PATCH', {
+          status: 'cancelled', updated_at: new Date().toISOString()
+        });
+        counts.CANCEL++;
+      }
     } catch (e) {
       console.error(e);
-      err++;
+      failures.push({ styleNo: item.style_no, action: item._action, message: e.message });
     }
   }
 
   const skippedMsg = skipped > 0 ? `\n- ${L('미매칭 건너뜀','Skipped (unmatched)')}: ${skipped}${L('건','cases')}` : '';
-  alert(`${L('일괄 처리 완료','Bulk upload complete')}\n- ${L('정상 등록','Registered')}: ${ok}${L('건','cases')}\n- ${L('업로드 실패','Failed')}: ${err}${L('건','cases')}${skippedMsg}`);
+  const rowErrMsg = bulkUploadRowErrors.length > 0 ? `\n- ${L('ACTION 오류로 스킵','Skipped (invalid ACTION)')}: ${bulkUploadRowErrors.length}${L('건','cases')}` : '';
+  const failMsg = failures.length > 0
+    ? `\n- ${L('처리 실패','Failed')}: ${failures.length}${L('건','cases')}\n  ${failures.map(f => `[${f.action}] ${f.styleNo}: ${f.message}`).join('\n  ')}`
+    : '';
+
+  alert(
+    `${L('일괄 처리 완료','Bulk upload complete')}\n` +
+    `- NEW: ${counts.NEW}${L('건','cases')}\n` +
+    `- UPDATE: ${counts.UPDATE}${L('건','cases')}\n` +
+    `- REORDER: ${counts.REORDER}${L('건','cases')}\n` +
+    `- CANCEL: ${counts.CANCEL}${L('건','cases')}` +
+    skippedMsg + rowErrMsg + failMsg
+  );
   document.getElementById('excel-preview-zone').style.display = 'none';
   parsedBulkOrders = [];
+  bulkUploadRowErrors = [];
   await loadAll();
   btn.disabled = false;
   btn.textContent = L('✓ 위 목록 일괄 업로드하기','✓ Bulk Upload All');
@@ -1813,6 +1946,16 @@ function openVendorModal(orderId) {
       ? displayNotes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       : `<span style="color:var(--muted)">${L('메모 없음','No notes')}</span>`;
 
+    const qtyHistory = Array.isArray(o.quantity_history) ? o.quantity_history : [];
+    const qtyHistoryHtml = qtyHistory.length
+      ? qtyHistory.slice().reverse().map(h => `<div style="padding:4px 0;border-bottom:1px dashed var(--bdr)">${(h.changed_at||'').slice(0,10)} · ${Number(h.before).toLocaleString()} → ${Number(h.after).toLocaleString()}${L('장','pcs')}</div>`).join('')
+      : `<span style="color:var(--muted)">${L('변경 이력 없음','No change history')}</span>`;
+    const qtyHistorySection = me.role === 'master' ? `
+      <details style="margin-bottom:14px">
+        <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.05em">${L('📜 수량 변경 이력 보기','📜 View Quantity Change History')}</summary>
+        <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-top:8px;font-size:12px">${qtyHistoryHtml}</div>
+      </details>` : '';
+
     readonlyView.innerHTML = `
       <div class="modal-section-title">${L('🏭 공장 / 라인','🏭 Factory / Line')}</div>
       <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px">
@@ -1823,7 +1966,8 @@ function openVendorModal(orderId) {
       <div class="modal-section-title">📦 Production Status</div>
       <div style="margin-bottom:14px">${stageHtml}</div>
       <div class="modal-section-title">${L('📝 벤더 메모','📝 Vendor Notes')}</div>
-      <div style="background:var(--bg);border-radius:8px;padding:12px 14px;font-size:13px;white-space:pre-wrap;min-height:50px">${notesHtml}</div>
+      <div style="background:var(--bg);border-radius:8px;padding:12px 14px;font-size:13px;white-space:pre-wrap;min-height:50px;margin-bottom:14px">${notesHtml}</div>
+      ${qtyHistorySection}
     `;
   }
 
@@ -2619,11 +2763,17 @@ async function saveOrderEdit() {
     finalNotes = newRawNotes || null;
   }
 
+  let quantityHistory = Array.isArray(o.quantity_history) ? o.quantity_history.slice() : [];
+  if (newQty !== o.order_qty) {
+    quantityHistory.push({ before: o.order_qty, after: newQty, changed_at: new Date().toISOString() });
+  }
+
   const body = {
     style_no: newStyleNo, style_name: newStyleName, vendor_id: newVendorId,
     order_qty: newQty, currency: newCurrency, unit_price: newFob,
     planned_ship_date: newEtd, po_send: newPoSend,
     is_urgent: newIsUrgent, notes: finalNotes,
+    quantity_history: quantityHistory,
     updated_at: new Date().toISOString()
   };
 
@@ -2639,6 +2789,23 @@ async function saveOrderEdit() {
 }
 
 // ── 마스터 생산완료 처리 ──
+function fimVarianceLabel(actual, planned) {
+  if (!planned) return { text: '-', color: 'var(--muted)' };
+  const diff = ((actual - planned) / planned) * 100;
+  if (Math.abs(diff) < 0.05) return { text: L('일치','Match'), color: 'var(--grn)' };
+  const sign = diff > 0 ? '+' : '';
+  return { text: `${sign}${diff.toFixed(1)}%`, color: diff < 0 ? 'var(--red)' : 'var(--ora)' };
+}
+function updateFimVariance(id) {
+  const input = document.querySelector(`.fim-aq[data-id="${id}"]`);
+  const span = document.querySelector(`.fim-var[data-id="${id}"]`);
+  if (!input || !span) return;
+  const planned = parseInt(input.closest('.fim-row').dataset.orderQty) || 0;
+  const actual = parseInt(input.value) || 0;
+  const v = fimVarianceLabel(actual, planned);
+  span.style.color = v.color;
+  span.textContent = v.text;
+}
 function openBulkFinish() {
   if (selectedOrderIds.size === 0) { alert(L('처리할 오더를 먼저 선택하세요.','Please select orders first.')); return; }
   const ids = [...selectedOrderIds];
@@ -2650,8 +2817,16 @@ function openBulkFinish() {
     const v = allUsers.find(u => u.id === o.vendor_id);
     const alreadyDone = o.cut_done && o.artwork_done && o.sew_done && o.finish_done;
     const doneTag = alreadyDone ? ` <span style="color:var(--grn);font-size:11px">(${L('이미 완료됨','already complete')})</span>` : '';
-    return `[${i+1}] <strong style="font-family:'DM Mono',monospace;color:var(--ac)">${o.style_no}</strong> ${o.style_name} · ${v?.company_name||'-'} · ${Number(o.order_qty).toLocaleString()}${L('장','pcs')}${doneTag}`;
-  }).join('<br>');
+    return `<div class="fim-row" data-id="${o.id}" data-order-qty="${o.order_qty}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--bdr)">
+      <div style="flex:1;min-width:160px">[${i+1}] <strong style="font-family:'DM Mono',monospace;color:var(--ac)">${o.style_no}</strong> ${o.style_name} · ${v?.company_name||'-'} · ${L('발주','PO')} ${Number(o.order_qty).toLocaleString()}${L('장','pcs')}${doneTag}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <label style="font-size:11px;color:var(--muted);white-space:nowrap">${L('실선적 수량','Actual Shipped Qty')}</label>
+        <input type="number" class="fim-aq" data-id="${o.id}" value="${o.order_qty}" min="0" style="width:90px;padding:4px 6px;font-size:12px" oninput="updateFimVariance('${o.id}')">
+        <span class="fim-var" data-id="${o.id}" style="font-size:12px;font-weight:600;min-width:46px;display:inline-block"></span>
+      </div>
+    </div>`;
+  }).join('');
+  orders.forEach(o => updateFimVariance(o.id));
   document.getElementById('fim-alert').classList.remove('on');
   document.getElementById('finish-modal').classList.add('on');
 }
@@ -2667,9 +2842,12 @@ async function executeBulkFinish() {
     for (const id of ids) {
       const o = allOrders.find(x => x.id === id);
       if (!o) continue;
+      const aqInput = document.querySelector(`.fim-aq[data-id="${id}"]`);
+      const actualQty = aqInput && aqInput.value !== '' ? (parseInt(aqInput.value) || 0) : o.order_qty;
       const patch = {
         cut_done: true, artwork_done: true, sew_done: true, finish_done: true,
         produced_qty: o.order_qty,
+        actual_qty: actualQty,
         actual_complete_date: completionDate,
         updated_at: new Date().toISOString()
       };
