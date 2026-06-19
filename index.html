@@ -82,6 +82,9 @@ thead th{background:var(--bg);padding:12px 14px;text-align:left;font-size:11px;f
 tbody td{padding:12px 14px;border-bottom:1px solid var(--bdr);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover{background:var(--bg)}
+.ord-chk:checked,.sr-ord-chk:checked,#chk-all:checked,#sr-chk-all:checked{box-shadow:0 0 0 3px rgba(46,125,50,.3);border-radius:3px}
+tbody tr:has(.ord-chk:checked),tbody tr:has(.sr-ord-chk:checked){background:#eaf6ec!important;box-shadow:inset 3px 0 0 0 #2e7d32}
+tbody tr:has(.ord-chk:checked):hover,tbody tr:has(.sr-ord-chk:checked):hover{background:#dcefe0!important}
 .bdg{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
 .bdg-pend{background:#fef3e2;color:#b7770d}
 .bdg-pass,.bdg-ok{background:var(--grnl);color:var(--grn)}
@@ -190,6 +193,7 @@ tbody tr:hover{background:var(--bg)}
   table{min-width:100%}
   thead{display:none}
   tbody tr{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.02)}
+  tbody tr:has(.ord-chk:checked),tbody tr:has(.sr-ord-chk:checked){border:2px solid #2e7d32!important;background:#eaf6ec!important;box-shadow:0 2px 8px rgba(46,125,50,.15)}
   tbody td{padding:8px 0;border-bottom:1px dashed #eee;display:flex;justify-content:space-between;align-items:center;text-align:right;font-size:13px}
   tbody td:last-child{border-bottom:none;padding-top:12px;justify-content:center}
   tbody td::before{content:attr(data-label);font-weight:500;color:var(--muted);text-align:left;font-size:12px}
@@ -543,6 +547,26 @@ tbody tr:hover{background:var(--bg)}
   </div>
 </div>
 
+<div class="overlay" id="bulk-shipreq-modal">
+  <div class="modal" style="max-width:620px">
+    <div class="mhdr">
+      <div>
+        <div class="mhdr-t" data-ko="📦 일괄 선적 요청" data-en="📦 Bulk Shipping Request">📦 일괄 선적 요청</div>
+        <div class="mhdr-s" id="bsr-sub"></div>
+      </div>
+      <button class="mclose" id="bsr-close">×</button>
+    </div>
+    <div class="mbody">
+      <div class="alert alert-e" id="bsr-alert"></div>
+      <div id="bsr-orders-list" style="max-height:360px;overflow-y:auto"></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="bsr-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="bsr-confirm" style="width:auto" data-ko="일괄 요청 전송" data-en="Submit All Requests">일괄 요청 전송</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="cs-modal">
   <div class="modal">
     <div class="mhdr"><div><div class="mhdr-t" id="csm-title" style="color:var(--purple)">CS 클레임 / 불량 입력</div><div class="mhdr-s" id="csm-sub"></div></div><button class="mclose" id="csm-close">×</button></div>
@@ -718,6 +742,7 @@ let parsedBulkOrders = []; // 대량 엑셀 홀더
 let bulkUploadRowErrors = []; // ACTION 검증 실패 등으로 스킵된 행
 let selectedOrderIds = new Set();
 let pendingBulkAction = null; // 'cancel' | 'delete'
+let selectedShipReqOrderIds = new Set();
 
 const CUR_SYM = {USD:'$',CNY:'¥',KRW:'₩',EUR:'€',JPY:'¥',VND:'₫'};
 function fmtPrice(p, c) { if (p == null) return '-'; const sym = CUR_SYM[c]; return sym ? `${sym}${Number(p).toLocaleString()}` : `${c||'USD'} ${Number(p).toLocaleString()}`; }
@@ -1012,12 +1037,13 @@ function bindAppEvents() {
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
-  ['vm','sr','csm','fm','dm','oe','fim','cev'].forEach(prefix=>{
+  ['vm','sr','bsr','csm','fm','dm','oe','fim','cev'].forEach(prefix=>{
     document.getElementById(prefix+'-close')?.addEventListener('click', ()=>closeModal(prefix));
     document.getElementById(prefix+'-cancel')?.addEventListener('click', ()=>closeModal(prefix));
   });
   document.getElementById('vendor-modal').addEventListener('click', e=>{ if(e.target.id==='vendor-modal') closeModal('vm'); });
   document.getElementById('shipreq-modal').addEventListener('click', e=>{ if(e.target.id==='shipreq-modal') closeModal('sr'); });
+  document.getElementById('bulk-shipreq-modal').addEventListener('click', e=>{ if(e.target.id==='bulk-shipreq-modal') closeModal('bsr'); });
   document.getElementById('cs-modal').addEventListener('click', e=>{ if(e.target.id==='cs-modal') closeModal('csm'); });
   document.getElementById('factory-modal').addEventListener('click', e=>{ if(e.target.id==='factory-modal') closeModal('fm'); });
   document.getElementById('day-modal').addEventListener('click', e=>{ if(e.target.id==='day-modal') closeModal('dm'); });
@@ -1028,6 +1054,7 @@ function bindAppEvents() {
 
   document.getElementById('vm-save').addEventListener('click', saveVendorProduction);
   document.getElementById('sr-save').addEventListener('click', saveShipReq);
+  document.getElementById('bsr-confirm').addEventListener('click', executeBulkShipReq);
   document.getElementById('csm-save').addEventListener('click', saveCsDefect);
   document.getElementById('fm-save').addEventListener('click', saveFactory);
   document.getElementById('oe-save').addEventListener('click', saveOrderEdit);
@@ -1042,7 +1069,7 @@ function bindAppEvents() {
   document.getElementById('csm-qty').addEventListener('input', previewCsRate);
 }
 function closeModal(prefix) {
-  const map = {vm:'vendor-modal', sr:'shipreq-modal', csm:'cs-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', cev:'calevent-modal'};
+  const map = {vm:'vendor-modal', sr:'shipreq-modal', bsr:'bulk-shipreq-modal', csm:'cs-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', cev:'calevent-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
@@ -1204,7 +1231,7 @@ function renderDashboard() {
   document.getElementById('ord-tbl').innerHTML = bulkBarHtml + `
     <div class="tbl-wrap"><table>
     <thead><tr>
-      ${isMaster ? `<th style="width:36px;text-align:center"><input type="checkbox" id="chk-all" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ac)" onchange="toggleSelectAll(this.checked)"></th>` : ''}
+      ${isMaster ? `<th style="width:36px;text-align:center"><input type="checkbox" id="chk-all" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleSelectAll(this.checked)"></th>` : ''}
       <th>${L('벤더','Vendor')}</th>
       <th>${L('스타일번호','Style No.')}</th>
       <th>${L('스타일명','Style Name')}</th>
@@ -1248,7 +1275,7 @@ function renderDashboard() {
         ? `<span class="bdg bdg-cancelled">${L('취소됨','Cancelled')}</span>`
         : `<span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?L('지연','Delayed'):L('정상','Normal')}</span>`;
       return `<tr${o.is_urgent&&!cancelled?' style="background:#fff8f8"':cancelled?' style="opacity:.6"':''}>
-        ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ac)" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
+        ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
         <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
         <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${o.is_urgent?` <span class="bdg bdg-urgent" style="font-size:9px;padding:2px 5px">${L('긴급','URGENT')}</span>`:''}</td>
         <td data-label="${L('스타일명','Style Name')}">${o.style_name}</td>
@@ -2150,6 +2177,10 @@ async function saveShipReq() {
 }
 
 // ── 선적 요청 관리 ──
+// FINISH 단계까지 완료되었고 아직 선적할 잔량이 남아있는 오더만 일괄 선적요청 대상으로 노출
+function getFinishShippableOrders() {
+  return allOrders.filter(o => o.vendor_id===me.id && o.finish_done && o.status!=='cancelled' && getRemainingQty(o) > 0);
+}
 function renderShipReqs() {
   const filter = document.getElementById('sr-filter').value;
   let list = allShipReqs.slice();
@@ -2163,35 +2194,13 @@ function renderShipReqs() {
   const smap = {requested:'bdg-pend',confirmed:'bdg-ok',rejected:'bdg-fail'};
   const slbl = {requested:L('요청됨','Requested'),confirmed:L('확정','Confirmed'),rejected:L('거절','Rejected')};
 
-  if (!list.length) {
-    document.getElementById('sr-tbl').innerHTML = me.role==='vendor'
-      ? `<div class="empty"><div class="empty-t">${L('선적 요청 내역이 없습니다','No shipping requests yet')}</div><div style="margin-top:12px"><button class="btn btn-p" style="width:auto;padding:14px 24px;font-size:15px" onclick="openShipReqFor(null)">📦 ${L('새 선적 요청','New Ship Request')}</button></div></div>`
-      : `<div class="empty"><div class="empty-t">${L('선적 요청이 없습니다','No shipping requests')}</div></div>`;
+  if (me.role === 'vendor') {
+    renderShipReqVendorView(list, smap, slbl);
     return;
   }
 
-  if (me.role === 'vendor') {
-    // 벤더용: 심플 뷰 + 새 요청 버튼
-    document.getElementById('sr-tbl').innerHTML = `
-      <div style="margin-bottom:12px"><button class="btn btn-p" style="width:auto;padding:14px 24px;font-size:15px" onclick="openShipReqFor(null)">📦 ${L('새 선적 요청','New Ship Request')}</button></div>
-      <div class="tbl-wrap"><table>
-      <thead><tr><th>${L('부킹 ETD','Booking ETD')}</th><th>${L('스타일','Style')}</th><th>${L('발주수량','Order Qty')}</th><th>${L('잔량','Remaining')}</th><th>${L('부킹수량','Booking Qty')}</th><th>${L('확정 ETD','Confirmed ETD')}</th><th>${L('상태','Status')}</th></tr></thead>
-      <tbody>
-      ${list.map(r=>{
-        const o = allOrders.find(x=>x.id===r.order_id);
-        const remaining = r.remaining_qty != null ? r.remaining_qty : getRemainingQty(o);
-        const prog = shipProgressLabel(remaining);
-        return `<tr>
-          <td data-label="${L('부킹 ETD','Booking ETD')}" style="font-family:'DM Mono',monospace;font-weight:600">${r.booking_etd}</td>
-          <td data-label="${L('스타일','Style')}">${o?.style_no||''}<br><span style="font-size:12px;color:var(--muted)">${o?.style_name||''}</span></td>
-          <td data-label="${L('발주수량','Order Qty')}">${Number(o?.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
-          <td data-label="${L('잔량','Remaining')}"><strong style="color:${prog.color}">${remaining.toLocaleString()}${L('장','pcs')}</strong><br><span style="font-size:11px;color:${prog.color}">${prog.text}</span></td>
-          <td data-label="${L('부킹수량','Booking Qty')}"><strong>${Number(r.booking_qty).toLocaleString()}${L('장','pcs')}</strong></td>
-          <td data-label="${L('확정 ETD','Confirmed ETD')}" style="color:var(--grn)">${r.confirmed_etd||'-'}</td>
-          <td data-label="${L('상태','Status')}"><span class="bdg ${smap[r.status]}">${slbl[r.status]}</span></td>
-        </tr>`;
-      }).join('')}
-      </tbody></table></div>`;
+  if (!list.length) {
+    document.getElementById('sr-tbl').innerHTML = `<div class="empty"><div class="empty-t">${L('선적 요청이 없습니다','No shipping requests')}</div></div>`;
     return;
   }
 
@@ -2220,6 +2229,140 @@ function renderShipReqs() {
       </tr>`;
     }).join('')}
     </tbody></table></div>`;
+}
+
+// ── 벤더용: FINISH 완료 오더 일괄 선택 + 선적 요청 내역 ──
+function renderShipReqVendorView(list, smap, slbl) {
+  const finishOrders = getFinishShippableOrders();
+  const finishIds = new Set(finishOrders.map(o=>o.id));
+  [...selectedShipReqOrderIds].forEach(id => { if (!finishIds.has(id)) selectedShipReqOrderIds.delete(id); });
+
+  const selectSectionHtml = !finishOrders.length
+    ? `<div class="empty"><div class="empty-t">${L('FINISH 완료된 오더가 없습니다','No FINISH-completed orders')}</div></div>`
+    : `
+    <div class="bulk-bar" id="sr-bulk-bar">
+      <span class="bulk-cnt" id="sr-bulk-cnt-label"></span>
+      <button class="btn btn-p btn-sm" id="sr-bulk-btn" onclick="openBulkShipReqModal()">📦 ${L('일괄 선적요청','Bulk Ship Request')}</button>
+    </div>
+    <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th style="width:36px;text-align:center"><input type="checkbox" id="sr-chk-all" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleSrSelectAll(this.checked)"></th>
+      <th>${L('스타일','Style')}</th><th>${L('발주수량','Order Qty')}</th><th>${L('잔량','Remaining')}</th><th>${L('선적예정','Target ETD')}</th>
+    </tr></thead>
+    <tbody>
+    ${finishOrders.map(o=>{
+      const remaining = getRemainingQty(o);
+      const checked = selectedShipReqOrderIds.has(o.id) ? 'checked' : '';
+      return `<tr>
+        <td style="text-align:center"><input type="checkbox" class="sr-ord-chk" data-id="${o.id}" ${checked} style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleSrOrderSelect('${o.id}',this.checked)"></td>
+        <td data-label="${L('스타일','Style')}">${o.style_no}<br><span style="font-size:12px;color:var(--muted)">${o.style_name}</span></td>
+        <td data-label="${L('발주수량','Order Qty')}">${Number(o.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
+        <td data-label="${L('잔량','Remaining')}"><strong style="color:var(--ora)">${remaining.toLocaleString()}${L('장','pcs')}</strong></td>
+        <td data-label="${L('선적예정','Target ETD')}" style="font-size:12px">${(o.planned_ship_date||'-').slice(0,10)}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+
+  const historyHtml = !list.length
+    ? `<div class="empty"><div class="empty-t">${L('선적 요청 내역이 없습니다','No shipping requests yet')}</div></div>`
+    : `<div class="tbl-wrap"><table>
+      <thead><tr><th>${L('부킹 ETD','Booking ETD')}</th><th>${L('스타일','Style')}</th><th>${L('발주수량','Order Qty')}</th><th>${L('잔량','Remaining')}</th><th>${L('부킹수량','Booking Qty')}</th><th>${L('확정 ETD','Confirmed ETD')}</th><th>${L('상태','Status')}</th></tr></thead>
+      <tbody>
+      ${list.map(r=>{
+        const o = allOrders.find(x=>x.id===r.order_id);
+        const remaining = r.remaining_qty != null ? r.remaining_qty : getRemainingQty(o);
+        const prog = shipProgressLabel(remaining);
+        return `<tr>
+          <td data-label="${L('부킹 ETD','Booking ETD')}" style="font-family:'DM Mono',monospace;font-weight:600">${r.booking_etd}</td>
+          <td data-label="${L('스타일','Style')}">${o?.style_no||''}<br><span style="font-size:12px;color:var(--muted)">${o?.style_name||''}</span></td>
+          <td data-label="${L('발주수량','Order Qty')}">${Number(o?.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
+          <td data-label="${L('잔량','Remaining')}"><strong style="color:${prog.color}">${remaining.toLocaleString()}${L('장','pcs')}</strong><br><span style="font-size:11px;color:${prog.color}">${prog.text}</span></td>
+          <td data-label="${L('부킹수량','Booking Qty')}"><strong>${Number(r.booking_qty).toLocaleString()}${L('장','pcs')}</strong></td>
+          <td data-label="${L('확정 ETD','Confirmed ETD')}" style="color:var(--grn)">${r.confirmed_etd||'-'}</td>
+          <td data-label="${L('상태','Status')}"><span class="bdg ${smap[r.status]}">${slbl[r.status]}</span></td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+
+  document.getElementById('sr-tbl').innerHTML = `
+    <div class="modal-section-title">${L('✅ FINISH 완료 오더 (선적요청 대상)','✅ FINISH-completed orders (eligible)')}</div>
+    ${selectSectionHtml}
+    <div class="modal-section-title">${L('📋 선적 요청 내역','📋 Shipping Request History')}</div>
+    <div style="margin-bottom:12px"><button class="btn btn-s" style="width:auto;padding:10px 18px;font-size:13px" onclick="openShipReqFor(null)">📦 ${L('새 선적 요청 (단건)','New Ship Request (single)')}</button></div>
+    ${historyHtml}`;
+  updateSrBulkBar();
+}
+function toggleSrSelectAll(checked) {
+  document.querySelectorAll('.sr-ord-chk').forEach(cb => {
+    cb.checked = checked;
+    if (checked) selectedShipReqOrderIds.add(cb.dataset.id);
+    else selectedShipReqOrderIds.delete(cb.dataset.id);
+  });
+  updateSrBulkBar();
+}
+function toggleSrOrderSelect(id, checked) {
+  if (checked) selectedShipReqOrderIds.add(id);
+  else selectedShipReqOrderIds.delete(id);
+  const allCbs = document.querySelectorAll('.sr-ord-chk');
+  const chkAll = document.getElementById('sr-chk-all');
+  if (chkAll) chkAll.checked = allCbs.length > 0 && [...allCbs].every(cb => cb.checked);
+  updateSrBulkBar();
+}
+function updateSrBulkBar() {
+  const bar = document.getElementById('sr-bulk-bar');
+  if (!bar) return;
+  const ids = [...selectedShipReqOrderIds];
+  const cnt = ids.length;
+  const totalQty = ids.reduce((s,id)=>{ const o = allOrders.find(x=>x.id===id); return s + (o ? getRemainingQty(o) : 0); }, 0);
+  document.getElementById('sr-bulk-cnt-label').textContent = `${cnt}${L('건 선택됨',' selected')} · ${L('총','Total')} ${totalQty.toLocaleString()}${L('장','pcs')}`;
+  document.getElementById('sr-bulk-btn').disabled = cnt === 0;
+  cnt > 0 ? bar.classList.add('on') : bar.classList.remove('on');
+}
+function openBulkShipReqModal() {
+  if (selectedShipReqOrderIds.size === 0) { alert(L('선적요청할 오더를 먼저 선택하세요.','Please select orders first.')); return; }
+  const ids = [...selectedShipReqOrderIds];
+  const orders = ids.map(id => allOrders.find(o => o.id === id)).filter(Boolean);
+  document.getElementById('bsr-sub').textContent = L(`${orders.length}건 선택됨`,`${orders.length} orders selected`);
+  document.getElementById('bsr-orders-list').innerHTML = orders.map((o, i) => {
+    const remaining = getRemainingQty(o);
+    return `<div class="bsr-row" data-id="${o.id}" style="padding:10px 0;border-bottom:1px dashed var(--bdr)">
+      <div style="font-size:13px;margin-bottom:6px">[${i+1}] <strong style="font-family:'DM Mono',monospace;color:var(--ac)">${o.style_no}</strong> ${o.style_name} · ${L('잔량','Remaining')} <strong>${remaining.toLocaleString()}${L('장','pcs')}</strong></div>
+      <div class="row2">
+        <div class="fg" style="margin-bottom:0"><label class="fl" data-ko="부킹 수량 *" data-en="Booking Qty *">부킹 수량 *</label><input type="number" class="bsr-qty" data-id="${o.id}" value="${remaining}" min="1"></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl" data-ko="부킹 ETD *" data-en="Booking ETD *">부킹 ETD *</label><input type="date" class="bsr-etd" data-id="${o.id}"></div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('bsr-alert').classList.remove('on');
+  document.getElementById('bulk-shipreq-modal').classList.add('on');
+}
+async function executeBulkShipReq() {
+  const ids = [...selectedShipReqOrderIds];
+  if (!ids.length) return;
+  const rows = ids.map(id => ({
+    id,
+    qty: parseInt(document.querySelector(`.bsr-qty[data-id="${id}"]`)?.value)||0,
+    etd: document.querySelector(`.bsr-etd[data-id="${id}"]`)?.value||''
+  }));
+  if (rows.some(r => !r.etd || r.qty <= 0)) {
+    return showAlert('bsr-alert', L('모든 항목의 부킹 수량과 ETD를 입력해주세요','Please enter booking qty and ETD for all items'));
+  }
+  const btn = document.getElementById('bsr-confirm'); btn.disabled=true; btn.textContent=L('전송 중...','Sending...');
+  try {
+    for (const r of rows) {
+      const o = allOrders.find(x=>x.id===r.id);
+      if (!o) continue;
+      await sb('shipping_requests', 'POST', { order_id: r.id, vendor_id: me.id, booking_etd: r.etd, booking_qty: r.qty, status: 'requested' });
+    }
+    closeModal('bsr');
+    selectedShipReqOrderIds.clear();
+    await loadAll(); renderShipReqs();
+    alert(L(`${rows.length}건의 선적 요청이 전송되었습니다`,`${rows.length} shipping request(s) submitted`));
+  } catch(e) {
+    showAlert('bsr-alert', e.message);
+  } finally {
+    btn.disabled=false; btn.textContent=L('일괄 요청 전송','Submit All Requests');
+  }
 }
 async function confirmShipReq(reqId, orderId, etd, qty) {
   const newEtd = prompt(L('확정 ETD를 입력하세요 (YYYY-MM-DD)','Enter confirmed ETD (YYYY-MM-DD)'), etd);
