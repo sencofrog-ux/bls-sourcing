@@ -117,6 +117,22 @@ tbody tr:hover{background:var(--bg)}
 .cal-event.late{background:var(--redl);color:var(--red)}
 .cal-event.manual{background:#DCEFE3;color:#2E4A3A;border-left:3px solid #7FA08C}
 .inner:has(#view-inbound-cal.on){max-width:none}
+.cal-dots{display:flex;gap:3px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.cal-dot{width:6px;height:6px;border-radius:50%;background:var(--grn);flex:none}
+.cal-dot.manual{background:#B8D1C2}
+.cal-cell-count{text-align:center;font-size:9px;color:var(--muted);margin-top:3px}
+.cal-day-panel{display:none;margin-top:10px;background:var(--surf);border:1px solid var(--bdr);border-radius:12px;overflow:hidden}
+.cal-day-panel.on{display:block}
+.cal-day-panel-hdr{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px;background:var(--bg);border-bottom:1px solid var(--bdr)}
+.cal-day-panel-title{font-size:13px;font-weight:700}
+.cal-day-panel-sum{font-size:12px;color:var(--muted);margin-top:2px}
+.cal-day-panel-close{width:28px;height:28px;border:none;background:transparent;font-size:16px;cursor:pointer;color:var(--muted);line-height:1}
+.cal-day-panel-body{padding:4px 14px 12px;max-height:280px;overflow-y:auto}
+.cal-day-panel-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px dashed var(--bdr)}
+.cal-day-panel-row:last-child{border-bottom:none}
+.cal-day-panel-style{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--ac)}
+.cal-day-panel-style.manual{color:#2E4A3A;font-family:inherit}
+.cal-day-panel-qty{font-size:13px;font-weight:600;white-space:nowrap}
 .modal-section-title{font-size:12px;font-weight:700;color:var(--ac);margin:16px 0 8px 0;border-bottom:1px solid var(--bdr);padding-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto}
 .overlay.on{display:flex}
@@ -174,7 +190,7 @@ tbody tr:hover{background:var(--bg)}
   tbody td:last-child{border-bottom:none;padding-top:12px;justify-content:center}
   tbody td::before{content:attr(data-label);font-weight:500;color:var(--muted);text-align:left;font-size:12px}
   .btn-sm{width:100%;padding:10px;font-size:13px}
-  .cal-cell{min-height:90px;padding:4px;font-size:10px}
+  .cal-cell{min-height:52px;padding:4px;font-size:10px}
   .cal-event{font-size:9px;padding:1px 3px}
   .pend-card .btn{width:100%}
   .bls-footer{font-size:9px;right:6px;bottom:6px}
@@ -375,6 +391,7 @@ tbody tr:hover{background:var(--bg)}
               <button class="btn btn-s btn-sm" id="inbound-search-btn" style="width:auto" data-ko="🔍 검색" data-en="🔍 Search">🔍 검색</button>
             </div>
             <div id="inbound-cal"></div>
+            <div class="cal-day-panel" id="inbound-cal-panel"></div>
           </div>
         </div>
 
@@ -692,6 +709,7 @@ let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allShipRe
 let activeOrderId = null, editFactoryId = null, editCalEventId = null;
 let inboundCalYear, inboundCalMonth;
 let inboundSearchDates = new Set();
+let inboundDayPanelDate = null;
 let parsedBulkOrders = []; // 대량 엑셀 홀더
 let bulkUploadRowErrors = []; // ACTION 검증 실패 등으로 스킵된 행
 let selectedOrderIds = new Set();
@@ -752,6 +770,7 @@ async function sb(path, method='GET', body=null) {
 function showPg(id) { document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on')); document.getElementById(id).classList.add('on'); }
 function showAlert(id, msg, type='e') { const el=document.getElementById(id); if(!el)return; el.textContent=msg; el.className='alert on alert-'+type; if(type!=='s')setTimeout(()=>el.classList.remove('on'),5000); }
 function today() { return new Date().toISOString().slice(0,10); }
+function isMobileCal() { return window.matchMedia('(max-width:992px)').matches; }
 function calcDday(dateStr) {
   if (!dateStr) return null;
   const diff = Math.ceil((new Date(dateStr) - new Date(today())) / 86400000);
@@ -968,6 +987,17 @@ function bindAppEvents() {
   document.getElementById('inbound-search-btn').addEventListener('click', searchInboundHistory);
   document.getElementById('inbound-search').addEventListener('keydown', e=>{ if (e.key==='Enter') searchInboundHistory(); });
   document.getElementById('inbound-search').addEventListener('input', e=>{ if (!e.target.value.trim()) { inboundSearchDates = new Set(); renderInboundCalendar(); } });
+  let _calResizeTimer, _calResizeWasMobile = isMobileCal();
+  window.addEventListener('resize', ()=>{
+    clearTimeout(_calResizeTimer);
+    _calResizeTimer = setTimeout(()=>{
+      const nowMobile = isMobileCal();
+      if (nowMobile !== _calResizeWasMobile) {
+        _calResizeWasMobile = nowMobile;
+        if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderInboundCalendar();
+      }
+    }, 200);
+  });
 
   document.getElementById('new-factory-btn').addEventListener('click', ()=>openFactoryModal(null));
   document.getElementById('fac-vendor-filter').addEventListener('change', renderFactoryAll);
@@ -2258,13 +2288,21 @@ function renderInboundCalendar() {
   ];
   if (!inboundCalYear) { const n=new Date(); inboundCalYear=n.getFullYear(); inboundCalMonth=n.getMonth(); }
   document.getElementById('inbound-cal').innerHTML = buildCal(combined, inboundCalYear, inboundCalMonth, 'inbound', r=>r.date, r=>r.name, r=>r.qty, inboundSearchDates, r=>r.manual);
+  closeInboundDayPanel();
   document.querySelectorAll('[data-cal="inbound"]').forEach(b=>b.addEventListener('click', ()=>{
     inboundCalMonth += +b.dataset.dir;
     if (inboundCalMonth<0){inboundCalMonth=11;inboundCalYear--;}
     if (inboundCalMonth>11){inboundCalMonth=0;inboundCalYear++;}
     renderInboundCalendar();
   }));
-  document.querySelectorAll('.cal-cell[data-day]').forEach(c=>c.addEventListener('click', ()=>showInboundDayDetail(c.dataset.day, list)));
+  document.querySelectorAll('.cal-cell[data-day]').forEach(c=>c.addEventListener('click', ()=>{
+    if (isMobileCal()) {
+      if (inboundDayPanelDate === c.dataset.day) { closeInboundDayPanel(); return; }
+      renderInboundDayPanel(c.dataset.day, list);
+    } else {
+      showInboundDayDetail(c.dataset.day, list);
+    }
+  }));
 }
 
 function searchInboundHistory() {
@@ -2363,6 +2401,45 @@ function showInboundDayDetail(dateStr, list) {
     : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`;
   document.getElementById('day-modal').classList.add('on');
 }
+function renderInboundDayPanel(dateStr, list) {
+  const items = list.filter(r=>r.arrival_date===dateStr);
+  const manualItems = allCalendarEvents.filter(e=>e.event_date===dateStr);
+  inboundDayPanelDate = dateStr;
+  let totalQty = 0;
+  const rows = items.map(it=>{
+    totalQty += it.display_qty||0;
+    return `<div class="cal-day-panel-row">
+      <span class="cal-day-panel-style">${it.style_no||''}</span>
+      <span class="cal-day-panel-qty">${Number(it.display_qty||0).toLocaleString()}${L('장','pcs')}</span>
+    </div>`;
+  }).join('');
+  const manualRows = manualItems.map(it=>{
+    totalQty += it.qty||0;
+    return `<div class="cal-day-panel-row">
+      <span class="cal-day-panel-style manual">✎ ${it.style_name||''}</span>
+      <span class="cal-day-panel-qty">${it.qty?Number(it.qty).toLocaleString()+L('장','pcs'):'-'}</span>
+    </div>`;
+  }).join('');
+  const count = items.length + manualItems.length;
+  const panel = document.getElementById('inbound-cal-panel');
+  panel.innerHTML = `
+    <div class="cal-day-panel-hdr">
+      <div>
+        <div class="cal-day-panel-title">${dateStr}</div>
+        <div class="cal-day-panel-sum">${L(`입고 ${count}건 · 총 ${totalQty.toLocaleString()}장`,`${count} item(s) · ${totalQty.toLocaleString()} pcs total`)}</div>
+      </div>
+      <button class="cal-day-panel-close" onclick="closeInboundDayPanel()">✕</button>
+    </div>
+    <div class="cal-day-panel-body">
+      ${count ? rows+manualRows : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`}
+    </div>`;
+  panel.classList.add('on');
+}
+function closeInboundDayPanel() {
+  inboundDayPanelDate = null;
+  const panel = document.getElementById('inbound-cal-panel');
+  if (panel) { panel.classList.remove('on'); panel.innerHTML = ''; }
+}
 function openCalEventModal(id) {
   editCalEventId = id;
   const e = id ? allCalendarEvents.find(x=>x.id===id) : null;
@@ -2439,6 +2516,7 @@ function buildCal(data, year, month, prefix, getDate, getName, getQty, highlight
   });
   const months = L(['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']);
   const yearLabel = L(`${year}년 ${months[month]}`, `${months[month]} ${year}`);
+  const isMobile = isMobileCal();
   let html = `<div class="cal-hdr"><div class="cal-month">${yearLabel}</div><div class="cal-nav"><button data-cal="${prefix}" data-dir="-1">‹</button><button data-cal="${prefix}" data-dir="1">›</button></div></div><div class="cal-grid">`;
   L(['일','월','화','수','목','금','토'],['Sun','Mon','Tue','Wed','Thu','Fri','Sat']).forEach(d=>html+=`<div class="cal-dow">${d}</div>`);
   for (let i=0;i<startDow;i++) html += '<div class="cal-cell" style="opacity:.3;cursor:default"></div>';
@@ -2449,8 +2527,15 @@ function buildCal(data, year, month, prefix, getDate, getName, getQty, highlight
     const hasEv = evs.length>0;
     const isHighlight = !!(highlightDates && highlightDates.has(dateStr));
     html += `<div class="cal-cell ${isToday?'today':''} ${hasEv?'has-events':''} ${isHighlight?'cal-highlight':''}" ${hasEv?`data-day="${dateStr}"`:'style="cursor:default"'}><div class="cal-date">${d}</div>`;
-    evs.slice(0,3).forEach(e=>html+=`<div class="cal-event ${e.manual?'manual':'confirmed'}">${e.name}</div>`);
-    if (evs.length>3) html += `<div style="font-size:9px;color:var(--muted)">+${evs.length-3}건</div>`;
+    if (isMobile) {
+      if (hasEv) {
+        html += `<div class="cal-dots">${evs.slice(0,3).map(e=>`<span class="cal-dot ${e.manual?'manual':''}"></span>`).join('')}</div>`;
+        if (evs.length>=2) html += `<div class="cal-cell-count">${evs.length}건</div>`;
+      }
+    } else {
+      evs.slice(0,3).forEach(e=>html+=`<div class="cal-event ${e.manual?'manual':'confirmed'}">${e.name}</div>`);
+      if (evs.length>3) html += `<div style="font-size:9px;color:var(--muted)">+${evs.length-3}건</div>`;
+    }
     html += '</div>';
   }
   html += '</div>';
