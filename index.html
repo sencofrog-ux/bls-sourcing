@@ -1197,8 +1197,8 @@ function renderDashboard() {
       const stagePct = stageCnt * 25;
       const stageQty = Math.round((o.order_qty||0) * stageCnt / 4);
       const stageSegs = STAGES.map((s,i)=>`<div class="stage-progbar-seg ${stageDone[i]?'seg-'+s:''}"></div>`).join('');
-      const hasActualQty = o.actual_qty != null;
-      const varInfo = hasActualQty ? fimVarianceLabel(o.actual_qty, o.order_qty) : { text: '-', color: 'var(--muted)' };
+      const hasShippedQty = (o.shipped_qty||0) > 0;
+      const varInfo = hasShippedQty ? fimVarianceLabel(o.shipped_qty, o.order_qty) : { text: '-', color: 'var(--muted)' };
 
       let actBtn = '';
       if (me.role === 'master' || me.role === 'md' || me.role === 'cs') {
@@ -1221,7 +1221,7 @@ function renderDashboard() {
         <td data-label="${L('오더','Order')}">${Number(o.order_qty).toLocaleString()}</td>
         <td data-label="${L('진행율','Progress')}"><div class="stage-progbar">${stageSegs}</div></td>
         <td data-label="${L('선적','Shipped')}">${Number(o.shipped_qty||0).toLocaleString()}</td>
-        <td data-label="${L('차이율','Variance')}" style="color:${varInfo.color};font-weight:${hasActualQty?'600':''}">${varInfo.text}</td>
+        <td data-label="${L('차이율','Variance')}" style="color:${varInfo.color};font-weight:${hasShippedQty?'600':''}">${varInfo.text}</td>
         <td data-label="${L('불량률','Defect')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${o.cs_defect_qty!=null?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
         <td data-label="${L('선적예정','Target ETD')}" style="font-size:12px">${(()=>{const d=calcDday(o.planned_ship_date);const dday=d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;return `${(o.planned_ship_date||'-').slice(0,10)}${dday}`;})()}</td>
         <td data-label="${L('상태','Status')}">${statusBadge}</td>
@@ -2063,6 +2063,16 @@ async function saveVendorProduction() {
 }
 
 // ── 선적 요청 ──
+// 잔량 = 발주수량(order_qty) - 누적 선적수량(shipped_qty). actual_qty는 "이번 회차에 선적/완료 처리한 증분"의 이력 기록일 뿐, 잔량 계산에는 사용하지 않음(강제완료/일반 선적확정 두 경로 모두 shipped_qty에 누적됨)
+function getRemainingQty(o) {
+  if (!o) return 0;
+  return Math.max(0, (o.order_qty || 0) - (o.shipped_qty || 0));
+}
+function shipProgressLabel(remaining) {
+  return remaining <= 0
+    ? { text: L('선적완료','Shipping Complete'), color: 'var(--grn)' }
+    : { text: L('분할선적 진행중','Partial Shipment'), color: 'var(--ora)' };
+}
 function openShipReqFor(orderId) {
   const sel = document.getElementById('sr-order');
   sel.innerHTML = '';
@@ -2080,9 +2090,10 @@ function updateSrInfo() {
   const o = allOrders.find(x=>x.id===oid);
   const box = document.getElementById('sr-info');
   if (!o) { box.style.display='none'; return; }
-  const remaining = (o.order_qty||0) - (o.shipped_qty||0);
+  const remaining = getRemainingQty(o);
+  const prog = shipProgressLabel(remaining);
   box.style.display='block';
-  box.innerHTML = `${L('오더','Order')} <strong>${o.order_qty.toLocaleString()}${L('장','pcs')}</strong> · ${L('잔량','Remaining')} <strong style="color:${remaining>0?'var(--ora)':'var(--grn)'}">${remaining.toLocaleString()}${L('장','pcs')}</strong>`;
+  box.innerHTML = `${L('오더','Order')} <strong>${o.order_qty.toLocaleString()}${L('장','pcs')}</strong> · ${L('잔량','Remaining')} <strong style="color:${prog.color}">${remaining.toLocaleString()}${L('장','pcs')}</strong> · <span style="color:${prog.color};font-weight:600">${prog.text}</span>`;
 }
 async function saveShipReq() {
   const order_id = document.getElementById('sr-order').value;
@@ -2134,12 +2145,13 @@ function renderShipReqs() {
       <tbody>
       ${list.map(r=>{
         const o = allOrders.find(x=>x.id===r.order_id);
-        const remaining = r.remaining_qty != null ? r.remaining_qty : (o?.order_qty||0) - (o?.shipped_qty||0);
+        const remaining = r.remaining_qty != null ? r.remaining_qty : getRemainingQty(o);
+        const prog = shipProgressLabel(remaining);
         return `<tr>
           <td data-label="${L('부킹 ETD','Booking ETD')}" style="font-family:'DM Mono',monospace;font-weight:600">${r.booking_etd}</td>
           <td data-label="${L('스타일','Style')}">${o?.style_no||''}<br><span style="font-size:12px;color:var(--muted)">${o?.style_name||''}</span></td>
           <td data-label="${L('발주수량','Order Qty')}">${Number(o?.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
-          <td data-label="${L('잔량','Remaining')}"><strong style="color:${remaining>0?'var(--ora)':'var(--grn)'}">${remaining.toLocaleString()}${L('장','pcs')}</strong></td>
+          <td data-label="${L('잔량','Remaining')}"><strong style="color:${prog.color}">${remaining.toLocaleString()}${L('장','pcs')}</strong><br><span style="font-size:11px;color:${prog.color}">${prog.text}</span></td>
           <td data-label="${L('부킹수량','Booking Qty')}"><strong>${Number(r.booking_qty).toLocaleString()}${L('장','pcs')}</strong></td>
           <td data-label="${L('확정 ETD','Confirmed ETD')}" style="color:var(--grn)">${r.confirmed_etd||'-'}</td>
           <td data-label="${L('상태','Status')}"><span class="bdg ${smap[r.status]}">${slbl[r.status]}</span></td>
@@ -2156,7 +2168,8 @@ function renderShipReqs() {
     ${list.map(r=>{
       const o = allOrders.find(x=>x.id===r.order_id);
       const v = allUsers.find(u=>u.id===r.vendor_id);
-      const remaining = r.remaining_qty != null ? r.remaining_qty : (o?.order_qty||0) - (o?.shipped_qty||0);
+      const remaining = r.remaining_qty != null ? r.remaining_qty : getRemainingQty(o);
+      const prog = shipProgressLabel(remaining);
       let actBtn = '';
       if (r.status==='requested') actBtn = `<button class="btn btn-ok btn-sm" onclick="confirmShipReq('${r.id}','${r.order_id}','${r.booking_etd}',${r.booking_qty})">${L('확정','Confirm')}</button> <button class="btn btn-danger btn-sm" onclick="rejectShipReq('${r.id}')">${L('거절','Reject')}</button>`;
       else actBtn = `<button class="btn btn-s btn-sm" onclick="resetShipReq('${r.id}')">${L('되돌리기','Revert')}</button>`;
@@ -2165,7 +2178,7 @@ function renderShipReqs() {
         <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
         <td data-label="${L('스타일','Style')}">${o?.style_no||''}<br>${o?.style_name||''}</td>
         <td data-label="${L('발주수량','Order Qty')}">${Number(o?.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
-        <td data-label="${L('잔량','Remaining')}"><strong style="color:${remaining>0?'var(--ora)':'var(--grn)'}">${remaining.toLocaleString()}${L('장','pcs')}</strong></td>
+        <td data-label="${L('잔량','Remaining')}"><strong style="color:${prog.color}">${remaining.toLocaleString()}${L('장','pcs')}</strong><br><span style="font-size:11px;color:${prog.color}">${prog.text}</span></td>
         <td data-label="${L('부킹수량','Booking Qty')}">${Number(r.booking_qty).toLocaleString()}${L('장','pcs')}</td>
         <td data-label="${L('확정 ETD','Confirmed ETD')}" style="color:var(--grn)">${r.confirmed_etd||'-'}</td>
         <td data-label="${L('상태','Status')}"><span class="bdg ${smap[r.status]}">${slbl[r.status]}</span></td>
@@ -2209,8 +2222,8 @@ function getInboundList() {
       const s = o ? allSeasons.find(x=>x.id===o.season_id) : null;
       const etd = r.confirmed_etd||r.booking_etd;
       const arrival_date = r.arrival_date || (etd ? addBusinessDays(etd, 4) : null);
-      // 수량 표시 우선순위: 1)마스터 강제완료 actual_qty 2)벤더 선적요청 booking_qty 3)발주수량(order_qty) 임시 표시
-      const display_qty = o?.actual_qty != null ? o.actual_qty : (r.booking_qty != null ? r.booking_qty : (o?.order_qty || 0));
+      // 수량 표시: 항상 이 선적요청 행 자체의 booking_qty 사용(분할선적 시 행마다 다른 수량이므로 오더 전체 값인 actual_qty를 쓰면 안 됨)
+      const display_qty = r.booking_qty != null ? r.booking_qty : (o?.order_qty || 0);
       return { ...r, style_no:o?.style_no, style_name:o?.style_name, category:o?.category, order_qty:o?.order_qty, actual_qty:o?.actual_qty, display_qty, vendor_name:v?.company_name, season_name:s?.name, destination:o?.destination, etd, arrival_date };
     }).sort((a,b)=>(a.arrival_date||a.etd||'').localeCompare(b.arrival_date||b.etd||''));
 }
@@ -2981,11 +2994,19 @@ function updateFimVariance(id) {
   const input = document.querySelector(`.fim-aq[data-id="${id}"]`);
   const span = document.querySelector(`.fim-var[data-id="${id}"]`);
   if (!input || !span) return;
-  const planned = parseInt(input.closest('.fim-row').dataset.orderQty) || 0;
+  const row = input.closest('.fim-row');
+  const planned = parseInt(row.dataset.remaining) || 0; // 처리 시점 잔량(이번에 선적할 것으로 예상되는 수량) 대비 비교
   const actual = parseInt(input.value) || 0;
   const v = fimVarianceLabel(actual, planned);
   span.style.color = v.color;
   span.textContent = v.text;
+  const remSpan = document.querySelector(`.fim-rem[data-id="${id}"]`);
+  if (remSpan) {
+    const remainingAfter = Math.max(0, planned - actual);
+    const prog = shipProgressLabel(remainingAfter);
+    remSpan.style.color = prog.color;
+    remSpan.textContent = `${L('처리 후 잔량','Remaining after')} ${remainingAfter.toLocaleString()}${L('장','pcs')} (${prog.text})`;
+  }
 }
 function openBulkFinish() {
   if (selectedOrderIds.size === 0) { alert(L('처리할 오더를 먼저 선택하세요.','Please select orders first.')); return; }
@@ -2998,12 +3019,15 @@ function openBulkFinish() {
     const v = allUsers.find(u => u.id === o.vendor_id);
     const alreadyDone = o.cut_done && o.artwork_done && o.sew_done && o.finish_done;
     const doneTag = alreadyDone ? ` <span style="color:var(--grn);font-size:11px">(${L('이미 완료됨','already complete')})</span>` : '';
-    return `<div class="fim-row" data-id="${o.id}" data-order-qty="${o.order_qty}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--bdr)">
-      <div style="flex:1;min-width:160px">[${i+1}] <strong style="font-family:'DM Mono',monospace;color:var(--ac)">${o.style_no}</strong> ${o.style_name} · ${v?.company_name||'-'} · ${L('발주','PO')} ${Number(o.order_qty).toLocaleString()}${L('장','pcs')}${doneTag}</div>
+    const shippedSoFar = o.shipped_qty || 0;
+    const remaining = getRemainingQty(o);
+    return `<div class="fim-row" data-id="${o.id}" data-order-qty="${o.order_qty}" data-remaining="${remaining}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--bdr)">
+      <div style="flex:1;min-width:160px">[${i+1}] <strong style="font-family:'DM Mono',monospace;color:var(--ac)">${o.style_no}</strong> ${o.style_name} · ${v?.company_name||'-'} · ${L('발주','PO')} ${Number(o.order_qty).toLocaleString()}${L('장','pcs')} · ${L('누적선적','Shipped so far')} ${shippedSoFar.toLocaleString()}${L('장','pcs')} / ${L('잔량','Remaining')} ${remaining.toLocaleString()}${L('장','pcs')}${doneTag}</div>
       <div style="display:flex;align-items:center;gap:6px">
-        <label style="font-size:11px;color:var(--muted);white-space:nowrap">${L('실선적 수량','Actual Shipped Qty')}</label>
-        <input type="number" class="fim-aq" data-id="${o.id}" value="${o.order_qty}" min="0" style="width:90px;padding:4px 6px;font-size:12px" oninput="updateFimVariance('${o.id}')">
+        <label style="font-size:11px;color:var(--muted);white-space:nowrap">${L('이번 선적 수량','Qty Shipped This Time')}</label>
+        <input type="number" class="fim-aq" data-id="${o.id}" value="${remaining}" min="0" style="width:90px;padding:4px 6px;font-size:12px" oninput="updateFimVariance('${o.id}')">
         <span class="fim-var" data-id="${o.id}" style="font-size:12px;font-weight:600;min-width:46px;display:inline-block"></span>
+        <span class="fim-rem" data-id="${o.id}" style="font-size:11px;font-weight:600;white-space:nowrap"></span>
       </div>
     </div>`;
   }).join('');
@@ -3020,36 +3044,40 @@ async function executeBulkFinish() {
   btn.disabled = true; btn.textContent = L('처리 중...','Processing...');
   try {
     const completionDate = today();
+    let partialCount = 0;
     for (const id of ids) {
       const o = allOrders.find(x => x.id === id);
       if (!o) continue;
+      const remainingBefore = getRemainingQty(o);
       const aqInput = document.querySelector(`.fim-aq[data-id="${id}"]`);
-      const actualQty = aqInput && aqInput.value !== '' ? (parseInt(aqInput.value) || 0) : o.order_qty;
+      // actual_qty = 이번 회차에 추가로 선적된 수량(증분). 기본값은 처리 시점 잔량.
+      const actualQty = aqInput && aqInput.value !== '' ? (parseInt(aqInput.value) || 0) : remainingBefore;
+      // 누적 선적수량(shipped_qty)에 이번 회차 수량을 더해 잔량을 재계산 (덮어쓰기 아님)
+      const newShipped = (o.shipped_qty || 0) + actualQty;
+      const remainingQty = Math.max(0, (o.order_qty || 0) - newShipped);
+      if (remainingQty > 0) partialCount++;
       const patch = {
         cut_done: true, artwork_done: true, sew_done: true, finish_done: true,
         produced_qty: o.order_qty,
         actual_qty: actualQty,
+        shipped_qty: newShipped,
         actual_complete_date: completionDate,
         updated_at: new Date().toISOString()
       };
       if (actualEtd) { patch.etd_date = actualEtd; patch.ship_date = actualEtd; }
       await sb(`orders?id=eq.${id}`, 'PATCH', patch);
       if (actualEtd) {
-        const remainingQty = Math.max(0, (o.order_qty || 0) - (o.shipped_qty || 0));
-        if (remainingQty > 0) {
-          const arrival_date = addBusinessDays(actualEtd, 4);
-          await sb('shipping_requests', 'POST', {
-            order_id: id,
-            vendor_id: o.vendor_id,
-            booking_etd: actualEtd,
-            booking_qty: remainingQty,
-            status: 'confirmed',
-            confirmed_etd: actualEtd,
-            arrival_date,
-            remaining_qty: 0
-          });
-          await sb(`orders?id=eq.${id}`, 'PATCH', { shipped_qty: (o.shipped_qty || 0) + remainingQty, updated_at: new Date().toISOString() });
-        }
+        const arrival_date = addBusinessDays(actualEtd, 4);
+        await sb('shipping_requests', 'POST', {
+          order_id: id,
+          vendor_id: o.vendor_id,
+          booking_etd: actualEtd,
+          booking_qty: actualQty,
+          status: 'confirmed',
+          confirmed_etd: actualEtd,
+          arrival_date,
+          remaining_qty: remainingQty
+        });
       }
     }
     closeModal('fim');
@@ -3057,7 +3085,8 @@ async function executeBulkFinish() {
     await loadAll();
     renderDashboard();
     const etdMsg = actualEtd ? `\n📅 ${L('입고 예정일','Est. arrival')}: ${addBusinessDays(actualEtd, 4)}` : '';
-    alert(`✅ ${ids.length}${L('건 생산완료 처리 완료',' orders marked as complete.')}\n📦 ${L('완료일','Completion date')}: ${completionDate}${etdMsg}`);
+    const partialMsg = partialCount > 0 ? `\n📐 ${L(`${partialCount}건 분할선적 진행중 (잔량 발생)`, `${partialCount} order(s) partially shipped (remaining qty left)`)}` : '';
+    alert(`✅ ${ids.length}${L('건 생산완료 처리 완료',' orders marked as complete.')}\n📦 ${L('완료일','Completion date')}: ${completionDate}${etdMsg}${partialMsg}`);
   } catch(e) {
     showAlert('fim-alert', e.message);
   } finally {
