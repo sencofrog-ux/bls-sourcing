@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#f0ede8;--surf:#fff;--bdr:#ddd9d2;--txt:#1a1a18;--muted:#7a7870;--red:#c0392b;--redl:#fdf0ee;--ora:#b7770d;--oral:#fef9ec;--grn:#1e7e4a;--grnl:#edf7f1;--purple:#6b3fa0;--purplel:#f0eaf8;--r:10px;--ac:#1e3a5f;--acl:#e8eef6;--ach:#152b47}
+:root{--bg:#f0ede8;--surf:#fff;--bdr:#ddd9d2;--txt:#1a1a18;--muted:#7a7870;--red:#c0392b;--redl:#fdf0ee;--ora:#b7770d;--oral:#fef9ec;--grn:#1e7e4a;--grnl:#edf7f1;--purple:#6b3fa0;--purplel:#f0eaf8;--r:10px;--ac:#1e3a5f;--acl:#e8eef6;--ach:#152b47;--sat:#2563eb}
 body.theme-master{--ac:#1e3a5f;--acl:#e8eef6;--ach:#152b47;--bg:#f0ede8}
 body.theme-cs{--ac:#6b3fa0;--acl:#f0eaf8;--ach:#4e2d78;--bg:#f5f0f8}
 body.theme-md{--ac:#b5443a;--acl:#fbeae8;--ach:#8f3129;--bg:#faf2f0}
@@ -107,11 +107,15 @@ tbody tr:hover{background:var(--bg)}
 .cal-nav button{width:34px;height:34px;border:1px solid var(--bdr);background:var(--surf);border-radius:8px;cursor:pointer;font-size:14px}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .cal-dow{text-align:center;font-size:11px;font-weight:600;color:var(--muted);padding:8px 0;background:var(--bg);border-radius:4px}
+.cal-dow-sun{color:var(--red)}
+.cal-dow-sat{color:var(--sat)}
 .cal-cell{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;min-height:130px;padding:8px;font-size:11px;cursor:pointer}
 .cal-cell.has-events:hover{border-color:var(--ac)}
 .cal-cell.today{border-color:var(--ac);border-width:2px}
 .cal-cell.cal-highlight{background:var(--oral);border-color:var(--ora);border-width:2px;box-shadow:0 0 0 2px var(--ora) inset}
 .cal-date{font-weight:600;font-size:12px;margin-bottom:4px}
+.cal-date-red{color:var(--red)}
+.cal-date-sat{color:var(--sat)}
 .cal-event{background:var(--acl);color:var(--ac);border-radius:4px;padding:2px 5px;margin-bottom:2px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;max-width:100%}
 .cal-event.confirmed{background:var(--grnl);color:var(--grn);border-left:3px solid var(--grn)}
 .cal-event.late{background:var(--redl);color:var(--red)}
@@ -2502,6 +2506,21 @@ async function updateArrivalDate(reqId, newDate, inputEl) {
     inputEl.disabled = false;
   }
 }
+// 대한민국 공휴일(대체공휴일 포함) — 음력 기준 휴일(설날/추석/석가탄신일)은 매년 수기 갱신 필요. 2027년 음력 일자는 추정값.
+const KR_HOLIDAYS = new Set([
+  '2024-01-01','2024-02-09','2024-02-10','2024-02-11','2024-02-12','2024-03-01','2024-04-10',
+  '2024-05-05','2024-05-06','2024-05-15','2024-06-06','2024-08-15','2024-09-16','2024-09-17',
+  '2024-09-18','2024-10-03','2024-10-09','2024-12-25',
+  '2025-01-01','2025-01-28','2025-01-29','2025-01-30','2025-03-01','2025-03-03','2025-05-05',
+  '2025-05-06','2025-06-06','2025-08-15','2025-10-03','2025-10-05','2025-10-06','2025-10-07',
+  '2025-10-08','2025-10-09','2025-12-25',
+  '2026-01-01','2026-02-16','2026-02-17','2026-02-18','2026-03-01','2026-03-02','2026-05-05',
+  '2026-05-24','2026-05-25','2026-06-06','2026-08-15','2026-08-17','2026-09-24','2026-09-25',
+  '2026-09-26','2026-10-03','2026-10-05','2026-10-09','2026-12-25',
+  '2027-01-01','2027-02-05','2027-02-06','2027-02-07','2027-02-08','2027-03-01','2027-05-05',
+  '2027-05-13','2027-06-06','2027-08-15','2027-08-16','2027-09-14','2027-09-15','2027-09-16',
+  '2027-10-03','2027-10-04','2027-10-09','2027-10-11','2027-12-25','2027-12-27'
+]);
 function buildCal(data, year, month, prefix, getDate, getName, getQty, highlightDates, getManual) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month+1, 0);
@@ -2518,7 +2537,7 @@ function buildCal(data, year, month, prefix, getDate, getName, getQty, highlight
   const yearLabel = L(`${year}년 ${months[month]}`, `${months[month]} ${year}`);
   const isMobile = isMobileCal();
   let html = `<div class="cal-hdr"><div class="cal-month">${yearLabel}</div><div class="cal-nav"><button data-cal="${prefix}" data-dir="-1">‹</button><button data-cal="${prefix}" data-dir="1">›</button></div></div><div class="cal-grid">`;
-  L(['일','월','화','수','목','금','토'],['Sun','Mon','Tue','Wed','Thu','Fri','Sat']).forEach(d=>html+=`<div class="cal-dow">${d}</div>`);
+  L(['일','월','화','수','목','금','토'],['Sun','Mon','Tue','Wed','Thu','Fri','Sat']).forEach((d,i)=>html+=`<div class="cal-dow ${i===0?'cal-dow-sun':i===6?'cal-dow-sat':''}">${d}</div>`);
   for (let i=0;i<startDow;i++) html += '<div class="cal-cell" style="opacity:.3;cursor:default"></div>';
   for (let d=1;d<=days;d++) {
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -2526,7 +2545,10 @@ function buildCal(data, year, month, prefix, getDate, getName, getQty, highlight
     const isToday = dateStr===t;
     const hasEv = evs.length>0;
     const isHighlight = !!(highlightDates && highlightDates.has(dateStr));
-    html += `<div class="cal-cell ${isToday?'today':''} ${hasEv?'has-events':''} ${isHighlight?'cal-highlight':''}" ${hasEv?`data-day="${dateStr}"`:'style="cursor:default"'}><div class="cal-date">${d}</div>`;
+    const dow = new Date(year, month, d).getDay();
+    const isHoliday = KR_HOLIDAYS.has(dateStr);
+    const dateClass = isHoliday||dow===0 ? 'cal-date-red' : dow===6 ? 'cal-date-sat' : '';
+    html += `<div class="cal-cell ${isToday?'today':''} ${hasEv?'has-events':''} ${isHighlight?'cal-highlight':''}" ${hasEv?`data-day="${dateStr}"`:'style="cursor:default"'}><div class="cal-date ${dateClass}">${d}</div>`;
     if (isMobile) {
       if (hasEv) {
         html += `<div class="cal-dots">${evs.slice(0,3).map(e=>`<span class="cal-dot ${e.manual?'manual':''}"></span>`).join('')}</div>`;
