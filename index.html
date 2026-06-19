@@ -2209,7 +2209,9 @@ function getInboundList() {
       const s = o ? allSeasons.find(x=>x.id===o.season_id) : null;
       const etd = r.confirmed_etd||r.booking_etd;
       const arrival_date = r.arrival_date || (etd ? addBusinessDays(etd, 4) : null);
-      return { ...r, style_no:o?.style_no, style_name:o?.style_name, category:o?.category, order_qty:o?.order_qty, vendor_name:v?.company_name, season_name:s?.name, destination:o?.destination, etd, arrival_date };
+      // 수량 표시 우선순위: 1)마스터 강제완료 actual_qty 2)벤더 선적요청 booking_qty 3)발주수량(order_qty) 임시 표시
+      const display_qty = o?.actual_qty != null ? o.actual_qty : (r.booking_qty != null ? r.booking_qty : (o?.order_qty || 0));
+      return { ...r, style_no:o?.style_no, style_name:o?.style_name, category:o?.category, order_qty:o?.order_qty, actual_qty:o?.actual_qty, display_qty, vendor_name:v?.company_name, season_name:s?.name, destination:o?.destination, etd, arrival_date };
     }).sort((a,b)=>(a.arrival_date||a.etd||'').localeCompare(b.arrival_date||b.etd||''));
 }
 function renderInbound() {
@@ -2227,7 +2229,7 @@ function renderInbound() {
       <td data-label="${L('벤더','Vendor')}"><strong>${r.vendor_name||'-'}</strong></td>
       <td data-label="${L('스타일','Style')}">${r.style_no||''}<br>${r.style_name||''}</td>
       <td data-label="${L('카테고리','Category')}">${r.category||'-'}</td>
-      <td data-label="${L('입고수량','Inbound Qty')}"><strong>${Number(r.booking_qty).toLocaleString()}${L('장','pcs')}</strong></td>
+      <td data-label="${L('입고수량','Inbound Qty')}"><strong>${Number(r.display_qty).toLocaleString()}${L('장','pcs')}</strong></td>
       <td data-label="${L('납품처','Destination')}" style="font-size:12px">${r.destination||'-'}</td>
       <td data-label="${L('시즌','Season')}" style="font-size:12px">${r.season_name||'-'}</td>
       <td data-label="${L('상태','Status')}"><span class="bdg ${smap[r.status]}">${slbl[r.status]}</span></td>
@@ -2238,7 +2240,7 @@ function renderInbound() {
 function renderInboundCalendar() {
   const list = getInboundList();
   const combined = [
-    ...list.map(r=>({date:r.arrival_date, name:r.style_no, qty:r.booking_qty, manual:false})),
+    ...list.map(r=>({date:r.arrival_date, name:r.style_no, qty:r.display_qty, manual:false})),
     ...allCalendarEvents.map(e=>({date:e.event_date, name:e.style_name, qty:e.qty, manual:true}))
   ];
   if (!inboundCalYear) { const n=new Date(); inboundCalYear=n.getFullYear(); inboundCalMonth=n.getMonth(); }
@@ -2259,7 +2261,7 @@ function searchInboundHistory() {
   const orderMatches = list.filter(r=>(r.style_no||'').toLowerCase().includes(q) || (r.style_name||'').toLowerCase().includes(q))
     .map(r=>({...r, manual:false}));
   const manualMatches = allCalendarEvents.filter(e=>(e.style_name||'').toLowerCase().includes(q))
-    .map(e=>({...e, arrival_date:e.event_date, booking_qty:e.qty, manual:true}));
+    .map(e=>({...e, arrival_date:e.event_date, booking_qty:e.qty, display_qty:e.qty, manual:true}));
   const matches = [...orderMatches, ...manualMatches];
   if (!matches.length) {
     inboundSearchDates = new Set();
@@ -2296,7 +2298,7 @@ function showInboundHistoryPopup(sorted) {
         <div style="font-size:12px;color:var(--muted);margin-top:4px">${L('입고일','Arrival')}: <strong style="color:var(--ac)">${it.arrival_date||'-'}</strong></div>
       </div>
       <div style="text-align:right">
-        <strong>${Number(it.booking_qty||0).toLocaleString()}${L('장','pcs')}</strong>
+        <strong>${Number(it.display_qty??it.booking_qty??0).toLocaleString()}${L('장','pcs')}</strong>
         <div style="margin-top:6px"><span class="bdg ${done?'bdg-ok':'bdg-pend'}">${done?L('입고완료','Received'):L('입고예정','Scheduled')}</span></div>
       </div>
     </div>`;
@@ -2311,7 +2313,7 @@ function showInboundDayDetail(dateStr, list) {
   document.getElementById('dm-sub').textContent = L(`${items.length+manualItems.length}개 항목`,`${items.length+manualItems.length} item(s)`);
   let totalQty = 0;
   const rows = items.map(it=>{
-    totalQty += it.booking_qty||0;
+    totalQty += it.display_qty||0;
     const dateEditRow = me.role === 'master'
       ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px">
         <span style="font-size:12px;color:var(--muted);white-space:nowrap">입고일 변경:</span>
@@ -2322,7 +2324,7 @@ function showInboundDayDetail(dateStr, list) {
     return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${it.style_no||''}</div><strong>${it.style_name||''}</strong>${it.vendor_name?'<div style="font-size:11px;color:var(--muted)">'+it.vendor_name+'</div>':''}</div>
-        <div style="text-align:right"><strong>${Number(it.booking_qty||0).toLocaleString()}장</strong>${it.category?'<div style="font-size:11px;color:var(--muted)">'+it.category+'</div>':''}</div>
+        <div style="text-align:right"><strong>${Number(it.display_qty||0).toLocaleString()}장</strong>${it.category?'<div style="font-size:11px;color:var(--muted)">'+it.category+'</div>':''}</div>
       </div>
       ${dateEditRow}
     </div>`;
