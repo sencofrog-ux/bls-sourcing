@@ -303,6 +303,11 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
           <div class="sec-hdr"><div><div class="sec-title" id="dash-title" data-ko="대시보드" data-en="Dashboard">대시보드</div><div class="sec-sub" id="dash-sub" data-ko="전체 생산 현황" data-en="Overall Production Status">전체 생산 현황</div></div>
             <select class="fsel" id="dash-season"><option value="">전체 시즌</option></select>
           </div>
+          <div class="view-tabs" id="dash-status-tabs">
+            <button class="view-tab on" data-dstatus="active" data-ko="진행중" data-en="In Progress">진행중</button>
+            <button class="view-tab" data-dstatus="all" data-ko="전체" data-en="All">전체</button>
+            <button class="view-tab" data-dstatus="shipped" data-ko="선적완료" data-en="Shipped">선적완료</button>
+          </div>
           <div class="sum-grid" id="sum-grid"></div>
           <div class="filter-row">
             <select class="fsel" id="ord-vendor"><option value="">전체 벤더</option></select>
@@ -949,6 +954,12 @@ function bindAppEvents() {
   document.getElementById('dash-season').addEventListener('change', ()=>{ saveDashFilters(); renderDashboard(); });
   document.getElementById('ord-vendor').addEventListener('change', ()=>{ saveDashFilters(); renderDashboard(); });
   document.getElementById('ord-search').addEventListener('input', ()=>{ saveDashFilters(); renderDashboard(); });
+  document.querySelectorAll('#dash-status-tabs [data-dstatus]').forEach(b=>b.addEventListener('click', ()=>{
+    document.querySelectorAll('#dash-status-tabs [data-dstatus]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    saveDashFilters();
+    renderDashboard();
+  }));
 
   document.getElementById('reg-submit').addEventListener('click', submitOrder);
   document.getElementById('add-season-btn').addEventListener('click', addSeason);
@@ -1056,13 +1067,16 @@ function saveDashFilters() {
   const state = {
     season: document.getElementById('dash-season').value,
     vendor: document.getElementById('ord-vendor').value,
-    search: document.getElementById('ord-search').value
+    search: document.getElementById('ord-search').value,
+    status: getDashStatusFilter()
   };
   try { sessionStorage.setItem(dashFilterKey(), JSON.stringify(state)); } catch(e) {}
 }
 function restoreDashFilters() {
   let saved;
   try { saved = JSON.parse(sessionStorage.getItem(dashFilterKey()) || 'null'); } catch(e) { saved = null; }
+  const statusVal = saved?.status || 'active';
+  document.querySelectorAll('#dash-status-tabs [data-dstatus]').forEach(b=>b.classList.toggle('on', b.dataset.dstatus===statusVal));
   if (!saved) return;
   const seasonSel = document.getElementById('dash-season');
   const vendorSel = document.getElementById('ord-vendor');
@@ -1104,14 +1118,24 @@ function setupFilters() {
   restoreDashFilters();
 }
 
+// 선적완료 기준: 선적수량(shipping_qty) 입력 + 입고예정일(arrival_date) 확정
+function isOrderShipped(o) {
+  return o.shipping_qty != null && !!o.arrival_date;
+}
+function getDashStatusFilter() {
+  return document.querySelector('#dash-status-tabs .view-tab.on')?.dataset.dstatus || 'active';
+}
 function getVisibleOrders() {
   let list = allOrders.slice();
   if (me.role === 'vendor') list = list.filter(o=>o.vendor_id===me.id);
   const sid = document.getElementById('dash-season').value;
   const vid = document.getElementById('ord-vendor').value;
   const q = document.getElementById('ord-search').value.trim().toLowerCase();
+  const statusFilter = getDashStatusFilter();
   if (sid) list = list.filter(o=>o.season_id===sid);
   if (vid) list = list.filter(o=>o.vendor_id===vid);
+  if (statusFilter === 'active') list = list.filter(o=>!isOrderShipped(o));
+  else if (statusFilter === 'shipped') list = list.filter(o=>isOrderShipped(o));
   if (q) {
     const terms = q.split(/\s+/).filter(Boolean);
     list = list.filter(o => {
@@ -1119,8 +1143,10 @@ function getVisibleOrders() {
       return terms.every(t => combined.includes(t));
     });
   }
-  // 긴급건 최상단 고정, 이후 target ETD 오름차순
+  // 1) 선적완료 건은 하단으로 고정 2) 그 안에서 긴급건 최상단 고정 3) target ETD 오름차순
   list.sort((a,b)=>{
+    const aShipped = isOrderShipped(a), bShipped = isOrderShipped(b);
+    if (aShipped !== bShipped) return aShipped ? 1 : -1;
     if (!!b.is_urgent !== !!a.is_urgent) return b.is_urgent ? 1 : -1;
     return (a.planned_ship_date||'9999-99-99').localeCompare(b.planned_ship_date||'9999-99-99');
   });
@@ -1215,9 +1241,12 @@ function renderDashboard() {
           actBtn += ` <button class="btn btn-sm" style="background:var(--ac);color:#fff" onclick="openOrderEditModal('${o.id}')">${L('수정','Edit')}</button>`;
         }
       }
+      const shipped = isOrderShipped(o);
       const statusBadge = cancelled
         ? `<span class="bdg bdg-cancelled">${L('취소됨','Cancelled')}</span>`
-        : `<span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?L('지연','Delayed'):L('정상','Normal')}</span>`;
+        : shipped
+          ? `<span class="bdg bdg-ok">${L('선적완료','Shipped')}</span>`
+          : `<span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?L('지연','Delayed'):L('정상','Normal')}</span>`;
       return `<tr${o.is_urgent&&!cancelled?' style="background:#fff8f8"':cancelled?' style="opacity:.6"':''}>
         ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
         <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
@@ -1248,6 +1277,7 @@ function renderVendorOrderCards(list) {
     const cnt  = done.filter(Boolean).length;
     const pct  = Math.round(cnt / 4 * 100);
     const late = o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty;
+    const shipped = isOrderShipped(o);
     const qtyLabel = `${L('발주','Order')} ${Number(o.order_qty||0).toLocaleString()}${L('장','pcs')}`;
     const chips = STAGES.map((s,i)=>`
       <div class="stage-chip ${done[i]?'done-'+s:''}" onclick="toggleStage('${o.id}','${s}')">
@@ -1262,6 +1292,7 @@ function renderVendorOrderCards(list) {
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
             <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}</span>
             ${o.is_urgent?`<span class="bdg bdg-urgent">🚨 ${L('긴급','URGENT')}</span>`:''}
+            ${shipped?`<span class="bdg bdg-ok">${L('선적완료','Shipped')}</span>`:''}
           </div>
           <div style="font-size:15px;font-weight:700">${o.style_name}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px">${qtyLabel} · ${(o.planned_ship_date||'-').slice(0,10)}${(()=>{const d=calcDday(o.planned_ship_date);return d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;})()}${late?` <span style="color:var(--red);font-weight:600">⚠ ${L('지연','Delayed')}</span>`:''}</div>
