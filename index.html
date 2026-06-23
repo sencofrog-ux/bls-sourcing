@@ -81,6 +81,7 @@ table{width:100%;border-collapse:collapse;font-size:13px;min-width:760px}
 thead th{background:var(--bg);padding:12px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--bdr);white-space:nowrap}
 tbody td{padding:12px 14px;border-bottom:1px solid var(--bdr);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
+#inbound-tbl tr.inv-end td{border-bottom:2px solid var(--ac)}
 tbody tr:hover{background:var(--bg)}
 .ord-chk:checked,#chk-all:checked{box-shadow:0 0 0 3px rgba(46,125,50,.3);border-radius:3px}
 tbody tr:has(.ord-chk:checked){background:#eaf6ec!important;box-shadow:inset 3px 0 0 0 #2e7d32}
@@ -124,6 +125,9 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .cal-event.late{background:var(--redl);color:var(--red)}
 .cal-event.manual{background:#DCEFE3;color:#2E4A3A;border-left:3px solid #7FA08C}
 .inner:has(#view-inbound-cal.on){max-width:none}
+.inner:has(#view-inbound-list.on){max-width:none}
+#inbound-tbl table{table-layout:auto;width:100%}
+#inbound-tbl th,#inbound-tbl td{white-space:normal}
 .cal-dots{display:flex;gap:3px;justify-content:center;margin-top:8px;flex-wrap:wrap}
 .cal-dot{width:6px;height:6px;border-radius:50%;background:var(--grn);flex:none}
 .cal-dot.manual{background:#B8D1C2}
@@ -381,14 +385,15 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
         </div>
 
         <div class="sec" id="sec-shipout">
-          <div class="sec-hdr"><div><div class="sec-title" data-ko="선적 처리" data-en="Shipment Processing">선적 처리</div><div class="sec-sub" data-ko="FINISH 완료된 오더의 선적수량/선적일을 입력하세요" data-en="Enter shipping qty/date for FINISH-completed orders">FINISH 완료된 오더의 선적수량/선적일을 입력하세요</div></div></div>
+          <div class="sec-hdr"><div><div class="sec-title" data-ko="선적 확정" data-en="Confirm Shipment">선적 확정</div><div class="sec-sub" data-ko="선적 요청된 오더의 선적수량/ETD/초기 불량을 확정하세요" data-en="Confirm shipping qty/ETD/initial defect for requested orders">선적 요청된 오더의 선적수량/ETD/초기 불량을 확정하세요</div></div></div>
           <div id="shipout-tbl"></div>
         </div>
 
         <div class="sec" id="sec-inbound">
-          <div class="sec-hdr"><div><div class="sec-title" data-ko="입고 일정표" data-en="Inbound Schedule">입고 일정표</div><div class="sec-sub" data-ko="확정된 선적 기준 입고 일정" data-en="Inbound schedule based on confirmed shipments">확정된 선적 기준 입고 일정</div></div>
+          <div class="sec-hdr"><div><div class="sec-title" data-ko="입고 일정표" data-en="Inbound Schedule">입고 일정표</div><div class="sec-sub" data-ko="수입 통관 기준 입고 일정" data-en="Inbound schedule based on customs clearance">수입 통관 기준 입고 일정</div></div>
             <div style="display:flex;gap:8px">
-              <button class="btn btn-p btn-sm" id="cal-add-event-btn" style="width:auto;display:none" data-ko="➕ 임의 일정 추가" data-en="➕ Add Custom Event">➕ 임의 일정 추가</button>
+              <button class="btn btn-p btn-sm" id="arr-upload-btn" style="width:auto;display:none" data-ko="📤 엑셀 업로드" data-en="📤 Excel Upload">📤 엑셀 업로드</button>
+              <button class="btn btn-s btn-sm" id="arr-download-btn" style="width:auto" data-ko="⬇️ 엑셀 다운로드" data-en="⬇️ Excel Download">⬇️ 엑셀 다운로드</button>
               <button class="btn btn-s btn-sm" id="inbound-print" data-ko="🖨️ 인쇄" data-en="🖨️ Print">🖨️ 인쇄</button>
             </div>
           </div>
@@ -396,12 +401,19 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
             <button class="view-tab on" data-iview="list" data-ko="📋 목록" data-en="📋 List">📋 목록</button>
             <button class="view-tab" data-iview="cal" data-ko="📅 캘린더" data-en="📅 Calendar">📅 캘린더</button>
           </div>
-          <div class="view-pane on" id="view-inbound-list"><div id="inbound-tbl"></div></div>
-          <div class="view-pane" id="view-inbound-cal">
+          <div class="view-pane on" id="view-inbound-list">
             <div class="filter-row">
-              <input class="fsearch" type="text" id="inbound-search" data-ko-ph="스타일번호/스타일명 검색" data-en-ph="Search style no./name" placeholder="스타일번호/스타일명 검색">
-              <button class="btn btn-s btn-sm" id="inbound-search-btn" style="width:auto" data-ko="🔍 검색" data-en="🔍 Search">🔍 검색</button>
+              <button class="btn btn-s btn-sm" id="arr-week-prev" style="width:auto" data-ko="◀ 이전 주" data-en="◀ Prev Week">◀ 이전 주</button>
+              <input type="date" id="arr-filter-date-start" style="max-width:160px">
+              <span>~</span>
+              <input type="date" id="arr-filter-date-end" style="max-width:160px">
+              <button class="btn btn-s btn-sm" id="arr-week-next" style="width:auto" data-ko="다음 주 ▶" data-en="Next Week ▶">다음 주 ▶</button>
+              <input class="fsearch" type="text" id="arr-filter-style" data-ko-ph="스타일번호/스타일명 검색" data-en-ph="Search style no./name" placeholder="스타일번호/스타일명 검색">
+              <button class="btn btn-s btn-sm" id="arr-filter-reset" style="width:auto" data-ko="✕ 초기화" data-en="✕ Reset">✕ 초기화</button>
             </div>
+            <div id="inbound-tbl"></div>
+          </div>
+          <div class="view-pane" id="view-inbound-cal">
             <div id="inbound-cal"></div>
             <div class="cal-day-panel" id="inbound-cal-panel"></div>
           </div>
@@ -422,12 +434,6 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
           <div class="filter-row"><select class="fsel" id="fac-vendor-filter"><option value="">전체 벤더</option></select></div>
           <div id="util-donut-wrap"></div>
           <div id="factory-grid"></div>
-        </div>
-
-        <div class="sec" id="sec-cs">
-          <div class="sec-hdr"><div><div class="sec-title" data-ko="🔍 CS 클레임 / 불량 입력" data-en="🔍 CS Claim / Defect Entry">🔍 CS 클레임 / 불량 입력</div><div class="sec-sub" data-ko="입고 후 최종 불량을 확정합니다. CS 입력값이 최종값으로 반영됩니다." data-en="Confirm final defects after receiving. CS values are applied as the final count.">입고 후 최종 불량을 확정합니다. CS 입력값이 최종값으로 반영됩니다.</div></div></div>
-          <div class="filter-row"><input class="fsearch" type="text" id="cs-search" data-ko-ph="스타일번호/스타일명 검색" data-en-ph="Search style no./name" placeholder="스타일번호/스타일명 검색"></div>
-          <div id="cs-tbl"></div>
         </div>
 
         <div class="sec" id="sec-members">
@@ -460,7 +466,7 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
             <div class="manual-step"><div class="manual-step-num">1</div><div data-ko="대시보드에서 전체 생산 현황 확인" data-en="Check overall production status on the Dashboard">대시보드에서 전체 생산 현황 확인</div></div>
             <div class="manual-step"><div class="manual-step-num">2</div><div data-ko="승인 대기 메뉴에서 신규 회원 승인" data-en="Approve new members in Pending Approval menu">승인 대기 메뉴에서 신규 회원 승인</div></div>
             <div class="manual-step"><div class="manual-step-num">3</div><div data-ko="오더 등록 → 벤더 배정" data-en="Register Order → Assign Vendor">오더 등록 → 벤더 배정</div></div>
-            <div class="manual-step"><div class="manual-step-num">4</div><div data-ko="선적 처리 → FINISH 완료 오더의 선적수량/ETD 입력" data-en="Shipment Processing → Enter shipping qty/ETD for FINISH-completed orders">선적 처리 → FINISH 완료 오더의 선적수량/ETD 입력</div></div>
+            <div class="manual-step"><div class="manual-step-num">4</div><div data-ko="선적 확정 → 선적 요청된 오더의 선적수량/ETD/초기 불량 확정" data-en="Confirm Shipment → Confirm shipping qty/ETD/initial defect for requested orders">선적 확정 → 선적 요청된 오더의 선적수량/ETD/초기 불량 확정</div></div>
             <div class="manual-step"><div class="manual-step-num">5</div><div data-ko="입고 일정표 → 내부 공유용 인쇄" data-en="Inbound Schedule → Print for internal sharing">입고 일정표 → 내부 공유용 인쇄</div></div>
           </div>
           <div class="manual-section">
@@ -468,13 +474,13 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
             <div class="manual-step"><div class="manual-step-num">1</div><div data-ko="회원가입 후 마스터 승인 대기" data-en="Sign up and wait for master approval">회원가입 후 마스터 승인 대기</div></div>
             <div class="manual-step"><div class="manual-step-num">2</div><div data-ko="공장 관리 → 공장 정보 + CAPA 등록" data-en="Factory Management → Register factory info + CAPA">공장 관리 → 공장 정보 + CAPA 등록</div></div>
             <div class="manual-step"><div class="manual-step-num">3</div><div data-ko="오더 현황 → 생산 공장/라인 + 생산수량 입력" data-en="Order Status → Enter production factory/line + qty">오더 현황 → 생산 공장/라인 + 생산수량 입력</div></div>
-            <div class="manual-step"><div class="manual-step-num">4</div><div data-ko="CUT→ARTWORK→SEW→FINISH 4단계 체크 완료 → 마스터가 선적정보 입력" data-en="Complete all 4 stages (CUT→ARTWORK→SEW→FINISH) → Master enters shipping info">CUT→ARTWORK→SEW→FINISH 4단계 체크 완료 → 마스터가 선적정보 입력</div></div>
+            <div class="manual-step"><div class="manual-step-num">4</div><div data-ko="CUT→ARTWORK→SEW→FINISH 4단계 체크 완료 → [선적 요청] 버튼 클릭" data-en="Complete all 4 stages (CUT→ARTWORK→SEW→FINISH) → Click [Request Shipment]">CUT→ARTWORK→SEW→FINISH 4단계 체크 완료 → [선적 요청] 버튼 클릭</div></div>
           </div>
           <div class="manual-section">
             <h3 data-ko="🔍 CS팀 사용법" data-en="🔍 CS Team Guide">🔍 CS팀 사용법</h3>
             <div class="manual-step"><div class="manual-step-num">1</div><div data-ko="회원가입 후 마스터 승인 대기" data-en="Sign up and wait for master approval">회원가입 후 마스터 승인 대기</div></div>
-            <div class="manual-step"><div class="manual-step-num">2</div><div data-ko="CS 클레임 메뉴 → 스타일 검색" data-en="CS Claim menu → Search by style">CS 클레임 메뉴 → 스타일 검색</div></div>
-            <div class="manual-step"><div class="manual-step-num">3</div><div data-ko="최종 불량 수량 입력 → 자동 반영" data-en="Enter final defect qty → Applied automatically">최종 불량 수량 입력 → 자동 반영</div></div>
+            <div class="manual-step"><div class="manual-step-num">2</div><div data-ko="대시보드 → 선적완료 탭에서 스타일 검색" data-en="Dashboard → Search by style in the Shipped tab">대시보드 → 선적완료 탭에서 스타일 검색</div></div>
+            <div class="manual-step"><div class="manual-step-num">3</div><div data-ko="[불량 추가] 버튼 → 추가 불량 수량 입력 → 누적 반영" data-en="[Add Defect] button → Enter additional defect qty → Accumulated automatically">[불량 추가] 버튼 → 추가 불량 수량 입력 → 누적 반영</div></div>
           </div>
           <div class="manual-section">
             <h3 data-ko="🛍️ MD 사용법" data-en="🛍️ MD Guide">🛍️ MD 사용법</h3>
@@ -527,23 +533,19 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
   </div>
 </div>
 
-<div class="overlay" id="cs-modal">
+<div class="overlay" id="defect-modal">
   <div class="modal">
-    <div class="mhdr"><div><div class="mhdr-t" id="csm-title" style="color:var(--purple)">CS 클레임 / 불량 입력</div><div class="mhdr-s" id="csm-sub"></div></div><button class="mclose" id="csm-close">×</button></div>
+    <div class="mhdr"><div><div class="mhdr-t" id="defm-title" style="color:var(--purple)">불량 추가 입력</div><div class="mhdr-s" id="defm-sub"></div></div><button class="mclose" id="defm-close">×</button></div>
     <div class="mbody">
-      <div class="alert alert-e" id="csm-alert"></div>
-      <div id="csm-info" class="card" style="background:var(--purplel);border-color:#c9b3e8;margin-bottom:14px;padding:12px 14px;font-size:13px"></div>
-      <div class="row2">
-        <div class="fg"><label class="fl" data-ko="최종 불량 수량 (장) *" data-en="Final Defect Qty (pcs) *">최종 불량 수량 (장) *</label><input type="number" id="csm-qty" placeholder="0" min="0"></div>
-        <div class="fg"><label class="fl" data-ko="검수일" data-en="Inspection Date">검수일</label><input type="date" id="csm-date"></div>
-      </div>
-      <div class="fg"><label class="fl" data-ko="검수자" data-en="Inspector">검수자</label><input type="text" id="csm-inspector"></div>
-      <div class="fg"><label class="fl" data-ko="불량 내용/사유" data-en="Defect Details/Reason">불량 내용/사유</label><textarea id="csm-note" data-ko-ph="봉제 불량, 사이즈 오류, 원단 결함..." data-en-ph="Sewing defect, size error, fabric flaw..." placeholder="봉제 불량, 사이즈 오류, 원단 결함..." style="min-height:80px"></textarea></div>
-      <div id="csm-rate" style="font-size:13px;color:var(--purple);font-weight:500"></div>
+      <div class="alert alert-e" id="defm-alert"></div>
+      <div id="defm-info" class="card" style="background:var(--purplel);border-color:#c9b3e8;margin-bottom:14px;padding:12px 14px;font-size:13px"></div>
+      <div class="fg"><label class="fl" data-ko="추가 불량 수량 (장) *" data-en="Additional Defect Qty (pcs) *">추가 불량 수량 (장) *</label><input type="number" id="defm-qty" placeholder="0" min="0"></div>
+      <div id="defm-rate" style="font-size:13px;color:var(--purple);font-weight:500;margin-bottom:10px"></div>
+      <div id="defm-history"></div>
     </div>
     <div class="mfooter">
-      <button class="btn btn-s btn-sm" id="csm-cancel" data-ko="취소" data-en="Cancel">취소</button>
-      <button class="btn btn-purple btn-sm" id="csm-save" style="width:auto" data-ko="저장 확정" data-en="Confirm & Save">저장 확정</button>
+      <button class="btn btn-s btn-sm" id="defm-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-purple btn-sm" id="defm-save" style="width:auto" data-ko="추가" data-en="Add">추가</button>
     </div>
   </div>
 </div>
@@ -575,21 +577,59 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
   </div>
 </div>
 
-<div class="overlay" id="calevent-modal">
-  <div class="modal" style="max-width:460px">
-    <div class="mhdr"><div><div class="mhdr-t" id="cev-title" data-ko="임의 일정 추가" data-en="Add Custom Event">임의 일정 추가</div></div><button class="mclose" id="cev-close">×</button></div>
+<div class="overlay" id="arrival-upload-modal">
+  <div class="modal" style="max-width:640px">
+    <div class="mhdr"><div><div class="mhdr-t" data-ko="입고 일정 엑셀 업로드" data-en="Upload Arrival Schedule Excel">입고 일정 엑셀 업로드</div><div class="mhdr-s" data-ko="입고일정_업로드양식.xlsx 기준" data-en="Based on the inbound schedule upload template">입고일정_업로드양식.xlsx 기준</div></div><button class="mclose" id="aum-close">×</button></div>
     <div class="mbody">
-      <div class="alert alert-e" id="cev-alert"></div>
-      <div class="fg"><label class="fl" data-ko="스타일명 *" data-en="Style Name *">스타일명 *</label><input type="text" id="cev-name" data-ko-ph="예: 울 블레이저" data-en-ph="e.g. Wool Blazer" placeholder="예: 울 블레이저"></div>
-      <div class="row2">
-        <div class="fg"><label class="fl" data-ko="수량" data-en="Qty">수량</label><input type="number" id="cev-qty" placeholder="500"></div>
-        <div class="fg"><label class="fl" data-ko="입고예정일 *" data-en="Expected Arrival *">입고예정일 *</label><input type="date" id="cev-date"></div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5" data-ko="컬럼: DATE / SUPPLIER / BRAND / PACKING TYPE / STYLE NO. / COLOR CODE / QTY/COLOR / CTN / TYPE / Forwarder / B/L NO. / INVOICE NO.<br>같은 STYLE NO.의 컬러별 수량은 자동 합산되어 QTY/TOTAL로 저장됩니다." data-en="Columns: DATE / SUPPLIER / BRAND / PACKING TYPE / STYLE NO. / COLOR CODE / QTY/COLOR / CTN / TYPE / Forwarder / B/L NO. / INVOICE NO.<br>Quantities per color of the same STYLE NO. are summed automatically into QTY/TOTAL.">컬럼: DATE / SUPPLIER / BRAND / PACKING TYPE / STYLE NO. / COLOR CODE / QTY/COLOR / CTN / TYPE / Forwarder / B/L NO. / INVOICE NO.<br>같은 STYLE NO.의 컬러별 수량은 자동 합산되어 QTY/TOTAL로 저장됩니다.</p>
+      <input type="file" id="arr-excel-file" accept=".xlsx,.xls" style="display:none">
+      <button class="btn btn-s" type="button" onclick="document.getElementById('arr-excel-file').click()" style="width:auto" data-ko="엑셀 파일 선택" data-en="Select Excel File">엑셀 파일 선택</button>
+      <div id="arr-preview-zone" style="display:none;margin-top:16px;border-top:1px solid var(--bdr);padding-top:14px">
+        <h4 style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--txt)" id="arr-preview-count-txt"></h4>
+        <div id="arr-preview-error-wrap" style="display:none;margin-bottom:8px;background:#fdecea;border:1px solid #f1b0b7;border-radius:6px;padding:8px;font-size:11px;color:#c0392b;max-height:100px;overflow-y:auto;font-family:monospace;line-height:1.4"></div>
+        <div id="arr-preview-list-wrap" style="max-height:220px;overflow-y:auto;background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:8px;font-size:11px;font-family:monospace;line-height:1.4"></div>
       </div>
-      <div class="fg"><label class="fl" data-ko="메모" data-en="Memo">메모</label><textarea id="cev-memo"></textarea></div>
     </div>
     <div class="mfooter">
-      <button class="btn btn-s btn-sm" id="cev-cancel" data-ko="취소" data-en="Cancel">취소</button>
-      <button class="btn btn-p btn-sm" id="cev-save" style="width:auto" data-ko="저장" data-en="Save">저장</button>
+      <button class="btn btn-s btn-sm" id="aum-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-ok btn-sm" id="arr-submit-btn" style="width:auto;display:none" data-ko="✓ 업로드" data-en="✓ Upload">✓ 업로드</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="arrival-edit-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="mhdr"><div><div class="mhdr-t" data-ko="입고 일정 수정" data-en="Edit Arrival Schedule">입고 일정 수정</div></div><button class="mclose" id="aem-close">×</button></div>
+    <div class="mbody">
+      <div class="alert alert-e" id="aem-alert"></div>
+      <div class="row2">
+        <div class="fg"><label class="fl" data-ko="입고일 *" data-en="Arrival Date *">입고일 *</label><input type="date" id="aem-date"></div>
+        <div class="fg"><label class="fl" data-ko="공급사" data-en="Supplier">공급사</label><input type="text" id="aem-supplier"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label class="fl" data-ko="브랜드" data-en="Brand">브랜드</label><input type="text" id="aem-brand"></div>
+        <div class="fg"><label class="fl" data-ko="포장 형태" data-en="Packing Type">포장 형태</label><input type="text" id="aem-packing"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label class="fl" data-ko="스타일번호 *" data-en="Style No. *">스타일번호 *</label><input type="text" id="aem-style" style="font-family:'DM Mono',monospace"></div>
+        <div class="fg"><label class="fl" data-ko="컬러코드" data-en="Color Code">컬러코드</label><input type="text" id="aem-color"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label class="fl" data-ko="컬러별 수량" data-en="Qty per Color">컬러별 수량</label><input type="number" id="aem-qty"></div>
+        <div class="fg"><label class="fl" data-ko="CTN" data-en="CTN">CTN</label><input type="number" id="aem-ctn"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label class="fl" data-ko="TYPE(컨테이너)" data-en="Type">TYPE(컨테이너)</label><input type="text" id="aem-container"></div>
+        <div class="fg"><label class="fl" data-ko="Forwarder" data-en="Forwarder">Forwarder</label><input type="text" id="aem-forwarder"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label class="fl" data-ko="B/L NO." data-en="B/L No.">B/L NO.</label><input type="text" id="aem-bl"></div>
+        <div class="fg"><label class="fl" data-ko="INVOICE NO." data-en="Invoice No.">INVOICE NO.</label><input type="text" id="aem-invoice"></div>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="aem-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="aem-save" style="width:auto" data-ko="저장" data-en="Save">저장</button>
     </div>
   </div>
 </div>
@@ -668,13 +708,8 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
         <div>✓ <span data-ko="완료일 자동 기록" data-en="Completion date auto-recorded">완료일 자동 기록</span>: <strong id="fim-today-date"></strong></div>
         <div>✓ <span data-ko="완료 처리 후 공장 CAPA에서 자동 차감" data-en="Auto-deducted from factory CAPA">완료 처리 후 공장 CAPA에서 자동 차감</span></div>
       </div>
-      <div class="modal-section-title" data-ko="📦 선적일 입력 (선택사항)" data-en="📦 Actual ETD (Optional)">📦 선적일 입력 (선택사항)</div>
-      <div class="fg" style="margin-bottom:6px">
-        <label class="fl" data-ko="Actual ETD (입력 시 입고 일정표 자동 반영)" data-en="Actual ETD (auto-added to Inbound Schedule)">Actual ETD (입력 시 입고 일정표 자동 반영)</label>
-        <input type="date" id="fim-actual-etd">
-      </div>
-      <div style="font-size:12px;color:var(--muted);padding:8px 10px;background:var(--acl);border-radius:6px" data-ko="선적일 입력 시 입고 일정표 캘린더에 자동 등록됩니다. (선적일 기준 영업일 +4일 = 입고 예정일) 입력하지 않으면 생산완료만 기록됩니다." data-en="When entered, the shipment is auto-added to the Inbound Schedule calendar (ETD + 4 business days = expected arrival). Leave blank to record production completion only.">
-        선적일 입력 시 입고 일정표 캘린더에 자동 등록됩니다. (선적일 기준 영업일 +4일 = 입고 예정일) 입력하지 않으면 생산완료만 기록됩니다.
+      <div style="font-size:12px;color:var(--muted);padding:8px 10px;background:var(--acl);border-radius:6px" data-ko="완료 처리 후에는 [선적 확정] 화면에서 선적 수량/ETD/초기 불량을 입력해주세요." data-en="After completion, enter shipping qty/ETD/initial defect in the [Confirm Shipment] screen.">
+        완료 처리 후에는 [선적 확정] 화면에서 선적 수량/ETD/초기 불량을 입력해주세요.
       </div>
     </div>
     <div class="mfooter">
@@ -693,12 +728,13 @@ const SUPABASE_KEY = "sb_publishable_b19kpVsItvdlFneFpzYb2Q_Z_Xc3ccr";
 
 // ── 전역 상태 ──
 let me = null;
-let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allErrors = [], allCalendarEvents = [];
-let activeOrderId = null, editFactoryId = null, editCalEventId = null;
+let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allErrors = [], allArrival = [], allDefectHistory = [];
+let activeOrderId = null, editFactoryId = null, editArrivalId = null;
 let inboundCalYear, inboundCalMonth;
-let inboundSearchDates = new Set();
 let inboundDayPanelDate = null;
 let parsedBulkOrders = []; // 대량 엑셀 홀더
+let parsedArrivalRows = []; // 입고일정 대량 엑셀 홀더
+let arrivalUploadRowErrors = [];
 let bulkUploadRowErrors = []; // ACTION 검증 실패 등으로 스킵된 행
 let selectedOrderIds = new Set();
 let pendingBulkAction = null; // 'cancel' | 'delete'
@@ -759,6 +795,13 @@ function showPg(id) { document.querySelectorAll('.pg').forEach(p=>p.classList.re
 function showAlert(id, msg, type='e') { const el=document.getElementById(id); if(!el)return; el.textContent=msg; el.className='alert on alert-'+type; if(type!=='s')setTimeout(()=>el.classList.remove('on'),5000); }
 function today() { return new Date().toISOString().slice(0,10); }
 function isMobileCal() { return window.matchMedia('(max-width:992px)').matches; }
+function addDaysToDateStr(dateStr, n) { const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function getWeekRange(dateStr) {
+  const d = new Date(dateStr+'T00:00:00');
+  const dow = d.getDay();
+  const mondayOffset = dow === 0 ? -6 : 1 - dow;
+  return { start: addDaysToDateStr(dateStr, mondayOffset), end: addDaysToDateStr(dateStr, mondayOffset+6) };
+}
 function calcDday(dateStr) {
   if (!dateStr) return null;
   const diff = Math.ceil((new Date(dateStr) - new Date(today())) / 86400000);
@@ -869,8 +912,8 @@ async function launchApp() {
   
   const ordVendorSel = document.getElementById('ord-vendor');
   if (ordVendorSel) ordVendorSel.style.display = me.role === 'vendor' ? 'none' : '';
-  const calAddBtn = document.getElementById('cal-add-event-btn');
-  if (calAddBtn) calAddBtn.style.display = me.role === 'master' ? '' : 'none';
+  const arrUploadBtn = document.getElementById('arr-upload-btn');
+  if (arrUploadBtn) arrUploadBtn.style.display = me.role === 'master' ? '' : 'none';
   buildSidebar();
   bindAppEvents();
   await loadAll();
@@ -885,10 +928,9 @@ function buildSidebar() {
       <button class="nav-btn on" data-sec="dashboard" data-ko="📊 대시보드" data-en="📊 Dashboard">📊 대시보드</button>
       <button class="nav-btn" data-sec="pending" data-ko="⏳ 승인 대기" data-en="⏳ Pending Approval">⏳ 승인 대기 <span class="nav-badge" id="pend-badge">0</span></button>
       <button class="nav-btn" data-sec="order-reg" data-ko="➕ 오더 등록" data-en="➕ Order Registration">➕ 오더 등록</button>
-      <button class="nav-btn" data-sec="shipout" data-ko="📦 선적 처리" data-en="📦 Shipment Processing">📦 선적 처리</button>
+      <button class="nav-btn" data-sec="shipout" data-ko="📦 선적 확정" data-en="📦 Confirm Shipment">📦 선적 확정</button>
       <button class="nav-btn" data-sec="inbound" data-ko="📅 입고 일정표" data-en="📅 Inbound Schedule">📅 입고 일정표</button>
       <button class="nav-btn" data-sec="factory-all" data-ko="🏭 공장 현황" data-en="🏭 Factory Overview">🏭 공장 현황</button>
-      <button class="nav-btn" data-sec="cs" data-ko="🔍 CS 클레임" data-en="🔍 CS Claim">🔍 CS 클레임</button>
       <button class="nav-btn" data-sec="members" data-ko="👥 회원 관리" data-en="👥 Member Management">👥 회원 관리</button>
       <button class="nav-btn" data-sec="errors" data-ko="🛠️ 오류 관리" data-en="🛠️ Error Log">🛠️ 오류 관리 <span class="nav-badge" id="err-badge">0</span></button>
       <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
@@ -899,8 +941,7 @@ function buildSidebar() {
       <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
   } else if (me.role === 'cs') {
     menu = `
-      <button class="nav-btn on" data-sec="cs" data-ko="🔍 CS 클레임 입력" data-en="🔍 CS Claim Entry">🔍 CS 클레임 입력</button>
-      <button class="nav-btn" data-sec="dashboard" data-ko="📋 전체 오더 현황" data-en="📋 All Orders">📋 전체 오더 현황</button>
+      <button class="nav-btn on" data-sec="dashboard" data-ko="📋 전체 오더 현황" data-en="📋 All Orders">📋 전체 오더 현황</button>
       <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
   } else if (me.role === 'md') {
     menu = `
@@ -914,17 +955,9 @@ function buildSidebar() {
   nav.innerHTML = menu;
   nav.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click', ()=>switchSec(b.dataset.sec)));
 
-  if (me.role === 'cs') {
-    document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
-    document.getElementById('sec-cs').classList.add('on');
-  }
   if (me.role === 'viewer') {
     document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
     document.getElementById('sec-inbound').classList.add('on');
-    const viewTabs = document.querySelector('#sec-inbound .view-tabs');
-    if (viewTabs) viewTabs.style.display = 'none';
-    document.getElementById('view-inbound-list')?.classList.remove('on');
-    document.getElementById('view-inbound-cal')?.classList.add('on');
   }
 }
 
@@ -935,10 +968,9 @@ function switchSec(id) {
   closeSidebar();
   if (id === 'pending') renderPending();
   if (id === 'shipout') renderShipout();
-  if (id === 'inbound') { renderInbound(); if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderInboundCalendar(); }
+  if (id === 'inbound') { renderArrivalList(); if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar(); }
   if (id === 'factory-all') renderFactoryAll();
   if (id === 'factory-mine') renderFactoryMine();
-  if (id === 'cs') renderCs();
   if (id === 'members') renderMembers();
   if (id === 'errors') renderErrors();
   if (id === 'manual') setTimeout(()=>{ if(!document.getElementById('base-url').value) document.getElementById('base-url').value = location.href.replace(/\/[^/]*$/,''); genQR(); }, 100);
@@ -974,11 +1006,28 @@ function bindAppEvents() {
     document.querySelectorAll('#sec-inbound .view-pane').forEach(p=>p.classList.remove('on'));
     b.classList.add('on');
     document.getElementById('view-inbound-'+b.dataset.iview).classList.add('on');
-    if (b.dataset.iview === 'cal') renderInboundCalendar();
+    if (b.dataset.iview === 'cal') renderArrivalCalendar();
   }));
-  document.getElementById('inbound-search-btn').addEventListener('click', searchInboundHistory);
-  document.getElementById('inbound-search').addEventListener('keydown', e=>{ if (e.key==='Enter') searchInboundHistory(); });
-  document.getElementById('inbound-search').addEventListener('input', e=>{ if (!e.target.value.trim()) { inboundSearchDates = new Set(); renderInboundCalendar(); } });
+  document.getElementById('arr-upload-btn')?.addEventListener('click', openArrivalUploadModal);
+  document.getElementById('arr-download-btn').addEventListener('click', downloadArrivalExcel);
+  document.getElementById('arr-excel-file').addEventListener('change', handleArrivalExcelUpload);
+  document.getElementById('arr-submit-btn').addEventListener('click', submitArrivalRows);
+  {
+    const wk = getWeekRange(today());
+    document.getElementById('arr-filter-date-start').value = wk.start;
+    document.getElementById('arr-filter-date-end').value = wk.end;
+  }
+  ['arr-filter-date-start','arr-filter-date-end'].forEach(id=>document.getElementById(id).addEventListener('change', renderArrivalList));
+  document.getElementById('arr-filter-style').addEventListener('input', renderArrivalList);
+  document.getElementById('arr-week-prev').addEventListener('click', ()=>shiftArrivalWeek(-7));
+  document.getElementById('arr-week-next').addEventListener('click', ()=>shiftArrivalWeek(7));
+  document.getElementById('arr-filter-reset').addEventListener('click', ()=>{
+    const wk = getWeekRange(today());
+    document.getElementById('arr-filter-date-start').value = wk.start;
+    document.getElementById('arr-filter-date-end').value = wk.end;
+    document.getElementById('arr-filter-style').value = '';
+    renderArrivalList();
+  });
   let _calResizeTimer, _calResizeWasMobile = isMobileCal();
   window.addEventListener('resize', ()=>{
     clearTimeout(_calResizeTimer);
@@ -986,7 +1035,7 @@ function bindAppEvents() {
       const nowMobile = isMobileCal();
       if (nowMobile !== _calResizeWasMobile) {
         _calResizeWasMobile = nowMobile;
-        if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderInboundCalendar();
+        if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar();
       }
     }, 200);
   });
@@ -994,41 +1043,40 @@ function bindAppEvents() {
   document.getElementById('new-factory-btn').addEventListener('click', ()=>openFactoryModal(null));
   document.getElementById('fac-vendor-filter').addEventListener('change', renderFactoryAll);
   document.getElementById('fac-season-filter')?.addEventListener('change', renderFactoryAll);
-  document.getElementById('cs-search').addEventListener('input', renderCs);
   document.getElementById('mem-filter').addEventListener('change', renderMembers);
   document.getElementById('mem-search').addEventListener('input', renderMembers);
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
-  ['vm','csm','fm','dm','oe','fim','cev'].forEach(prefix=>{
+  ['vm','defm','fm','dm','oe','fim','aem','aum'].forEach(prefix=>{
     document.getElementById(prefix+'-close')?.addEventListener('click', ()=>closeModal(prefix));
     document.getElementById(prefix+'-cancel')?.addEventListener('click', ()=>closeModal(prefix));
   });
   document.getElementById('vendor-modal').addEventListener('click', e=>{ if(e.target.id==='vendor-modal') closeModal('vm'); });
-  document.getElementById('cs-modal').addEventListener('click', e=>{ if(e.target.id==='cs-modal') closeModal('csm'); });
+  document.getElementById('defect-modal').addEventListener('click', e=>{ if(e.target.id==='defect-modal') closeModal('defm'); });
   document.getElementById('factory-modal').addEventListener('click', e=>{ if(e.target.id==='factory-modal') closeModal('fm'); });
   document.getElementById('day-modal').addEventListener('click', e=>{ if(e.target.id==='day-modal') closeModal('dm'); });
   document.getElementById('order-edit-modal').addEventListener('click', e=>{ if(e.target.id==='order-edit-modal') closeModal('oe'); });
   document.getElementById('finish-modal').addEventListener('click', e=>{ if(e.target.id==='finish-modal') closeModal('fim'); });
-  document.getElementById('calevent-modal').addEventListener('click', e=>{ if(e.target.id==='calevent-modal') closeModal('cev'); });
+  document.getElementById('arrival-upload-modal').addEventListener('click', e=>{ if(e.target.id==='arrival-upload-modal') closeModal('aum'); });
+  document.getElementById('arrival-edit-modal').addEventListener('click', e=>{ if(e.target.id==='arrival-edit-modal') closeModal('aem'); });
   document.getElementById('fim-confirm').addEventListener('click', executeBulkFinish);
 
   document.getElementById('vm-save').addEventListener('click', saveVendorProduction);
-  document.getElementById('csm-save').addEventListener('click', saveCsDefect);
+  document.getElementById('defm-save').addEventListener('click', saveDefectAdd);
   document.getElementById('fm-save').addEventListener('click', saveFactory);
   document.getElementById('oe-save').addEventListener('click', saveOrderEdit);
-  document.getElementById('cal-add-event-btn')?.addEventListener('click', ()=>openCalEventModal(null));
-  document.getElementById('cev-save').addEventListener('click', saveCalEvent);
+  document.getElementById('aem-save').addEventListener('click', saveArrivalEdit);
   document.getElementById('oe-urgent').addEventListener('change', ()=>{
     const on = document.getElementById('oe-urgent').checked;
     document.getElementById('oe-urgent-label').textContent = on ? L('긴급 오더 (Reorder)','Urgent Order (Reorder)') : L('일반 오더','Normal Order');
     document.getElementById('oe-urgent-label').style.color = on ? 'var(--red)' : '';
     document.getElementById('oe-urgent-badge').style.display = on ? '' : 'none';
   });
-  document.getElementById('csm-qty').addEventListener('input', previewCsRate);
+  document.getElementById('defm-qty').addEventListener('input', previewDefectRate);
 }
 function closeModal(prefix) {
-  const map = {vm:'vendor-modal', csm:'cs-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', cev:'calevent-modal'};
+  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
@@ -1040,13 +1088,14 @@ async function loadAll() {
     const factoriesQuery = isVendor ? `factories?select=*&vendor_id=eq.${me.id}` : 'factories?select=*';
     const usersQuery = isVendor ? `users?select=id,company_name,role&id=eq.${me.id}` : 'users?select=*';
 
-    [allUsers, allSeasons, allOrders, allFactories, allErrors, allCalendarEvents] = await Promise.all([
+    [allUsers, allSeasons, allOrders, allFactories, allErrors, allArrival, allDefectHistory] = await Promise.all([
       sb(usersQuery),
       sb('seasons?select=*'),
       sb(ordersQuery),
       sb(factoriesQuery),
       me.role==='master' ? sb('errors?select=*&order=created_at.desc') : Promise.resolve([]),
-      sb('calendar_events?select=*')
+      sb('arrival_schedule?select=*&order=arrival_date.asc,style_no.asc'),
+      (me.role==='master'||me.role==='cs') ? sb('defect_history?select=*&order=created_at.desc') : Promise.resolve([])
     ]);
     setupFilters();
     renderDashboard();
@@ -1118,9 +1167,15 @@ function setupFilters() {
   restoreDashFilters();
 }
 
-// 선적완료 기준: 선적수량(shipping_qty) 입력 + 입고예정일(arrival_date) 확정
+// 선적완료 탭 기준: 벤더가 선적을 요청했거나(shipping_requested) 마스터가 확정했음(shipped)
+function isOrderShipRequested(o) {
+  return o.status === 'shipping_requested';
+}
 function isOrderShipped(o) {
-  return o.shipping_qty != null && !!o.arrival_date;
+  return o.status === 'shipped';
+}
+function isInShippedTab(o) {
+  return isOrderShipRequested(o) || isOrderShipped(o);
 }
 function getDashStatusFilter() {
   return document.querySelector('#dash-status-tabs .view-tab.on')?.dataset.dstatus || 'active';
@@ -1134,8 +1189,8 @@ function getVisibleOrders() {
   const statusFilter = getDashStatusFilter();
   if (sid) list = list.filter(o=>o.season_id===sid);
   if (vid) list = list.filter(o=>o.vendor_id===vid);
-  if (statusFilter === 'active') list = list.filter(o=>!isOrderShipped(o));
-  else if (statusFilter === 'shipped') list = list.filter(o=>isOrderShipped(o));
+  if (statusFilter === 'active') list = list.filter(o=>!isInShippedTab(o));
+  else if (statusFilter === 'shipped') list = list.filter(o=>isInShippedTab(o));
   if (q) {
     const terms = q.split(/\s+/).filter(Boolean);
     list = list.filter(o => {
@@ -1145,7 +1200,7 @@ function getVisibleOrders() {
   }
   // 1) 선적완료 건은 하단으로 고정 2) 그 안에서 긴급건 최상단 고정 3) target ETD 오름차순
   list.sort((a,b)=>{
-    const aShipped = isOrderShipped(a), bShipped = isOrderShipped(b);
+    const aShipped = isInShippedTab(a), bShipped = isInShippedTab(b);
     if (aShipped !== bShipped) return aShipped ? 1 : -1;
     if (!!b.is_urgent !== !!a.is_urgent) return b.is_urgent ? 1 : -1;
     return (a.planned_ship_date||'9999-99-99').localeCompare(b.planned_ship_date||'9999-99-99');
@@ -1162,12 +1217,12 @@ function renderDashboard() {
   const titles = { master: L('전체 오더 현황','All Orders'), vendor: L('내 오더 현황','My Orders'), cs: L('전체 오더 현황','All Orders'), md: L('전체 오더 현황','All Orders') };
   document.getElementById('dash-title').textContent = titles[me.role] || L('대시보드','Dashboard');
   
-  let tOrd=0,tPrd=0,tShp=0,delayed=0,csConf=0;
+  let tOrd=0,tPrd=0,tShp=0,delayed=0,defectCnt=0;
   const t = today();
   for (const o of list) {
     tOrd += o.order_qty||0; tPrd += o.produced_qty||0; tShp += o.shipped_qty||0;
     if (o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty) delayed++;
-    if (o.cs_defect_qty != null) csConf++;
+    if ((o.defect_qty||0) > 0) defectCnt++;
   }
   const ppct = tOrd?Math.round(tPrd/tOrd*100):0;
   const spct = tOrd?Math.round(tShp/tOrd*100):0;
@@ -1178,7 +1233,7 @@ function renderDashboard() {
     <div class="sum-card"><div class="sum-lbl">${L('생산 완료','Production')}</div><div class="sum-val">${ppct}%</div><div class="sum-sub">${tPrd.toLocaleString()}${U.pcs}</div></div>
     <div class="sum-card"><div class="sum-lbl">${L('선적 완료','Shipped')}</div><div class="sum-val">${spct}%</div><div class="sum-sub">${tShp.toLocaleString()}${U.pcs}</div></div>
     <div class="sum-card ${delayed>0?'danger':''}"><div class="sum-lbl">${L('납기 지연','Delayed')}</div><div class="sum-val" style="color:${delayed>0?'var(--red)':''}">${delayed}</div><div class="sum-sub">${U.cases}</div></div>
-    <div class="sum-card"><div class="sum-lbl">${L('CS 확정','CS Confirmed')}</div><div class="sum-val" style="color:var(--purple)">${csConf}</div><div class="sum-sub">${U.cases}</div></div>`;
+    <div class="sum-card"><div class="sum-lbl">${L('불량 발생','Defect Found')}</div><div class="sum-val" style="color:var(--purple)">${defectCnt}</div><div class="sum-sub">${U.cases}</div></div>`;
 
   selectedOrderIds.clear();
 
@@ -1220,7 +1275,7 @@ function renderDashboard() {
       const cancelled = o.status === 'cancelled';
       const late = !cancelled && o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty;
       const pct = o.order_qty?Math.round((o.produced_qty||0)/o.order_qty*100):0;
-      const fail = o.cs_defect_qty ?? o.vendor_fail_qty ?? 0;
+      const fail = (o.defect_qty||0) > 0 ? o.defect_qty : (o.vendor_fail_qty||0);
       const def = o.order_qty && fail ? ((fail/o.order_qty)*100).toFixed(1) : '0.0';
       const STAGES = ['cut','artwork','sew','finish'];
       const stageDone = STAGES.map(s=>!!o[s+'_done']);
@@ -1234,19 +1289,22 @@ function renderDashboard() {
       let actBtn = '';
       if (me.role === 'master' || me.role === 'md' || me.role === 'cs') {
         actBtn = `<button class="btn btn-s btn-sm" onclick="openVendorModal('${o.id}')">${L('상세 보기','Details')}</button> `;
-        if (me.role !== 'md') {
-          actBtn += `<button class="btn btn-purple btn-sm" onclick="openCsModal('${o.id}')">CS 입력</button>`;
+        if (me.role !== 'md' && isInShippedTab(o)) {
+          actBtn += `<button class="btn btn-purple btn-sm" onclick="openDefectModal('${o.id}')">${L('불량 추가','Add Defect')}</button>`;
         }
         if (me.role === 'master') {
           actBtn += ` <button class="btn btn-sm" style="background:var(--ac);color:#fff" onclick="openOrderEditModal('${o.id}')">${L('수정','Edit')}</button>`;
         }
       }
       const shipped = isOrderShipped(o);
+      const shipRequested = isOrderShipRequested(o);
       const statusBadge = cancelled
         ? `<span class="bdg bdg-cancelled">${L('취소됨','Cancelled')}</span>`
         : shipped
           ? `<span class="bdg bdg-ok">${L('선적완료','Shipped')}</span>`
-          : `<span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?L('지연','Delayed'):L('정상','Normal')}</span>`;
+          : shipRequested
+            ? `<span class="bdg bdg-cs">${L('선적요청됨','Ship Requested')}</span>`
+            : `<span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?L('지연','Delayed'):L('정상','Normal')}</span>`;
       return `<tr${o.is_urgent&&!cancelled?' style="background:#fff8f8"':cancelled?' style="opacity:.6"':''}>
         ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
         <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
@@ -1256,7 +1314,7 @@ function renderDashboard() {
         <td data-label="${L('진행율','Progress')}"><div class="stage-progbar">${stageSegs}</div></td>
         <td data-label="${L('선적','Shipped')}">${Number(o.shipped_qty||0).toLocaleString()}</td>
         <td data-label="${L('차이율','Variance')}" style="color:${varInfo.color};font-weight:${hasShippedQty?'600':''}">${varInfo.text}</td>
-        <td data-label="${L('불량률','Defect')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${o.cs_defect_qty!=null?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
+        <td data-label="${L('불량률','Defect')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${(o.defect_qty||0)>0?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
         <td data-label="${L('선적예정','Target ETD')}" style="font-size:12px">${(()=>{const d=calcDday(o.planned_ship_date);const dday=d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;return `${(o.planned_ship_date||'-').slice(0,10)}${dday}`;})()}</td>
         <td data-label="${L('상태','Status')}">${statusBadge}</td>
         <td data-label="${L('액션','Action')}">${actBtn}</td>
@@ -1278,6 +1336,8 @@ function renderVendorOrderCards(list) {
     const pct  = Math.round(cnt / 4 * 100);
     const late = o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty;
     const shipped = isOrderShipped(o);
+    const shipRequested = isOrderShipRequested(o);
+    const canRequestShip = cnt === STAGES.length && o.status !== 'shipping_requested' && o.status !== 'shipped' && o.status !== 'cancelled';
     const qtyLabel = `${L('발주','Order')} ${Number(o.order_qty||0).toLocaleString()}${L('장','pcs')}`;
     const chips = STAGES.map((s,i)=>`
       <div class="stage-chip ${done[i]?'done-'+s:''}" onclick="toggleStage('${o.id}','${s}')">
@@ -1293,6 +1353,7 @@ function renderVendorOrderCards(list) {
             <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}</span>
             ${o.is_urgent?`<span class="bdg bdg-urgent">🚨 ${L('긴급','URGENT')}</span>`:''}
             ${shipped?`<span class="bdg bdg-ok">${L('선적완료','Shipped')}</span>`:''}
+            ${shipRequested?`<span class="bdg bdg-cs">${L('선적요청됨','Ship Requested')}</span>`:''}
           </div>
           <div style="font-size:15px;font-weight:700">${o.style_name}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px">${qtyLabel} · ${(o.planned_ship_date||'-').slice(0,10)}${(()=>{const d=calcDday(o.planned_ship_date);return d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;})()}${late?` <span style="color:var(--red);font-weight:600">⚠ ${L('지연','Delayed')}</span>`:''}</div>
@@ -1306,6 +1367,8 @@ function renderVendorOrderCards(list) {
       <div class="stage-progbar">${segs}</div>
       <div style="display:flex;gap:8px;margin-top:4px">
         <button class="btn btn-s" style="flex:1;font-size:15px;padding:14px" onclick="openVendorModal('${o.id}')">✏️ ${L('상세 입력','Details')}</button>
+        ${canRequestShip ? `<button class="btn btn-ok" style="flex:1;font-size:15px;padding:14px" onclick="requestShipping('${o.id}')">📦 ${L('선적 요청','Request Shipment')}</button>` : ''}
+        ${shipRequested ? `<div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ora);font-weight:600">⏳ ${L('마스터 확정 대기중','Awaiting master confirmation')}</div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1402,6 +1465,18 @@ async function vmToggleStage(orderId, stage) {
     document.getElementById('vm-produced').value = o.produced_qty;
     alert(L('저장 실패: ','Save failed: ')+e.message);
   }
+}
+
+// ── 벤더 선적 요청 (FINISH까지 모두 완료된 오더 대상) ──
+async function requestShipping(orderId) {
+  const o = allOrders.find(x=>x.id===orderId);
+  if (!o) return;
+  if (!confirm(L('선적을 요청하시겠습니까? 요청 후에는 마스터의 선적 확정이 필요합니다.','Request shipment? Master confirmation will be required afterward.'))) return;
+  try {
+    await sb(`orders?id=eq.${orderId}`, 'PATCH', { status: 'shipping_requested', updated_at: new Date().toISOString() });
+    await loadAll();
+    alert(L('선적 요청이 완료되었습니다','Shipping request submitted'));
+  } catch(e) { alert(e.message); }
 }
 
 // ── 승인 대기 ──
@@ -2095,7 +2170,7 @@ async function saveVendorProduction() {
   finally { btn.disabled=false; btn.textContent=L('저장','Save'); }
 }
 
-// ── 선적 처리 (마스터: FINISH 완료 오더의 선적수량/ETD 직접 입력) ──
+// ── 선적 확정 (마스터: 선적 요청된 오더의 선적수량/ETD/초기 불량을 확정) ──
 // 잔량 = 발주수량(order_qty) - 누적 선적수량(shipped_qty). 강제완료(생산완료 처리) 기능에서만 사용됨.
 function getRemainingQty(o) {
   if (!o) return 0;
@@ -2106,313 +2181,472 @@ function shipProgressLabel(remaining) {
     ? { text: L('선적완료','Shipping Complete'), color: 'var(--grn)' }
     : { text: L('분할선적 진행중','Partial Shipment'), color: 'var(--ora)' };
 }
-// FINISH 체크된 오더를 마스터가 확인하고 선적수량/선적일(ETD)을 직접 입력하는 화면
+// 벤더가 선적 요청한(status=shipping_requested) 오더를 마스터가 확인하고 선적수량/ETD/초기 불량을 확정하는 화면
 function renderShipout() {
-  const list = allOrders.filter(o => o.finish_done && o.status !== 'cancelled')
-    .sort((a,b)=>(a.actual_etd?1:0)-(b.actual_etd?1:0) || (a.planned_ship_date||'').localeCompare(b.planned_ship_date||''));
+  const list = allOrders.filter(o => o.status === 'shipping_requested')
+    .sort((a,b)=>(a.planned_ship_date||'').localeCompare(b.planned_ship_date||''));
   if (!list.length) {
-    document.getElementById('shipout-tbl').innerHTML = `<div class="empty"><div class="empty-t">${L('FINISH 완료된 오더가 없습니다','No FINISH-completed orders')}</div></div>`;
+    document.getElementById('shipout-tbl').innerHTML = `<div class="empty"><div class="empty-t">${L('선적 요청된 오더가 없습니다','No orders awaiting shipment confirmation')}</div></div>`;
     return;
   }
   document.getElementById('shipout-tbl').innerHTML = `
     <div class="tbl-wrap"><table>
     <thead><tr>
       <th>${L('벤더','Vendor')}</th><th>${L('스타일','Style')}</th><th>${L('발주수량','Order Qty')}</th>
-      <th>${L('선적수량','Shipping Qty')}</th><th>${L('선적일(ETD)','Ship Date (ETD)')}</th><th>${L('입고예정일','Est. Arrival')}</th><th>${L('관리','Action')}</th>
+      <th>${L('선적 수량','Shipping Qty')}</th><th>${L('예정 ETD','Est. ETD')}</th><th>${L('초기 불량 수량','Initial Defect Qty')}</th><th>${L('관리','Action')}</th>
     </tr></thead>
     <tbody>
     ${list.map(o=>{
       const v = allUsers.find(u=>u.id===o.vendor_id);
-      const arrival = o.actual_etd ? addBusinessDays(o.actual_etd, 4) : (o.arrival_date || '-');
       return `<tr>
         <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
         <td data-label="${L('스타일','Style')}">${o.style_no}<br><span style="font-size:12px;color:var(--muted)">${o.style_name}</span></td>
         <td data-label="${L('발주수량','Order Qty')}">${Number(o.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
-        <td data-label="${L('선적수량','Shipping Qty')}"><input type="number" class="shipout-qty" data-id="${o.id}" value="${o.shipping_qty ?? o.order_qty ?? 0}" min="0" style="width:100px;padding:6px 8px;font-size:12px"></td>
-        <td data-label="${L('선적일(ETD)','Ship Date (ETD)')}"><input type="date" class="shipout-etd" data-id="${o.id}" value="${o.actual_etd||''}" onchange="updateShipoutArrival('${o.id}')" style="padding:6px 8px;font-size:12px"></td>
-        <td data-label="${L('입고예정일','Est. Arrival')}"><span class="shipout-arrival" data-id="${o.id}" style="font-weight:600;color:var(--ac)">${arrival}</span></td>
-        <td data-label="${L('관리','Action')}"><button class="btn btn-p btn-sm" onclick="saveShipout('${o.id}')">${L('저장','Save')}</button></td>
+        <td data-label="${L('선적 수량','Shipping Qty')}"><input type="number" class="shipout-qty" data-id="${o.id}" value="${o.actual_qty ?? o.order_qty ?? 0}" min="0" style="width:100px;padding:6px 8px;font-size:12px"></td>
+        <td data-label="${L('예정 ETD','Est. ETD')}"><input type="date" class="shipout-etd" data-id="${o.id}" value="${o.actual_etd||''}" style="padding:6px 8px;font-size:12px"></td>
+        <td data-label="${L('초기 불량 수량','Initial Defect Qty')}"><input type="number" class="shipout-defect" data-id="${o.id}" value="${o.defect_qty || o.vendor_fail_qty || 0}" min="0" style="width:100px;padding:6px 8px;font-size:12px"></td>
+        <td data-label="${L('관리','Action')}"><button class="btn btn-p btn-sm" onclick="saveShipout('${o.id}')">${L('확정','Confirm')}</button></td>
       </tr>`;
     }).join('')}
     </tbody></table></div>`;
 }
-function updateShipoutArrival(orderId) {
-  const etdInput = document.querySelector(`.shipout-etd[data-id="${orderId}"]`);
-  const span = document.querySelector(`.shipout-arrival[data-id="${orderId}"]`);
-  if (!etdInput || !span) return;
-  span.textContent = etdInput.value ? addBusinessDays(etdInput.value, 4) : '-';
-}
 async function saveShipout(orderId) {
   const qtyInput = document.querySelector(`.shipout-qty[data-id="${orderId}"]`);
   const etdInput = document.querySelector(`.shipout-etd[data-id="${orderId}"]`);
-  const shipping_qty = parseInt(qtyInput?.value) || 0;
+  const defectInput = document.querySelector(`.shipout-defect[data-id="${orderId}"]`);
+  const actual_qty = parseInt(qtyInput?.value) || 0;
   const actual_etd = etdInput?.value || null;
-  if (!actual_etd) { alert(L('선적일(ETD)을 입력해주세요','Please enter the ship date (ETD)')); return; }
+  const defect_qty = parseInt(defectInput?.value) || 0;
+  if (!actual_etd) { alert(L('예정 ETD를 입력해주세요','Please enter the est. ETD')); return; }
   const arrival_date = addBusinessDays(actual_etd, 4);
   try {
-    await sb(`orders?id=eq.${orderId}`, 'PATCH', { shipping_qty, actual_etd, arrival_date, updated_at: new Date().toISOString() });
+    await sb(`orders?id=eq.${orderId}`, 'PATCH', {
+      status: 'shipped', actual_qty, actual_etd, defect_qty,
+      shipped_qty: actual_qty, arrival_date, updated_at: new Date().toISOString()
+    });
     await loadAll(); renderShipout();
-    alert(L('저장되었습니다 (입고 예정일 ' + arrival_date + ')','Saved (Est. arrival: ' + arrival_date + ')'));
+    alert(L('선적이 확정되었습니다 (입고 예정일 ' + arrival_date + ')','Shipment confirmed (Est. arrival: ' + arrival_date + ')'));
   } catch(e) { alert(e.message); }
 }
 
 // ── 입고 일정표 ──
 // 선적일(actual_etd)이 입력된 오더를 기준으로 입고 일정을 구성 (orders 테이블 직접 조회, shipping_requests 미사용)
-function getInboundList() {
-  return allOrders
-    .filter(o => o.actual_etd && o.status !== 'cancelled')
-    .map(o => {
-      const v = allUsers.find(u=>u.id===o.vendor_id);
-      const s = allSeasons.find(x=>x.id===o.season_id);
-      const etd = o.actual_etd;
-      const arrival_date = o.arrival_date || addBusinessDays(etd, 4);
-      const display_qty = o.shipping_qty != null ? o.shipping_qty : (o.order_qty || 0);
-      return { id:o.id, order_id:o.id, style_no:o.style_no, style_name:o.style_name, category:o.category, order_qty:o.order_qty, display_qty, vendor_name:v?.company_name, season_name:s?.name, destination:o.destination, etd, arrival_date, status:'confirmed' };
-    }).sort((a,b)=>(a.arrival_date||a.etd||'').localeCompare(b.arrival_date||b.etd||''));
+// ── 입고 일정표 (arrival_schedule 테이블 기반) ──
+function arrivalGroupKey(r) { return `${r.arrival_date}|${r.style_no}`; }
+function groupArrivalRows(rows) {
+  const map = new Map();
+  rows.forEach(r => {
+    const k = arrivalGroupKey(r);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(r);
+  });
+  return map;
 }
-function renderInbound() {
-  const list = getInboundList();
-  if (!list.length) { document.getElementById('inbound-tbl').innerHTML=`<div class="empty"><div class="empty-t">${L('입고 일정이 없습니다','No inbound schedule')}</div></div>`; return; }
-  const smap = {requested:'bdg-pend',confirmed:'bdg-ok'};
-  const slbl = {requested:L('요청(미확정)','Requested'),confirmed:L('확정','Confirmed')};
-  document.getElementById('inbound-tbl').innerHTML = `
+async function recalcAndPatchGroupTotal(arrivalDate, styleNo) {
+  const groupRows = allArrival.filter(r => r.arrival_date === arrivalDate && r.style_no === styleNo);
+  if (!groupRows.length) return;
+  const total = groupRows.reduce((s, r) => s + (Number(r.qty_color) || 0), 0);
+  const ids = groupRows.map(r => r.id);
+  await sb(`arrival_schedule?id=in.(${ids.join(',')})`, 'PATCH', { qty_total: total });
+}
+
+function shiftArrivalWeek(days) {
+  const s = document.getElementById('arr-filter-date-start');
+  const e = document.getElementById('arr-filter-date-end');
+  if (s.value) s.value = addDaysToDateStr(s.value, days);
+  if (e.value) e.value = addDaysToDateStr(e.value, days);
+  renderArrivalList();
+}
+
+function getArrivalFilteredRows() {
+  const start = document.getElementById('arr-filter-date-start').value;
+  const end = document.getElementById('arr-filter-date-end').value;
+  const styleQ = (document.getElementById('arr-filter-style').value || '').trim().toLowerCase();
+  const styleNameMap = new Map(allOrders.map(o=>[o.style_no, (o.style_name||'').toLowerCase()]));
+  return allArrival.filter(r => {
+    if (start && r.arrival_date < start) return false;
+    if (end && r.arrival_date > end) return false;
+    if (styleQ) {
+      const styleNo = (r.style_no||'').toLowerCase();
+      const styleName = styleNameMap.get(r.style_no) || '';
+      if (!styleNo.includes(styleQ) && !styleName.includes(styleQ)) return false;
+    }
+    return true;
+  });
+}
+
+function renderArrivalList() {
+  const rows = getArrivalFilteredRows();
+  const tbl = document.getElementById('inbound-tbl');
+  if (!rows.length) { tbl.innerHTML = `<div class="empty"><div class="empty-t">${L('입고 일정이 없습니다','No inbound schedule')}</div></div>`; return; }
+  const isMaster = me.role === 'master';
+
+  // 같은 입고일 + INVOICE NO. 단위로 그룹화 (인접 행이 되도록 재구성)
+  const invoiceMap = new Map();
+  rows.forEach(r => {
+    const k = `${r.arrival_date}|${r.invoice_no}`;
+    if (!invoiceMap.has(k)) invoiceMap.set(k, []);
+    invoiceMap.get(k).push(r);
+  });
+  const invoiceGroups = [...invoiceMap.entries()]
+    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+    .map(([, v]) => v);
+
+  let totalQty = 0, totalBoxes = 0;
+  const bodyRows = [];
+  invoiceGroups.forEach(group => {
+    totalBoxes += Number(group[0].ctn) || 0;
+    // 같은 스타일번호 단위로 하위 그룹화 (QTY/TOTAL 병합용)
+    const styleMap = new Map();
+    group.forEach(r => {
+      if (!styleMap.has(r.style_no)) styleMap.set(r.style_no, []);
+      styleMap.get(r.style_no).push(r);
+    });
+    group.forEach((r, idx) => {
+      totalQty += Number(r.qty_color) || 0;
+      const isFirstInInvoice = idx === 0;
+      const isLastInInvoice = idx === group.length - 1;
+      const styleRows = styleMap.get(r.style_no);
+      const isFirstInStyle = styleRows[0] === r;
+      const actionsTd = isMaster ? `<td data-label="${L('관리','Manage')}"><div style="display:flex;gap:4px;justify-content:flex-end">
+        <button class="btn btn-s btn-sm" onclick="openArrivalEditModal('${r.id}')">✎</button>
+        <button class="btn btn-s btn-sm" style="color:var(--red)" onclick="deleteArrivalRow('${r.id}')">✗</button>
+      </div></td>` : '';
+      bodyRows.push(`<tr${isLastInInvoice ? ' class="inv-end"' : ''}>
+      ${isFirstInInvoice ? `<td data-label="DATE" rowspan="${group.length}" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ac);font-weight:600">${r.arrival_date||'-'}</td>
+      <td data-label="SUPPLIER" rowspan="${group.length}">${r.supplier||'-'}</td>` : ''}
+      <td data-label="BRAND">${r.brand||'-'}</td>
+      <td data-label="STYLE NO." style="font-family:'DM Mono',monospace">${r.style_no||''}</td>
+      <td data-label="COLOR CODE">${r.color_code||'-'}</td>
+      <td data-label="QTY/COLOR">${Number(r.qty_color||0).toLocaleString()}</td>
+      ${isFirstInStyle ? `<td data-label="QTY/TOTAL" rowspan="${styleRows.length}"><strong>${Number(r.qty_total||0).toLocaleString()}</strong></td>` : ''}
+      ${isFirstInInvoice ? `<td data-label="CTN" rowspan="${group.length}">${r.ctn ?? '-'}</td>
+      <td data-label="TYPE" rowspan="${group.length}">${r.container_type||'-'}</td>
+      <td data-label="Forwarder" rowspan="${group.length}">${r.forwarder||'-'}</td>
+      <td data-label="B/L NO." rowspan="${group.length}">${r.bl_no||'-'}</td>
+      <td data-label="INVOICE NO." rowspan="${group.length}">${r.invoice_no||'-'}</td>` : ''}
+      ${actionsTd}
+    </tr>`);
+    });
+  });
+  tbl.innerHTML = `
     <div class="tbl-wrap"><table>
-    <thead><tr><th>${L('선적 ETD','Ship ETD')}</th><th>${L('입고 예정일','Expected Arrival')}</th><th>${L('벤더','Vendor')}</th><th>${L('스타일','Style')}</th><th>${L('카테고리','Category')}</th><th>${L('입고수량','Inbound Qty')}</th><th>${L('납품처','Destination')}</th><th>${L('시즌','Season')}</th><th>${L('상태','Status')}</th></tr></thead>
-    <tbody>
-    ${list.map(r=>`<tr>
-      <td data-label="${L('선적 ETD','Ship ETD')}" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${r.etd||'-'}</td>
-      <td data-label="${L('입고 예정일','Expected Arrival')}" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--ac)">${r.arrival_date||'-'}</td>
-      <td data-label="${L('벤더','Vendor')}"><strong>${r.vendor_name||'-'}</strong></td>
-      <td data-label="${L('스타일','Style')}">${r.style_no||''}<br>${r.style_name||''}</td>
-      <td data-label="${L('카테고리','Category')}">${r.category||'-'}</td>
-      <td data-label="${L('입고수량','Inbound Qty')}"><strong>${Number(r.display_qty).toLocaleString()}${L('장','pcs')}</strong></td>
-      <td data-label="${L('납품처','Destination')}" style="font-size:12px">${r.destination||'-'}</td>
-      <td data-label="${L('시즌','Season')}" style="font-size:12px">${r.season_name||'-'}</td>
-      <td data-label="${L('상태','Status')}"><span class="bdg ${smap[r.status]}">${slbl[r.status]}</span></td>
-    </tr>`).join('')}
-    </tbody></table></div>`;
-  if (!inboundCalYear) { const n=new Date(); inboundCalYear=n.getFullYear(); inboundCalMonth=n.getMonth(); }
+    <thead><tr><th>DATE</th><th>SUPPLIER</th><th>BRAND</th><th>STYLE NO.</th><th>COLOR CODE</th><th>QTY/COLOR</th><th>QTY/TOTAL</th><th>CTN</th><th>TYPE</th><th>Forwarder</th><th>B/L NO.</th><th>INVOICE NO.</th>${isMaster?`<th>${L('관리','Manage')}</th>`:''}</tr></thead>
+    <tbody>${bodyRows.join('')}</tbody>
+    </table></div>
+    <div style="display:flex;justify-content:flex-end;gap:24px;padding:12px 16px;background:var(--surf);border:1px solid var(--bdr);border-radius:12px;font-size:13px;font-weight:700;color:var(--txt)">
+      <span>${L('총 수량','Total Qty')}: ${totalQty.toLocaleString()}${L('장','pcs')}</span>
+      <span>${L('총 박스','Total CTN')}: ${totalBoxes.toLocaleString()}</span>
+    </div>`;
 }
-function renderInboundCalendar() {
-  const list = getInboundList();
-  const combined = [
-    ...list.map(r=>({date:r.arrival_date, name:r.style_no, qty:r.display_qty, manual:false})),
-    ...allCalendarEvents.map(e=>({date:e.event_date, name:e.style_name, qty:e.qty, manual:true}))
-  ];
-  if (!inboundCalYear) { const n=new Date(); inboundCalYear=n.getFullYear(); inboundCalMonth=n.getMonth(); }
-  document.getElementById('inbound-cal').innerHTML = buildCal(combined, inboundCalYear, inboundCalMonth, 'inbound', r=>r.date, r=>r.name, r=>r.qty, inboundSearchDates, r=>r.manual);
-  closeInboundDayPanel();
+
+function renderArrivalCalendar() {
+  const groups = groupArrivalRows(allArrival);
+  const data = [...groups.values()].map(g => ({ date: g[0].arrival_date, name: g[0].style_no, qty: g[0].qty_total }));
+  if (!inboundCalYear) { const n = new Date(); inboundCalYear = n.getFullYear(); inboundCalMonth = n.getMonth(); }
+  document.getElementById('inbound-cal').innerHTML = buildCal(data, inboundCalYear, inboundCalMonth, 'inbound', r=>r.date, r=>r.name, r=>r.qty);
+  closeArrivalDayPanel();
   document.querySelectorAll('[data-cal="inbound"]').forEach(b=>b.addEventListener('click', ()=>{
     inboundCalMonth += +b.dataset.dir;
     if (inboundCalMonth<0){inboundCalMonth=11;inboundCalYear--;}
     if (inboundCalMonth>11){inboundCalMonth=0;inboundCalYear++;}
-    renderInboundCalendar();
+    renderArrivalCalendar();
   }));
   document.querySelectorAll('.cal-cell[data-day]').forEach(c=>c.addEventListener('click', ()=>{
     if (isMobileCal()) {
-      if (inboundDayPanelDate === c.dataset.day) { closeInboundDayPanel(); return; }
-      renderInboundDayPanel(c.dataset.day, list);
+      if (inboundDayPanelDate === c.dataset.day) { closeArrivalDayPanel(); return; }
+      renderArrivalDayPanel(c.dataset.day);
     } else {
-      showInboundDayDetail(c.dataset.day, list);
+      showArrivalDayDetail(c.dataset.day);
     }
   }));
 }
 
-function searchInboundHistory() {
-  const q = (document.getElementById('inbound-search').value||'').trim().toLowerCase();
-  if (!q) { inboundSearchDates = new Set(); renderInboundCalendar(); return; }
-  const list = getInboundList();
-  const orderMatches = list.filter(r=>(r.style_no||'').toLowerCase().includes(q) || (r.style_name||'').toLowerCase().includes(q))
-    .map(r=>({...r, manual:false}));
-  const manualMatches = allCalendarEvents.filter(e=>(e.style_name||'').toLowerCase().includes(q))
-    .map(e=>({...e, arrival_date:e.event_date, booking_qty:e.qty, display_qty:e.qty, manual:true}));
-  const matches = [...orderMatches, ...manualMatches];
-  if (!matches.length) {
-    inboundSearchDates = new Set();
-    renderInboundCalendar();
-    alert(L('일치하는 스타일이 없습니다','No matching style found'));
-    return;
-  }
-  const sorted = [...matches].sort((a,b)=>(a.arrival_date||a.etd||'').localeCompare(b.arrival_date||b.etd||''));
-  inboundSearchDates = new Set(sorted.map(r=>r.arrival_date).filter(Boolean));
-  const t = today();
-  const target = sorted.find(r=>r.arrival_date && r.arrival_date>=t) || sorted[sorted.length-1];
-  if (target && target.arrival_date) {
-    const d = new Date(target.arrival_date);
-    inboundCalYear = d.getFullYear(); inboundCalMonth = d.getMonth();
-  }
-  renderInboundCalendar();
-  showInboundHistoryPopup(sorted);
+function computeArrivalBrandTotals(dateStr) {
+  const rows = allArrival.filter(r => r.arrival_date === dateStr);
+  const byBrand = new Map();
+  rows.forEach(r => {
+    const b = r.brand || L('(브랜드 미입력)','(No Brand)');
+    byBrand.set(b, (byBrand.get(b)||0) + (Number(r.qty_color)||0));
+  });
+  const totalQty = [...byBrand.values()].reduce((s,v)=>s+v,0);
+  return { byBrand, totalQty, count: rows.length };
 }
-function showInboundHistoryPopup(sorted) {
-  const first = sorted[0];
-  const label = first ? (first.manual ? `${first.style_name||''}`.trim() : `${first.style_no||''} ${first.style_name||''}`.trim()) : '';
-  const t = today();
-  document.getElementById('dm-title').textContent = label + L(' 입고 히스토리',' Inbound History');
-  document.getElementById('dm-sub').textContent = L(`${sorted.length}건`,`${sorted.length} record(s)`);
-  const rows = sorted.map(it=>{
-    const done = !!(it.arrival_date && it.arrival_date <= t);
-    const memoIcon = it.manual ? `<span title="${L('임의입력 항목','Manually entered item')}" style="margin-left:4px;font-size:11px">📝</span>` : '';
-    return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start">
-      <div>
-        ${it.manual ? '' : `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${it.style_no||''}</div>`}
-        <strong>${it.style_name||''}${memoIcon}</strong>
-        ${it.vendor_name?'<div style="font-size:11px;color:var(--muted)">'+it.vendor_name+'</div>':''}
-        ${it.manual && it.memo?'<div style="font-size:11px;color:var(--muted)">'+it.memo+'</div>':''}
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">${L('입고일','Arrival')}: <strong style="color:var(--ac)">${it.arrival_date||'-'}</strong></div>
-      </div>
-      <div style="text-align:right">
-        <strong>${Number(it.display_qty??it.booking_qty??0).toLocaleString()}${L('장','pcs')}</strong>
-        <div style="margin-top:6px"><span class="bdg ${done?'bdg-ok':'bdg-pend'}">${done?L('입고완료','Received'):L('입고예정','Scheduled')}</span></div>
-      </div>
-    </div>`;
-  }).join('');
-  document.getElementById('dm-body').innerHTML = rows || `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`;
-  document.getElementById('day-modal').classList.add('on');
-}
-function showInboundDayDetail(dateStr, list) {
-  const items = list.filter(r=>r.arrival_date===dateStr);
-  const manualItems = allCalendarEvents.filter(e=>e.event_date===dateStr);
-  document.getElementById('dm-title').textContent = dateStr + L(' 입고 예정',' Inbound Schedule');
-  document.getElementById('dm-sub').textContent = L(`${items.length+manualItems.length}개 항목`,`${items.length+manualItems.length} item(s)`);
-  let totalQty = 0;
-  const rows = items.map(it=>{
-    totalQty += it.display_qty||0;
-    const dateEditRow = me.role === 'master'
-      ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px">
-        <span style="font-size:12px;color:var(--muted);white-space:nowrap">입고일 변경:</span>
-        <input type="date" value="${it.arrival_date||''}" style="padding:4px 8px;border:1px solid var(--bdr);border-radius:6px;font-family:inherit;font-size:12px;flex:1;max-width:160px" onchange="updateArrivalDate('${it.id}', this.value, this)">
-        <span style="font-size:11px;color:var(--muted)">ETD: ${it.etd||'-'}</span>
-      </div>`
-      : `<div style="font-size:11px;color:var(--muted);margin-top:8px">ETD: ${it.etd||'-'}</div>`;
-    return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${it.style_no||''}</div><strong>${it.style_name||''}</strong>${it.vendor_name?'<div style="font-size:11px;color:var(--muted)">'+it.vendor_name+'</div>':''}</div>
-        <div style="text-align:right"><strong>${Number(it.display_qty||0).toLocaleString()}장</strong>${it.category?'<div style="font-size:11px;color:var(--muted)">'+it.category+'</div>':''}</div>
-      </div>
-      ${dateEditRow}
-    </div>`;
-  }).join('');
-  const manualRows = manualItems.map(it=>{
-    totalQty += it.qty||0;
-    const actions = me.role === 'master'
-      ? `<div style="display:flex;gap:6px;margin-top:8px">
-          <button class="btn btn-s btn-sm" onclick="openCalEventModal('${it.id}')">${L('✎ 수정','✎ Edit')}</button>
-          <button class="btn btn-s btn-sm" style="color:var(--red)" onclick="deleteCalEvent('${it.id}')">${L('✗ 삭제','✗ Delete')}</button>
-        </div>` : '';
-    return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px;opacity:.6">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div><span class="bdg" style="background:var(--bdr);color:var(--muted)">${L('임의 일정','Custom')}</span><div style="margin-top:4px"><strong>${it.style_name||''}</strong></div>${it.memo?'<div style="font-size:11px;color:var(--muted)">'+it.memo+'</div>':''}</div>
-        <div style="text-align:right"><strong>${it.qty?Number(it.qty).toLocaleString()+'장':'-'}</strong></div>
-      </div>
-      ${actions}
-    </div>`;
-  }).join('');
-  const allRows = rows + manualRows;
-  document.getElementById('dm-body').innerHTML = (items.length+manualItems.length)
-    ? allRows + `<div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--bdr);display:flex;justify-content:space-between;font-weight:700"><span>${L('합계','Total')}</span><span>${totalQty.toLocaleString()}${L('장','pcs')}</span></div>`
-    : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`;
-  document.getElementById('day-modal').classList.add('on');
-}
-function renderInboundDayPanel(dateStr, list) {
-  const items = list.filter(r=>r.arrival_date===dateStr);
-  const manualItems = allCalendarEvents.filter(e=>e.event_date===dateStr);
+function renderArrivalDayPanel(dateStr) {
   inboundDayPanelDate = dateStr;
-  let totalQty = 0;
-  const rows = items.map(it=>{
-    totalQty += it.display_qty||0;
-    return `<div class="cal-day-panel-row">
-      <span class="cal-day-panel-style">${it.style_no||''}</span>
-      <span class="cal-day-panel-qty">${Number(it.display_qty||0).toLocaleString()}${L('장','pcs')}</span>
-    </div>`;
-  }).join('');
-  const manualRows = manualItems.map(it=>{
-    totalQty += it.qty||0;
-    return `<div class="cal-day-panel-row">
-      <span class="cal-day-panel-style manual">✎ ${it.style_name||''}</span>
-      <span class="cal-day-panel-qty">${it.qty?Number(it.qty).toLocaleString()+L('장','pcs'):'-'}</span>
-    </div>`;
-  }).join('');
-  const count = items.length + manualItems.length;
+  const { byBrand, totalQty, count } = computeArrivalBrandTotals(dateStr);
+  const rows = [...byBrand.entries()].map(([brand, qty]) => `<div class="cal-day-panel-row">
+      <span class="cal-day-panel-style">${brand}</span>
+      <span class="cal-day-panel-qty">${qty.toLocaleString()}${L('장','pcs')}</span>
+    </div>`).join('');
   const panel = document.getElementById('inbound-cal-panel');
   panel.innerHTML = `
     <div class="cal-day-panel-hdr">
       <div>
         <div class="cal-day-panel-title">${dateStr}</div>
-        <div class="cal-day-panel-sum">${L(`입고 ${count}건 · 총 ${totalQty.toLocaleString()}장`,`${count} item(s) · ${totalQty.toLocaleString()} pcs total`)}</div>
+        <div class="cal-day-panel-sum">${L(`총 ${totalQty.toLocaleString()}장`,`${totalQty.toLocaleString()} pcs total`)}</div>
       </div>
-      <button class="cal-day-panel-close" onclick="closeInboundDayPanel()">✕</button>
+      <button class="cal-day-panel-close" onclick="closeArrivalDayPanel()">✕</button>
     </div>
     <div class="cal-day-panel-body">
-      ${count ? rows+manualRows : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`}
+      ${count ? rows + `<div class="cal-day-panel-row" style="font-weight:700;border-top:1px solid var(--bdr);margin-top:4px;padding-top:8px"><span>${L('총','Total')}</span><span class="cal-day-panel-qty">${totalQty.toLocaleString()}${L('장','pcs')}</span></div>` : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`}
     </div>`;
   panel.classList.add('on');
 }
-function closeInboundDayPanel() {
+function closeArrivalDayPanel() {
   inboundDayPanelDate = null;
   const panel = document.getElementById('inbound-cal-panel');
   if (panel) { panel.classList.remove('on'); panel.innerHTML = ''; }
 }
-function openCalEventModal(id) {
-  editCalEventId = id;
-  const e = id ? allCalendarEvents.find(x=>x.id===id) : null;
-  document.getElementById('cev-title').textContent = id ? L('임의 일정 수정','Edit Custom Event') : L('임의 일정 추가','Add Custom Event');
-  document.getElementById('cev-name').value = e?.style_name || '';
-  document.getElementById('cev-qty').value = e?.qty ?? '';
-  document.getElementById('cev-date').value = e?.event_date || '';
-  document.getElementById('cev-memo').value = e?.memo || '';
-  document.getElementById('cev-alert').classList.remove('on');
-  document.getElementById('calevent-modal').classList.add('on');
+function showArrivalDayDetail(dateStr) {
+  const { byBrand, totalQty, count } = computeArrivalBrandTotals(dateStr);
+  document.getElementById('dm-title').textContent = dateStr + L(' 입고 예정',' Inbound Schedule');
+  document.getElementById('dm-sub').textContent = L(`${count}개 항목`,`${count} item(s)`);
+  const rows = [...byBrand.entries()].map(([brand, qty]) => `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between">
+      <strong>${brand}</strong>
+      <strong>${qty.toLocaleString()}${L('장','pcs')}</strong>
+    </div>`).join('');
+  document.getElementById('dm-body').innerHTML = count
+    ? rows + `<div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--bdr);display:flex;justify-content:space-between;font-weight:700"><span>${L('총','Total')}</span><span>${totalQty.toLocaleString()}${L('장','pcs')}</span></div>`
+    : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`;
+  document.getElementById('day-modal').classList.add('on');
 }
-async function saveCalEvent() {
-  const style_name = document.getElementById('cev-name').value.trim();
-  const event_date = document.getElementById('cev-date').value;
-  const qtyRaw = document.getElementById('cev-qty').value;
-  const memo = document.getElementById('cev-memo').value.trim() || null;
-  if (!style_name || !event_date) return showAlert('cev-alert', L('스타일명과 입고예정일은 필수입니다','Style name and expected arrival date are required'));
-  const body = { style_name, event_date, qty: qtyRaw ? parseInt(qtyRaw) : null, memo };
-  const btn = document.getElementById('cev-save'); btn.disabled = true;
-  try {
-    if (editCalEventId) {
-      await sb(`calendar_events?id=eq.${editCalEventId}`, 'PATCH', {...body, updated_at:new Date().toISOString()});
-    } else {
-      await sb('calendar_events', 'POST', {...body, created_by: me.id});
+
+// ── 입고 일정 엑셀 업로드 ──
+function openArrivalUploadModal() {
+  parsedArrivalRows = [];
+  arrivalUploadRowErrors = [];
+  document.getElementById('arr-excel-file').value = '';
+  document.getElementById('arr-preview-zone').style.display = 'none';
+  document.getElementById('arr-submit-btn').style.display = 'none';
+  document.getElementById('arrival-upload-modal').classList.add('on');
+}
+function handleArrivalExcelUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = evt.target.result;
+      const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const headerRow = rows[0] || [];
+      const colMap = {};
+      headerRow.forEach((h, i) => { if (h != null) colMap[String(h).trim().toUpperCase()] = i; });
+      const findCol = (names) => { for (const n of names) { if (colMap[n] !== undefined) return colMap[n]; } return -1; };
+
+      const COL_DATE = findCol(['DATE']);
+      const COL_SUPPLIER = findCol(['SUPPLIER']);
+      const COL_BRAND = findCol(['BRAND']);
+      const COL_PACKING = findCol(['PACKING TYPE']);
+      const COL_STYLE = findCol(['STYLE NO.','STYLE NO','STYLE_NO']);
+      const COL_COLOR = findCol(['COLOR CODE']);
+      const COL_QTY = findCol(['QTY/COLOR','QTY COLOR','QTY/COLOUR']);
+      const COL_CTN = findCol(['CTN']);
+      const COL_TYPE = findCol(['TYPE']);
+      const COL_FWD = findCol(['FORWARDER']);
+      const COL_BL = findCol(['B/L NO.','B/L NO','BL NO']);
+      const COL_INV = findCol(['INVOICE NO.','INVOICE NO']);
+
+      const getDt = (v) => {
+        if (v instanceof Date) {
+          const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,'0'), d=String(v.getDate()).padStart(2,'0');
+          return `${y}-${m}-${d}`;
+        }
+        return v ? String(v).trim().slice(0,10) : '';
+      };
+
+      const parsed = [];
+      arrivalUploadRowErrors = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+        const styleNo = COL_STYLE>=0 && row[COL_STYLE] ? String(row[COL_STYLE]).trim() : '';
+        const arrivalDate = COL_DATE>=0 ? getDt(row[COL_DATE]) : '';
+        if (!styleNo && !arrivalDate) continue;
+        const rowNum = i + 1;
+        if (!arrivalDate || !styleNo) {
+          arrivalUploadRowErrors.push({ rowNum, styleNo, reason: L('DATE 또는 STYLE NO.가 비어 있습니다','DATE or STYLE NO. is missing') });
+          continue;
+        }
+        parsed.push({
+          arrival_date: arrivalDate,
+          supplier: COL_SUPPLIER>=0 && row[COL_SUPPLIER] ? String(row[COL_SUPPLIER]).trim() : null,
+          brand: COL_BRAND>=0 && row[COL_BRAND] ? String(row[COL_BRAND]).trim() : null,
+          packing_type: COL_PACKING>=0 && row[COL_PACKING] ? String(row[COL_PACKING]).trim() : null,
+          style_no: styleNo,
+          color_code: COL_COLOR>=0 && row[COL_COLOR] ? String(row[COL_COLOR]).trim() : null,
+          qty_color: COL_QTY>=0 ? (parseInt(row[COL_QTY]) || 0) : 0,
+          ctn: COL_CTN>=0 && row[COL_CTN] ? (parseInt(row[COL_CTN]) || null) : null,
+          container_type: COL_TYPE>=0 && row[COL_TYPE] ? String(row[COL_TYPE]).trim() : null,
+          forwarder: COL_FWD>=0 && row[COL_FWD] ? String(row[COL_FWD]).trim() : null,
+          bl_no: COL_BL>=0 && row[COL_BL] ? String(row[COL_BL]).trim() : null,
+          invoice_no: COL_INV>=0 && row[COL_INV] ? String(row[COL_INV]).trim() : null,
+          _rowNum: rowNum
+        });
+      }
+
+      // 같은 DATE+STYLE NO. 그룹별 QTY/COLOR 합산 → QTY/TOTAL 주입
+      const totals = new Map();
+      parsed.forEach(r => {
+        const k = `${r.arrival_date}|${r.style_no}`;
+        totals.set(k, (totals.get(k)||0) + (r.qty_color||0));
+      });
+      parsed.forEach(r => { r.qty_total = totals.get(`${r.arrival_date}|${r.style_no}`); });
+
+      parsedArrivalRows = parsed;
+
+      if (!parsed.length) {
+        alert(L('엑셀 시트 내부에 파싱 가능한 입고 일정 행이 없습니다.','No parseable arrival schedule rows found in the Excel sheet.'));
+        document.getElementById('arr-preview-zone').style.display = 'none';
+        e.target.value = '';
+        return;
+      }
+
+      const errWrap = document.getElementById('arr-preview-error-wrap');
+      if (arrivalUploadRowErrors.length) {
+        errWrap.style.display = 'block';
+        errWrap.innerHTML = `⚠️ ${L('스킵된 행','Skipped rows')} ${arrivalUploadRowErrors.length}${L('건','cases')}<br>` +
+          arrivalUploadRowErrors.map(er => `· Row ${er.rowNum} [${er.styleNo||'-'}] — ${er.reason}`).join('<br>');
+      } else {
+        errWrap.style.display = 'none'; errWrap.innerHTML = '';
+      }
+
+      const styleCount = totals.size;
+      document.getElementById('arr-preview-count-txt').textContent =
+        `${L('검출된 행: 총','Detected rows:')} ${parsed.length}${L('건','cases')} (${L('스타일','styles')} ${styleCount}${L('종','types')})`;
+      document.getElementById('arr-preview-list-wrap').innerHTML = parsed.map((r, idx) =>
+        `[${idx+1}] ${r.arrival_date} | ${r.style_no} | ${r.color_code||'-'} | ${Number(r.qty_color).toLocaleString()}${L('장','pcs')} | Total ${Number(r.qty_total).toLocaleString()}${L('장','pcs')}`
+      ).join('<br>');
+      document.getElementById('arr-preview-zone').style.display = 'block';
+      document.getElementById('arr-submit-btn').style.display = '';
+    } catch(err) {
+      alert(L('엑셀 파일을 읽는 중 오류가 발생했습니다: ','Error reading Excel file: ')+err.message);
     }
+  };
+  reader.readAsBinaryString(file);
+}
+async function submitArrivalRows() {
+  if (!parsedArrivalRows.length) return;
+  const btn = document.getElementById('arr-submit-btn');
+  btn.disabled = true;
+  try {
+    const payload = parsedArrivalRows.map(({_rowNum, ...rest}) => ({ ...rest, created_by: me.id }));
+    await sb('arrival_schedule', 'POST', payload);
     await loadAll();
-    closeModal('cev');
-    closeModal('dm');
-    renderInboundCalendar();
-  } catch(e) {
-    showAlert('cev-alert', e.message);
+    parsedArrivalRows = []; arrivalUploadRowErrors = [];
+    closeModal('aum');
+    alert(L('입고 일정이 업로드되었습니다.','Arrival schedule uploaded.'));
+    renderArrivalList();
+    if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar();
+  } catch(err) {
+    alert(L('업로드 실패: ','Upload failed: ')+err.message);
   } finally {
     btn.disabled = false;
   }
 }
-async function deleteCalEvent(id) {
-  if (!confirm(L('이 임의 일정을 삭제하시겠습니까?','Delete this custom event?'))) return;
+
+// ── 입고 일정 엑셀 다운로드 ──
+function downloadArrivalExcel() {
+  const rows = getArrivalFilteredRows();
+  if (!rows.length) { alert(L('다운로드할 데이터가 없습니다.','No data to download.')); return; }
+  const seen = new Set();
+  const data = rows.map(r => {
+    const k = arrivalGroupKey(r);
+    const isFirst = !seen.has(k);
+    seen.add(k);
+    return {
+      'DATE': r.arrival_date || '',
+      'SUPPLIER': r.supplier || '',
+      'BRAND': r.brand || '',
+      'STYLE NO.': r.style_no || '',
+      'COLOR CODE': r.color_code || '',
+      'QTY/COLOR': r.qty_color ?? '',
+      'QTY/TOTAL': isFirst ? (r.qty_total ?? '') : '',
+      'CTN': isFirst ? (r.ctn ?? '') : '',
+      'TYPE': isFirst ? (r.container_type || '') : '',
+      'Forwarder': isFirst ? (r.forwarder || '') : '',
+      'B/L NO.': isFirst ? (r.bl_no || '') : '',
+      'INVOICE NO.': isFirst ? (r.invoice_no || '') : ''
+    };
+  });
+  const header = ['DATE','SUPPLIER','BRAND','STYLE NO.','COLOR CODE','QTY/COLOR','QTY/TOTAL','CTN','TYPE','Forwarder','B/L NO.','INVOICE NO.'];
+  const ws = XLSX.utils.json_to_sheet(data, { header });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Arrival Schedule');
+  XLSX.writeFile(wb, `입고일정표_${today()}.xlsx`);
+}
+
+// ── 입고 일정 수정/삭제 (master) ──
+function openArrivalEditModal(id) {
+  editArrivalId = id;
+  const r = allArrival.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('aem-date').value = r.arrival_date || '';
+  document.getElementById('aem-supplier').value = r.supplier || '';
+  document.getElementById('aem-brand').value = r.brand || '';
+  document.getElementById('aem-packing').value = r.packing_type || '';
+  document.getElementById('aem-style').value = r.style_no || '';
+  document.getElementById('aem-color').value = r.color_code || '';
+  document.getElementById('aem-qty').value = r.qty_color ?? '';
+  document.getElementById('aem-ctn').value = r.ctn ?? '';
+  document.getElementById('aem-container').value = r.container_type || '';
+  document.getElementById('aem-forwarder').value = r.forwarder || '';
+  document.getElementById('aem-bl').value = r.bl_no || '';
+  document.getElementById('aem-invoice').value = r.invoice_no || '';
+  document.getElementById('aem-alert').classList.remove('on');
+  document.getElementById('arrival-edit-modal').classList.add('on');
+}
+async function saveArrivalEdit() {
+  const old = allArrival.find(x => x.id === editArrivalId);
+  if (!old) return;
+  const arrival_date = document.getElementById('aem-date').value;
+  const style_no = document.getElementById('aem-style').value.trim();
+  if (!arrival_date || !style_no) return showAlert('aem-alert', L('입고일과 스타일번호는 필수입니다','Arrival date and style no. are required'));
+  const body = {
+    arrival_date,
+    supplier: document.getElementById('aem-supplier').value.trim() || null,
+    brand: document.getElementById('aem-brand').value.trim() || null,
+    packing_type: document.getElementById('aem-packing').value.trim() || null,
+    style_no,
+    color_code: document.getElementById('aem-color').value.trim() || null,
+    qty_color: parseInt(document.getElementById('aem-qty').value) || 0,
+    ctn: document.getElementById('aem-ctn').value ? parseInt(document.getElementById('aem-ctn').value) : null,
+    container_type: document.getElementById('aem-container').value.trim() || null,
+    forwarder: document.getElementById('aem-forwarder').value.trim() || null,
+    bl_no: document.getElementById('aem-bl').value.trim() || null,
+    invoice_no: document.getElementById('aem-invoice').value.trim() || null
+  };
+  const btn = document.getElementById('aem-save'); btn.disabled = true;
   try {
-    await sb(`calendar_events?id=eq.${id}`, 'DELETE');
+    await sb(`arrival_schedule?id=eq.${editArrivalId}`, 'PATCH', body);
     await loadAll();
-    closeModal('dm');
-    renderInboundCalendar();
+    await recalcAndPatchGroupTotal(old.arrival_date, old.style_no);
+    await recalcAndPatchGroupTotal(arrival_date, style_no);
+    await loadAll();
+    closeModal('aem');
+    renderArrivalList();
+    if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar();
   } catch(e) {
-    alert(e.message);
+    showAlert('aem-alert', e.message);
+  } finally {
+    btn.disabled = false;
   }
 }
-async function updateArrivalDate(orderId, newDate, inputEl) {
-  if (!newDate) return;
-  const prev = inputEl.defaultValue;
-  inputEl.disabled = true;
+async function deleteArrivalRow(id) {
+  const row = allArrival.find(x => x.id === id);
+  if (!row) return;
+  if (!confirm(L('이 입고 일정 행을 삭제하시겠습니까?','Delete this arrival schedule row?'))) return;
   try {
-    await sb(`orders?id=eq.${orderId}`, 'PATCH', {arrival_date:newDate, updated_at:new Date().toISOString()});
+    await sb(`arrival_schedule?id=eq.${id}`, 'DELETE');
     await loadAll();
-    closeModal('dm');
-    renderInboundCalendar();
+    await recalcAndPatchGroupTotal(row.arrival_date, row.style_no);
+    await loadAll();
+    renderArrivalList();
+    if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar();
   } catch(e) {
     alert(e.message);
-    inputEl.value = prev;
-  } finally {
-    inputEl.disabled = false;
   }
 }
 // 대한민국 공휴일(대체공휴일 포함) — 음력 기준 휴일(설날/추석/석가탄신일)은 매년 수기 갱신 필요. 2027년 음력 일자는 추정값.
@@ -2472,24 +2706,6 @@ function buildCal(data, year, month, prefix, getDate, getName, getQty, highlight
   html += '</div>';
   return html;
 }
-function showDayDetail(dateStr, data, getDate, getDetail) {
-  const items = data.filter(r=>getDate(r)===dateStr).map(getDetail);
-  document.getElementById('dm-title').textContent = dateStr + L(' 일정',' Schedule');
-  document.getElementById('dm-sub').textContent = L(`${items.length}개 항목`,`${items.length} item(s)`);
-  let totalQty = 0;
-  const rows = items.map(it=>{
-    totalQty += it.qty||0;
-    return `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between">
-      <div><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${it.style_no||''}</div><strong>${it.style_name||''}</strong>${it.vendor?'<div style="font-size:11px;color:var(--muted)">'+it.vendor+'</div>':''}</div>
-      <div style="text-align:right"><strong>${Number(it.qty||0).toLocaleString()}장</strong>${it.category?'<div style="font-size:11px;color:var(--muted)">'+it.category+'</div>':''}</div>
-    </div>`;
-  }).join('');
-  document.getElementById('dm-body').innerHTML = items.length
-    ? rows + `<div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--bdr);display:flex;justify-content:space-between;font-weight:700"><span>${L('합계','Total')}</span><span>${totalQty.toLocaleString()}${L('장','pcs')}</span></div>`
-    : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`;
-  document.getElementById('day-modal').classList.add('on');
-}
-
 // ── 공장 관리 (벤더) ──
 function renderFactoryMine() {
   const list = allFactories.filter(f=>f.vendor_id===me.id);
@@ -2660,79 +2876,55 @@ function renderFactoryAll() {
   document.getElementById('factory-grid').innerHTML = html;
 }
 
-// ── CS 클레임 입력 ──
-function renderCs() {
-  const q = (document.getElementById('cs-search').value||'').toLowerCase();
-  let list = allOrders.slice();
-  if (q) list = list.filter(o=>(o.style_no||'').toLowerCase().includes(q)||(o.style_name||'').toLowerCase().includes(q));
-  if (!list.length) { document.getElementById('cs-tbl').innerHTML=`<div class="empty"><div class="empty-t">${L('오더가 없습니다','No orders found')}</div></div>`; return; }
-  document.getElementById('cs-tbl').innerHTML = `
-    <div class="tbl-wrap"><table>
-    <thead><tr><th>${L('스타일번호','Style No.')}</th><th>${L('스타일명','Style Name')}</th><th>${L('벤더','Vendor')}</th><th>${L('오더','Order')}</th><th>${L('벤더 불량','Vendor Defect')}</th><th>${L('CS 확정 불량','CS Confirmed')}</th><th>${L('불량률','Defect Rate')}</th><th>${L('관리','Action')}</th></tr></thead>
-    <tbody>
-    ${list.map(o=>{
-      const v = allUsers.find(u=>u.id===o.vendor_id);
-      const hasCs = o.cs_defect_qty != null;
-      const fail = hasCs ? o.cs_defect_qty : (o.vendor_fail_qty||0);
-      const def = o.order_qty && fail ? ((fail/o.order_qty)*100).toFixed(1) : '0.0';
-      return `<tr>
-        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--purple);font-weight:700">${o.style_no}</td>
-        <td data-label="${L('스타일명','Style Name')}"><strong>${o.style_name}</strong></td>
-        <td data-label="${L('벤더','Vendor')}">${v?.company_name||'-'}</td>
-        <td data-label="${L('오더','Order')}">${Number(o.order_qty).toLocaleString()}${L('장','pcs')}</td>
-        <td data-label="${L('벤더 불량','Vendor Defect')}" style="color:${o.vendor_fail_qty>0?'var(--ora)':'var(--muted)'}">${o.vendor_fail_qty>0?Number(o.vendor_fail_qty).toLocaleString()+L('장','pcs'):'-'}</td>
-        <td data-label="${L('CS 확정 불량','CS Confirmed')}">${hasCs?`<strong style="color:var(--purple)">${Number(o.cs_defect_qty).toLocaleString()}${L('장','pcs')}</strong>`:`<span style="color:var(--muted)">${L('미입력','Not entered')}</span>`}</td>
-        <td data-label="${L('불량률','Defect Rate')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'700':''}">${def}%${hasCs?` <span class="bdg bdg-cs" style="font-size:9px">${L('CS확정','CS')}</span>`:''}</td>
-        <td data-label="${L('관리','Action')}"><button class="btn btn-purple btn-sm" onclick="openCsModal('${o.id}')">${hasCs?L('수정','Edit'):L('입력','Enter')}</button></td>
-      </tr>`;
-    }).join('')}
-    </tbody></table></div>`;
-}
-function openCsModal(orderId) {
+// ── 불량 추가 입력 (CS/마스터: 선적완료 탭 오더에 누적 불량 입력) ──
+function openDefectModal(orderId) {
   activeOrderId = orderId;
   const o = allOrders.find(x=>x.id===orderId);
   if (!o) return;
   const v = allUsers.find(u=>u.id===o.vendor_id);
-  document.getElementById('csm-title').textContent = o.style_name;
-  document.getElementById('csm-sub').textContent = `${o.style_no} · ${v?.company_name||''}`;
-  document.getElementById('csm-info').innerHTML = `
-    <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>${L('오더 수량','Order Qty')}</span><strong>${Number(o.order_qty).toLocaleString()}${L('장','pcs')}</strong></div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>${L('선적 완료','Shipped')}</span><strong>${Number(o.shipped_qty||0).toLocaleString()}${L('장','pcs')}</strong></div>
-    <div style="display:flex;justify-content:space-between"><span>${L('벤더 입력 불량','Vendor Defect')}</span><strong style="color:var(--ora)">${o.vendor_fail_qty>0?Number(o.vendor_fail_qty).toLocaleString()+L('장','pcs'):L('없음','None')}</strong></div>
-    ${o.cs_defect_qty!=null?`<div style="display:flex;justify-content:space-between;margin-top:4px"><span>${L('기존 CS 불량','Previous CS Defect')}</span><strong style="color:var(--purple)">${Number(o.cs_defect_qty).toLocaleString()}${L('장','pcs')}</strong></div>`:''}
+  const defectQty = o.defect_qty || 0;
+  const rate = o.order_qty ? ((defectQty/o.order_qty)*100).toFixed(1) : '0.0';
+  document.getElementById('defm-title').textContent = o.style_name;
+  document.getElementById('defm-sub').textContent = `${o.style_no} · ${v?.company_name||''}`;
+  document.getElementById('defm-info').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>${L('발주수량','Order Qty')}</span><strong>${Number(o.order_qty).toLocaleString()}${L('장','pcs')}</strong></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>${L('선적 수량','Shipped Qty')}</span><strong>${Number(o.actual_qty||o.shipped_qty||0).toLocaleString()}${L('장','pcs')}</strong></div>
+    <div style="display:flex;justify-content:space-between"><span>${L('누적 불량','Cumulative Defect')}</span><strong style="color:var(--purple)">${Number(defectQty).toLocaleString()}${L('장','pcs')} (${rate}%)</strong></div>
   `;
-  document.getElementById('csm-qty').value = o.cs_defect_qty!=null ? o.cs_defect_qty : (o.vendor_fail_qty||'');
-  document.getElementById('csm-date').value = o.cs_inspected_date || today();
-  document.getElementById('csm-inspector').value = o.cs_inspector || me.contact_name || '';
-  document.getElementById('csm-note').value = o.cs_defect_note || '';
-  document.getElementById('csm-alert').classList.remove('on');
-  previewCsRate();
-  document.getElementById('cs-modal').classList.add('on');
+  document.getElementById('defm-qty').value = '';
+  document.getElementById('defm-rate').textContent = '';
+  const history = allDefectHistory.filter(h=>h.order_id===orderId).sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  document.getElementById('defm-history').innerHTML = history.length ? `
+    <div class="modal-section-title" style="font-size:12px">${L('불량 입력 이력','Defect Entry History')}</div>
+    <div style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;max-height:140px;overflow-y:auto">
+      ${history.map(h=>`<div style="padding:4px 0;border-bottom:1px dashed var(--bdr)">${(h.created_at||'').slice(0,10)} · +${Number(h.added_qty).toLocaleString()}${L('장','pcs')} · ${h.noted_by||'-'}</div>`).join('')}
+    </div>` : '';
+  document.getElementById('defm-alert').classList.remove('on');
+  document.getElementById('defect-modal').classList.add('on');
 }
-function previewCsRate() {
+function previewDefectRate() {
   const o = allOrders.find(x=>x.id===activeOrderId);
   if (!o) return;
-  const qty = +document.getElementById('csm-qty').value||0;
-  const rate = o.order_qty ? ((qty/o.order_qty)*100).toFixed(1) : 0;
-  document.getElementById('csm-rate').textContent = qty>0 ? `→ ${L('불량률','Defect Rate')} ${rate}% (${qty}${L('장','pcs')} / ${o.order_qty.toLocaleString()}${L('장','pcs')})` : '';
+  const addQty = +document.getElementById('defm-qty').value||0;
+  const newTotal = (o.defect_qty||0) + addQty;
+  const rate = o.order_qty ? ((newTotal/o.order_qty)*100).toFixed(1) : 0;
+  document.getElementById('defm-rate').textContent = addQty>0 ? `→ ${L('누적 불량률','Cumulative Defect Rate')} ${rate}% (${newTotal.toLocaleString()}${L('장','pcs')} / ${o.order_qty.toLocaleString()}${L('장','pcs')})` : '';
 }
-async function saveCsDefect() {
-  const qty = parseInt(document.getElementById('csm-qty').value);
-  if (isNaN(qty) || qty<0) return showAlert('csm-alert', L('불량 수량을 입력해주세요','Please enter defect quantity'));
-  const body = {
-    cs_defect_qty: qty,
-    cs_defect_note: document.getElementById('csm-note').value.trim()||null,
-    cs_inspector: document.getElementById('csm-inspector').value.trim()||null,
-    cs_inspected_date: document.getElementById('csm-date').value||null,
-    inspection_result: qty>0 ? 'fail' : 'pass'
-  };
-  const btn = document.getElementById('csm-save'); btn.disabled=true; btn.textContent=L('저장 중...','Saving...');
+async function saveDefectAdd() {
+  const o = allOrders.find(x=>x.id===activeOrderId);
+  if (!o) return;
+  const addedQty = parseInt(document.getElementById('defm-qty').value);
+  if (isNaN(addedQty) || addedQty<=0) return showAlert('defm-alert', L('추가 불량 수량을 입력해주세요','Please enter the additional defect quantity'));
+  const btn = document.getElementById('defm-save'); btn.disabled=true; btn.textContent=L('저장 중...','Saving...');
   try {
-    await sb(`orders?id=eq.${activeOrderId}`, 'PATCH', body);
-    closeModal('csm'); await loadAll(); renderCs();
-    alert(L('CS 불량 데이터가 저장되었습니다','CS defect data saved'));
-  } catch(e) { showAlert('csm-alert', e.message); }
-  finally { btn.disabled=false; btn.textContent=L('저장 확정','Confirm & Save'); }
+    await sb('defect_history', 'POST', { order_id: activeOrderId, added_qty: addedQty, noted_by: me.contact_name || me.company_name });
+    const newDefectQty = (o.defect_qty||0) + addedQty;
+    await sb(`orders?id=eq.${activeOrderId}`, 'PATCH', { defect_qty: newDefectQty, updated_at: new Date().toISOString() });
+    closeModal('defm');
+    await loadAll();
+    alert(L('불량 수량이 추가되었습니다','Defect quantity added'));
+  } catch(e) { showAlert('defm-alert', e.message); }
+  finally { btn.disabled=false; btn.textContent=L('추가','Add'); }
 }
 
 // ── 회원 관리 (마스터) ──
@@ -2887,14 +3079,11 @@ function applyLang() {
     if (typeof renderPending === 'function' && document.getElementById('sec-pending')?.classList.contains('on')) {
       try { renderPending(); } catch(e) {}
     }
-    if (typeof renderInbound === 'function' && document.getElementById('sec-inbound')?.classList.contains('on')) {
-      try { renderInbound(); } catch(e) {}
+    if (typeof renderArrivalList === 'function' && document.getElementById('sec-inbound')?.classList.contains('on')) {
+      try { renderArrivalList(); } catch(e) {}
       if (document.getElementById('view-inbound-cal')?.classList.contains('on')) {
-        try { renderInboundCalendar(); } catch(e) {}
+        try { renderArrivalCalendar(); } catch(e) {}
       }
-    }
-    if (typeof renderCs === 'function' && document.getElementById('sec-cs')?.classList.contains('on')) {
-      try { renderCs(); } catch(e) {}
     }
     if (typeof renderErrors === 'function' && document.getElementById('sec-errors')?.classList.contains('on')) {
       try { renderErrors(); } catch(e) {}
@@ -3030,7 +3219,6 @@ function openBulkFinish() {
   const orders = ids.map(id => allOrders.find(o => o.id === id)).filter(Boolean);
   document.getElementById('fim-sub').textContent = L(`${ids.length}건 선택됨`,`${ids.length} orders selected`);
   document.getElementById('fim-today-date').textContent = today();
-  document.getElementById('fim-actual-etd').value = '';
   document.getElementById('fim-orders-list').innerHTML = orders.map((o, i) => {
     const v = allUsers.find(u => u.id === o.vendor_id);
     const alreadyDone = o.cut_done && o.artwork_done && o.sew_done && o.finish_done;
@@ -3055,7 +3243,6 @@ function openBulkFinish() {
 async function executeBulkFinish() {
   const ids = [...selectedOrderIds];
   if (!ids.length) return;
-  const actualEtd = document.getElementById('fim-actual-etd').value;
   const btn = document.getElementById('fim-confirm');
   btn.disabled = true; btn.textContent = L('처리 중...','Processing...');
   try {
@@ -3066,7 +3253,7 @@ async function executeBulkFinish() {
       if (!o) continue;
       const remainingBefore = getRemainingQty(o);
       const aqInput = document.querySelector(`.fim-aq[data-id="${id}"]`);
-      // actual_qty = 이번 회차에 추가로 선적된 수량(증분). 기본값은 처리 시점 잔량.
+      // 이번 회차에 추가로 선적될 것으로 예상되는 수량(증분). 기본값은 처리 시점 잔량.
       const actualQty = aqInput && aqInput.value !== '' ? (parseInt(aqInput.value) || 0) : remainingBefore;
       // 누적 선적수량(shipped_qty)에 이번 회차 수량을 더해 잔량을 재계산 (덮어쓰기 아님)
       const newShipped = (o.shipped_qty || 0) + actualQty;
@@ -3075,27 +3262,19 @@ async function executeBulkFinish() {
       const patch = {
         cut_done: true, artwork_done: true, sew_done: true, finish_done: true,
         produced_qty: o.order_qty,
-        actual_qty: actualQty,
         shipped_qty: newShipped,
         actual_complete_date: completionDate,
         updated_at: new Date().toISOString()
       };
-      if (actualEtd) {
-        patch.etd_date = actualEtd;
-        patch.ship_date = actualEtd;
-        patch.actual_etd = actualEtd;
-        patch.shipping_qty = actualQty;
-        patch.arrival_date = addBusinessDays(actualEtd, 4);
-      }
+      if (o.status !== 'shipping_requested' && o.status !== 'shipped' && o.status !== 'cancelled') patch.status = 'shipping_requested';
       await sb(`orders?id=eq.${id}`, 'PATCH', patch);
     }
     closeModal('fim');
     selectedOrderIds.clear();
     await loadAll();
     renderDashboard();
-    const etdMsg = actualEtd ? `\n📅 ${L('입고 예정일','Est. arrival')}: ${addBusinessDays(actualEtd, 4)}` : '';
     const partialMsg = partialCount > 0 ? `\n📐 ${L(`${partialCount}건 분할선적 진행중 (잔량 발생)`, `${partialCount} order(s) partially shipped (remaining qty left)`)}` : '';
-    alert(`✅ ${ids.length}${L('건 생산완료 처리 완료',' orders marked as complete.')}\n📦 ${L('완료일','Completion date')}: ${completionDate}${etdMsg}${partialMsg}`);
+    alert(`✅ ${ids.length}${L('건 생산완료 처리 완료',' orders marked as complete.')}\n📦 ${L('완료일','Completion date')}: ${completionDate}${partialMsg}\n➡️ ${L('선적 확정 화면에서 선적 정보를 입력해주세요','Please enter shipping info in the Confirm Shipment screen')}`);
   } catch(e) {
     showAlert('fim-alert', e.message);
   } finally {
