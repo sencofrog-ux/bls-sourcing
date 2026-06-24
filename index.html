@@ -2596,7 +2596,7 @@ function handleArrivalExcelUpload(e) {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
       const headerRow = rows[0] || [];
-      const normHeader = (s) => String(s).trim().toUpperCase().replace(/\s+/g, ' ').replace(/\s*\/\s*/g, '/');
+      const normHeader = (s) => String(s).split('\n')[0].trim().toUpperCase().replace(/\s+/g, ' ').replace(/\s*\/\s*/g, '/');
       const colMap = {};
       headerRow.forEach((h, i) => { if (h != null) colMap[normHeader(h)] = i; });
       const findCol = (names) => { for (const n of names) { const k = normHeader(n); if (colMap[k] !== undefined) return colMap[k]; } return -1; };
