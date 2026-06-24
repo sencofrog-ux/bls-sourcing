@@ -93,6 +93,7 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .bdg-cs{background:var(--purplel);color:var(--purple)}
 .bdg-late{background:var(--redl);color:var(--red)}
 .bdg-urgent{background:#fde8e8;color:var(--red);font-weight:700;border:1px solid #f5c6c6}
+.bdg-reorder{background:#e8eefd;color:#2952cc;font-weight:700;border:1px solid #c6d3f5}
 .bdg-cancelled{background:#e8e8e8;color:#888;border:1px solid #d0d0d0}
 .bdg-dday{background:var(--oral);color:var(--ora);font-weight:700;border:1px solid #f0d080}
 .bdg-dday0{background:#fff3cd;color:#856404;font-weight:700;border:1px solid #ffc107}
@@ -389,6 +390,15 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
           <div id="shipout-tbl"></div>
         </div>
 
+        <div class="sec" id="sec-recap">
+          <div class="sec-hdr"><div><div class="sec-title" data-ko="PRODUCTION RECAP" data-en="Production Recap">PRODUCTION RECAP</div><div class="sec-sub" data-ko="단계별 일정/입력자, 선적수량, 불량율을 엑셀로 다운로드" data-en="Download stage dates/users, shipped qty, defect rate as Excel">단계별 일정/입력자, 선적수량, 불량율을 엑셀로 다운로드</div></div>
+            <select class="fsel" id="recap-style-sel" style="max-width:220px"></select>
+          </div>
+          <div class="card" style="max-width:480px"><div class="card-body" style="text-align:center">
+            <button class="btn btn-p" id="recap-download-btn" data-ko="⬇️ PRODUCTION RECAP 다운로드" data-en="⬇️ Download Production Recap">⬇️ PRODUCTION RECAP 다운로드</button>
+          </div></div>
+        </div>
+
         <div class="sec" id="sec-inbound">
           <div class="sec-hdr"><div><div class="sec-title" data-ko="입고 일정표" data-en="Inbound Schedule">입고 일정표</div><div class="sec-sub" data-ko="수입 통관 기준 입고 일정" data-en="Inbound schedule based on customs clearance">수입 통관 기준 입고 일정</div></div>
             <div style="display:flex;gap:8px">
@@ -644,6 +654,21 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
     <div class="mfooter">
       <button class="btn btn-s btn-sm" onclick="document.getElementById('bulk-confirm-modal').classList.remove('on')" data-ko="취소" data-en="Cancel">취소</button>
       <button class="btn btn-danger btn-sm" id="bcm-confirm-btn" onclick="executeBulkAction()" data-ko="확인" data-en="Confirm">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="dup-style-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="mhdr"><div><div class="mhdr-t" data-ko="중복 스타일번호 감지" data-en="Duplicate Style No. Detected">중복 스타일번호 감지</div></div><button class="mclose" id="dsm-close">×</button></div>
+    <div class="mbody">
+      <p style="font-size:15px;margin-bottom:6px;line-height:1.6;color:var(--txt)" data-ko="이미 등록된 스타일입니다." data-en="This style is already registered.">이미 등록된 스타일입니다.</p>
+      <div id="dsm-detail" style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.6"></div>
+    </div>
+    <div class="mfooter" style="flex-wrap:wrap">
+      <button class="btn btn-s btn-sm" id="dsm-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-s btn-sm" id="dsm-plain" style="width:auto" data-ko="그냥 등록" data-en="Register as New">그냥 등록</button>
+      <button class="btn btn-p btn-sm" id="dsm-reorder" style="width:auto;background:#2952cc" data-ko="🔁 리오더로 등록" data-en="🔁 Register as Re-order">🔁 리오더로 등록</button>
     </div>
   </div>
 </div>
@@ -929,6 +954,7 @@ function buildSidebar() {
       <button class="nav-btn" data-sec="pending" data-ko="⏳ 승인 대기" data-en="⏳ Pending Approval">⏳ 승인 대기 <span class="nav-badge" id="pend-badge">0</span></button>
       <button class="nav-btn" data-sec="order-reg" data-ko="➕ 오더 등록" data-en="➕ Order Registration">➕ 오더 등록</button>
       <button class="nav-btn" data-sec="shipout" data-ko="📦 선적 확정" data-en="📦 Confirm Shipment">📦 선적 확정</button>
+      <button class="nav-btn" data-sec="recap" data-ko="📊 생산 RECAP 다운로드" data-en="📊 Production Recap">📊 생산 RECAP 다운로드</button>
       <button class="nav-btn" data-sec="inbound" data-ko="📅 입고 일정표" data-en="📅 Inbound Schedule">📅 입고 일정표</button>
       <button class="nav-btn" data-sec="factory-all" data-ko="🏭 공장 현황" data-en="🏭 Factory Overview">🏭 공장 현황</button>
       <button class="nav-btn" data-sec="members" data-ko="👥 회원 관리" data-en="👥 Member Management">👥 회원 관리</button>
@@ -968,6 +994,7 @@ function switchSec(id) {
   closeSidebar();
   if (id === 'pending') renderPending();
   if (id === 'shipout') renderShipout();
+  if (id === 'recap') renderRecapStyleOptions();
   if (id === 'inbound') { renderArrivalList(); if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar(); }
   if (id === 'factory-all') renderFactoryAll();
   if (id === 'factory-mine') renderFactoryMine();
@@ -995,6 +1022,21 @@ function bindAppEvents() {
 
   document.getElementById('reg-submit').addEventListener('click', submitOrder);
   document.getElementById('add-season-btn').addEventListener('click', addSeason);
+  document.getElementById('dsm-close').addEventListener('click', closeDupStyleModal);
+  document.getElementById('dsm-cancel').addEventListener('click', closeDupStyleModal);
+  document.getElementById('dsm-plain').addEventListener('click', ()=>{
+    if (!pendingOrderBody) return;
+    const body = pendingOrderBody; pendingOrderBody = null;
+    document.getElementById('dup-style-modal').classList.remove('on');
+    doSubmitOrder(body);
+  });
+  document.getElementById('dsm-reorder').addEventListener('click', ()=>{
+    if (!pendingOrderBody) return;
+    const body = pendingOrderBody; pendingOrderBody = null;
+    body.is_reorder = true;
+    document.getElementById('dup-style-modal').classList.remove('on');
+    doSubmitOrder(body);
+  });
   
   // 엑셀 일괄 등록용 이벤트 바인딩 추가
   document.getElementById('bulk-excel-file')?.addEventListener('change', handleBulkExcelUpload);
@@ -1074,6 +1116,7 @@ function bindAppEvents() {
     document.getElementById('oe-urgent-badge').style.display = on ? '' : 'none';
   });
   document.getElementById('defm-qty').addEventListener('input', previewDefectRate);
+  document.getElementById('recap-download-btn')?.addEventListener('click', downloadProductionRecap);
 }
 function closeModal(prefix) {
   const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal'};
@@ -1177,6 +1220,12 @@ function isOrderShipped(o) {
 function isInShippedTab(o) {
   return isOrderShipRequested(o) || isOrderShipped(o);
 }
+// 정렬/뱃지 우선순위: 0=긴급(리오더 아님) 1=리오더 2=일반 — 리오더는 긴급 뱃지를 대체하므로 긴급보다 한 단계 아래
+function orderPriorityTier(o) {
+  if (o.is_reorder) return 1;
+  if (o.is_urgent) return 0;
+  return 2;
+}
 function getDashStatusFilter() {
   return document.querySelector('#dash-status-tabs .view-tab.on')?.dataset.dstatus || 'active';
 }
@@ -1198,11 +1247,12 @@ function getVisibleOrders() {
       return terms.every(t => combined.includes(t));
     });
   }
-  // 1) 선적완료 건은 하단으로 고정 2) 그 안에서 긴급건 최상단 고정 3) target ETD 오름차순
+  // 1) 선적완료 건은 하단으로 고정 2) 그 안에서 긴급건 최상단, 리오더건 그 다음 고정 3) target ETD 오름차순
   list.sort((a,b)=>{
     const aShipped = isInShippedTab(a), bShipped = isInShippedTab(b);
     if (aShipped !== bShipped) return aShipped ? 1 : -1;
-    if (!!b.is_urgent !== !!a.is_urgent) return b.is_urgent ? 1 : -1;
+    const aTier = orderPriorityTier(a), bTier = orderPriorityTier(b);
+    if (aTier !== bTier) return aTier - bTier;
     return (a.planned_ship_date||'9999-99-99').localeCompare(b.planned_ship_date||'9999-99-99');
   });
   return list;
@@ -1305,10 +1355,16 @@ function renderDashboard() {
           : shipRequested
             ? `<span class="bdg bdg-cs">${L('선적요청됨','Ship Requested')}</span>`
             : `<span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?L('지연','Delayed'):L('정상','Normal')}</span>`;
-      return `<tr${o.is_urgent&&!cancelled?' style="background:#fff8f8"':cancelled?' style="opacity:.6"':''}>
+      const rowBg = cancelled ? ' style="opacity:.6"' : o.is_reorder ? ' style="background:#f4f7fe"' : o.is_urgent ? ' style="background:#fff8f8"' : '';
+      const priorityBadge = o.is_reorder
+        ? `<span class="bdg bdg-reorder" style="font-size:9px;padding:2px 5px">${L('RE-ORDER','RE-ORDER')}</span>`
+        : o.is_urgent
+          ? `<span class="bdg bdg-urgent" style="font-size:9px;padding:2px 5px">${L('긴급','URGENT')}</span>`
+          : '';
+      return `<tr${rowBg}>
         ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
         <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
-        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${o.is_urgent?` <span class="bdg bdg-urgent" style="font-size:9px;padding:2px 5px">${L('긴급','URGENT')}</span>`:''}</td>
+        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${priorityBadge?` ${priorityBadge}`:''}</td>
         <td data-label="${L('스타일명','Style Name')}">${o.style_name}</td>
         <td data-label="${L('오더','Order')}">${Number(o.order_qty).toLocaleString()}</td>
         <td data-label="${L('진행율','Progress')}"><div class="stage-progbar">${stageSegs}</div></td>
@@ -1346,12 +1402,18 @@ function renderVendorOrderCards(list) {
         <div class="stage-chip-st">${done[i]?'✓ Done':'Pending'}</div>
       </div>`).join('');
     const segs = STAGES.map((s,i)=>`<div class="stage-progbar-seg ${done[i]?'seg-'+s:''}"></div>`).join('');
-    return `<div class="order-card" id="ocard-${o.id}"${o.is_urgent?' style="border-color:var(--red);border-width:2px"':''}>
+    const priorityCardStyle = o.is_reorder ? ' style="border-color:#2952cc;border-width:2px"' : o.is_urgent ? ' style="border-color:var(--red);border-width:2px"' : '';
+    const priorityBadge = o.is_reorder
+      ? `<span class="bdg bdg-reorder">🔁 ${L('RE-ORDER','RE-ORDER')}</span>`
+      : o.is_urgent
+        ? `<span class="bdg bdg-urgent">🚨 ${L('긴급','URGENT')}</span>`
+        : '';
+    return `<div class="order-card" id="ocard-${o.id}"${priorityCardStyle}>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div>
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
             <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}</span>
-            ${o.is_urgent?`<span class="bdg bdg-urgent">🚨 ${L('긴급','URGENT')}</span>`:''}
+            ${priorityBadge}
             ${shipped?`<span class="bdg bdg-ok">${L('선적완료','Shipped')}</span>`:''}
             ${shipRequested?`<span class="bdg bdg-cs">${L('선적요청됨','Ship Requested')}</span>`:''}
           </div>
@@ -1372,6 +1434,13 @@ function renderVendorOrderCards(list) {
       </div>
     </div>`;
   }).join('');
+}
+
+// ── 생산 단계 체크/해제 이력 기록 (대시보드 미노출, RECAP 다운로드용) ──
+async function logProductionStage(orderId, stage, action) {
+  try {
+    await sb('production_log', 'POST', { order_id: orderId, stage, action, logged_by: me.id });
+  } catch (e) { console.error('production_log insert failed', e); }
 }
 
 async function toggleStage(orderId, stage) {
@@ -1398,6 +1467,7 @@ async function toggleStage(orderId, stage) {
   document.getElementById('ord-tbl').innerHTML = renderVendorOrderCards(getVisibleOrders());
   try {
     await sb(`orders?id=eq.${orderId}`,'PATCH',{[field]:newVal,produced_qty:newProduced,updated_at:new Date().toISOString()});
+    await logProductionStage(orderId, stage, newVal ? 'checked' : 'unchecked');
   } catch(e) {
     o[field] = !newVal;
     o.produced_qty = Math.round((o.order_qty||0)*STAGES.reduce((n,s)=>n+(!!o[s+'_done']?1:0),0)/4);
@@ -1458,6 +1528,7 @@ async function vmToggleStage(orderId, stage) {
   document.getElementById('vm-produced').value = newProduced;
   try {
     await sb(`orders?id=eq.${orderId}`,'PATCH',{[field]:newVal,produced_qty:newProduced,updated_at:new Date().toISOString()});
+    await logProductionStage(orderId, stage, newVal ? 'checked' : 'unchecked');
   } catch(e) {
     o[field] = !newVal;
     o.produced_qty = Math.round((o.order_qty||0)*STAGES.reduce((n,s)=>n+(!!o[s+'_done']?1:0),0)/4);
@@ -1544,6 +1615,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // ── 오더 개별 등록 ──
+let pendingOrderBody = null;
+
 async function submitOrder() {
   const body = {
     season_id: document.getElementById('reg-season').value,
@@ -1558,11 +1631,31 @@ async function submitOrder() {
     notes: document.getElementById('reg-notes').value.trim() || null,
     po_send: document.getElementById('reg-po-send').value || null,
     shipped_qty: 0,
-    is_urgent: document.getElementById('reg-urgent').checked
+    is_urgent: document.getElementById('reg-urgent').checked,
+    is_reorder: false
   };
   if (me.role === 'md') body.created_by_md = me.id;
   if (!body.season_id || !body.vendor_id || !body.style_no || !body.style_name || !body.order_qty || !body.planned_ship_date)
     return showAlert('reg-alert', L('필수 항목을 모두 입력해주세요','Please fill in all required fields'));
+
+  const dup = allOrders.find(o => (o.style_no||'').trim().toLowerCase() === body.style_no.toLowerCase());
+  if (dup) {
+    pendingOrderBody = body;
+    const v = allUsers.find(u=>u.id===dup.vendor_id);
+    document.getElementById('dsm-detail').innerHTML =
+      `${L('기존 등록','Existing entry')}: <strong>${dup.style_no}</strong> · ${dup.style_name||''} · ${v?.company_name||'-'} · ${L('발주','Order')} ${Number(dup.order_qty||0).toLocaleString()}${L('장','pcs')}`;
+    document.getElementById('dup-style-modal').classList.add('on');
+    return;
+  }
+  await doSubmitOrder(body);
+}
+
+function closeDupStyleModal() {
+  document.getElementById('dup-style-modal').classList.remove('on');
+  pendingOrderBody = null;
+}
+
+async function doSubmitOrder(body) {
   const btn = document.getElementById('reg-submit'); btn.disabled=true; btn.textContent=L('등록 중...','Registering...');
   try {
     await sb('orders', 'POST', body);
@@ -2432,9 +2525,10 @@ function handleArrivalExcelUpload(e) {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
       const headerRow = rows[0] || [];
+      const normHeader = (s) => String(s).trim().toUpperCase().replace(/\s+/g, ' ').replace(/\s*\/\s*/g, '/');
       const colMap = {};
-      headerRow.forEach((h, i) => { if (h != null) colMap[String(h).trim().toUpperCase()] = i; });
-      const findCol = (names) => { for (const n of names) { if (colMap[n] !== undefined) return colMap[n]; } return -1; };
+      headerRow.forEach((h, i) => { if (h != null) colMap[normHeader(h)] = i; });
+      const findCol = (names) => { for (const n of names) { const k = normHeader(n); if (colMap[k] !== undefined) return colMap[k]; } return -1; };
 
       const COL_DATE = findCol(['DATE']);
       const COL_SUPPLIER = findCol(['SUPPLIER']);
@@ -2442,7 +2536,7 @@ function handleArrivalExcelUpload(e) {
       const COL_PACKING = findCol(['PACKING TYPE']);
       const COL_STYLE = findCol(['STYLE NO.','STYLE NO','STYLE_NO']);
       const COL_COLOR = findCol(['COLOR CODE']);
-      const COL_QTY = findCol(['QTY/COLOR','QTY COLOR','QTY/COLOUR']);
+      const COL_QTY = findCol(['QTY/COLOR','QTY COLOR','QTY/COLOUR','QTY / COLOR']);
       const COL_CTN = findCol(['CTN']);
       const COL_TYPE = findCol(['TYPE']);
       const COL_FWD = findCol(['FORWARDER']);
@@ -2576,6 +2670,75 @@ function downloadArrivalExcel() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Arrival Schedule');
   XLSX.writeFile(wb, `입고일정표_${today()}.xlsx`);
+}
+
+// ── PRODUCTION RECAP 엑셀 다운로드 (스타일 선택 또는 전체) ──
+function renderRecapStyleOptions() {
+  const sel = document.getElementById('recap-style-sel');
+  if (!sel) return;
+  const cur = sel.value;
+  const styles = [...new Set(allOrders.map(o=>o.style_no).filter(Boolean))].sort();
+  sel.innerHTML = `<option value="">${L('전체 스타일','All Styles')}</option>` + styles.map(s=>`<option value="${s}">${s}</option>`).join('');
+  if (styles.includes(cur)) sel.value = cur;
+}
+
+async function downloadProductionRecap() {
+  const styleFilter = document.getElementById('recap-style-sel').value;
+  const targetOrders = styleFilter ? allOrders.filter(o=>o.style_no===styleFilter) : allOrders;
+  if (!targetOrders.length) { alert(L('다운로드할 오더가 없습니다','No orders to download')); return; }
+
+  const btn = document.getElementById('recap-download-btn');
+  btn.disabled = true;
+  try {
+    const STAGES = ['cut','artwork','sew','finish'];
+    const logs = await sb('production_log?select=*&action=eq.checked&order=logged_at.desc');
+    const latestByOrderStage = {};
+    logs.forEach(l => {
+      const key = l.order_id + '_' + l.stage;
+      if (!latestByOrderStage[key]) latestByOrderStage[key] = l; // 내림차순 정렬이므로 첫 항목이 최신
+    });
+
+    const data = targetOrders.map(o => {
+      const vendor = allUsers.find(u => u.id === o.vendor_id);
+      const stage = {};
+      STAGES.forEach(s => {
+        const log = o[s+'_done'] ? latestByOrderStage[o.id+'_'+s] : null;
+        stage[s+'_date'] = log ? log.logged_at.slice(0,10) : '';
+        const byUser = log ? allUsers.find(u => u.id === log.logged_by) : null;
+        stage[s+'_by'] = byUser ? byUser.company_name : '';
+      });
+      const shippedQty = o.shipped_qty || o.actual_qty || 0;
+      const defectQty = o.defect_qty || 0;
+      const defectRate = shippedQty > 0 ? (defectQty/shippedQty*100).toFixed(2)+'%' : '';
+      return {
+        'STYLE NO.': o.style_no || '',
+        'STYLE NAME': o.style_name || '',
+        'VENDOR': vendor?.company_name || '',
+        'CUT DATE': stage.cut_date,
+        'ARTWORK DATE': stage.artwork_date,
+        'SEW DATE': stage.sew_date,
+        'FINISH DATE': stage.finish_date,
+        'CUT 입력자': stage.cut_by,
+        'ARTWORK 입력자': stage.artwork_by,
+        'SEW 입력자': stage.sew_by,
+        'FINISH 입력자': stage.finish_by,
+        '선적수량': shippedQty,
+        '실ETD': o.actual_etd || '',
+        '불량율': defectRate
+      };
+    });
+
+    const header = ['STYLE NO.','STYLE NAME','VENDOR','CUT DATE','ARTWORK DATE','SEW DATE','FINISH DATE','CUT 입력자','ARTWORK 입력자','SEW 입력자','FINISH 입력자','선적수량','실ETD','불량율'];
+    const ws = XLSX.utils.json_to_sheet(data, { header });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Production Recap');
+    const fname = styleFilter ? `Production_Recap_${styleFilter}_${today()}.xlsx` : `Production_Recap_전체_${today()}.xlsx`;
+    XLSX.writeFile(wb, fname);
+  } catch(e) {
+    alert(L('다운로드 실패: ','Download failed: ')+e.message);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // ── 입고 일정 수정/삭제 (master) ──
