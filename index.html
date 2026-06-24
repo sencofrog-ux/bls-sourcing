@@ -644,7 +644,7 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
         <div class="fg"><label class="fl" data-ko="CTN" data-en="CTN">CTN</label><input type="number" id="aem-ctn"></div>
       </div>
       <div class="row2">
-        <div class="fg"><label class="fl" data-ko="TYPE(컨테이너)" data-en="Type">TYPE(컨테이너)</label><input type="text" id="aem-container"></div>
+        <div class="fg"><label class="fl" data-ko="TYPE(컨테이너)" data-en="Type">TYPE(컨테이너)</label><select id="aem-container"><option value="">-</option><option value="LCL">LCL</option><option value="20*1">20*1</option><option value="40HQ*1">40HQ*1</option><option value="40HQ*2">40HQ*2</option><option value="FERRY">FERRY</option></select></div>
         <div class="fg"><label class="fl" data-ko="Forwarder" data-en="Forwarder">Forwarder</label><input type="text" id="aem-forwarder"></div>
       </div>
       <div class="row2">
@@ -2677,6 +2677,21 @@ function handleArrivalExcelUpload(e) {
         }
       });
 
+      // 같은 DATE+INVOICE NO. 그룹: TYPE/Forwarder/B/L NO.는 첫 행에만 입력되므로 그룹 전체에 전파
+      const typeByInvoice = new Map(), fwdByInvoice = new Map(), blByInvoice = new Map();
+      parsed.forEach(r => {
+        const k = `${r.arrival_date}|${r.invoice_no}`;
+        if (r.container_type && !typeByInvoice.has(k)) typeByInvoice.set(k, r.container_type);
+        if (r.forwarder && !fwdByInvoice.has(k)) fwdByInvoice.set(k, r.forwarder);
+        if (r.bl_no && !blByInvoice.has(k)) blByInvoice.set(k, r.bl_no);
+      });
+      parsed.forEach(r => {
+        const k = `${r.arrival_date}|${r.invoice_no}`;
+        if (!r.container_type) r.container_type = typeByInvoice.get(k) || null;
+        if (!r.forwarder) r.forwarder = fwdByInvoice.get(k) || null;
+        if (!r.bl_no) r.bl_no = blByInvoice.get(k) || null;
+      });
+
       parsedArrivalRows = parsed;
 
       if (!parsed.length) {
@@ -2852,7 +2867,12 @@ function openArrivalEditModal(id) {
   document.getElementById('aem-color').value = formatColorCode(r.color_code) || '';
   document.getElementById('aem-qty').value = r.qty_color ?? '';
   document.getElementById('aem-ctn').value = r.ctn ?? '';
-  document.getElementById('aem-container').value = r.container_type || '';
+  const containerSel = document.getElementById('aem-container');
+  const containerVal = r.container_type || '';
+  if (containerVal && !Array.from(containerSel.options).some(o => o.value === containerVal)) {
+    containerSel.appendChild(new Option(containerVal, containerVal));
+  }
+  containerSel.value = containerVal;
   document.getElementById('aem-forwarder').value = r.forwarder || '';
   document.getElementById('aem-bl').value = r.bl_no || '';
   document.getElementById('aem-invoice').value = r.invoice_no || '';
