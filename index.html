@@ -763,6 +763,8 @@ let arrivalUploadRowErrors = [];
 let bulkUploadRowErrors = []; // ACTION 검증 실패 등으로 스킵된 행
 let selectedOrderIds = new Set();
 let pendingBulkAction = null; // 'cancel' | 'delete'
+let selectedArrivalKeys = new Set(); // 선택된 입고일정 인보이스 그룹 키
+let arrivalGroupIdMap = new Map(); // 인보이스 그룹 키 -> 해당 그룹의 row id 목록
 
 const CUR_SYM = {USD:'$',CNY:'¥',KRW:'₩',EUR:'€',JPY:'¥',VND:'₫'};
 function fmtPrice(p, c) { if (p == null) return '-'; const sym = CUR_SYM[c]; return sym ? `${sym}${Number(p).toLocaleString()}` : `${c||'USD'} ${Number(p).toLocaleString()}`; }
@@ -2371,6 +2373,8 @@ function getArrivalFilteredRows() {
 function renderArrivalList() {
   const rows = getArrivalFilteredRows();
   const tbl = document.getElementById('inbound-tbl');
+  selectedArrivalKeys.clear();
+  arrivalGroupIdMap = new Map();
   if (!rows.length) { tbl.innerHTML = `<div class="empty"><div class="empty-t">${L('입고 일정이 없습니다','No inbound schedule')}</div></div>`; return; }
   const isMaster = me.role === 'master';
 
@@ -2388,7 +2392,10 @@ function renderArrivalList() {
   let totalQty = 0, totalBoxes = 0;
   const bodyRows = [];
   invoiceGroups.forEach(group => {
-    totalBoxes += Number(group[0].ctn) || 0;
+    const groupCtn = group.reduce((s, x) => s + (Number(x.ctn) || 0), 0);
+    totalBoxes += groupCtn;
+    const invKey = `${group[0].arrival_date}|${group[0].invoice_no}`;
+    arrivalGroupIdMap.set(invKey, group.map(g => g.id));
     // 같은 스타일번호 단위로 하위 그룹화 (QTY/TOTAL 병합용)
     const styleMap = new Map();
     group.forEach(r => {
@@ -2405,15 +2412,17 @@ function renderArrivalList() {
         <button class="btn btn-s btn-sm" onclick="openArrivalEditModal('${r.id}')">✎</button>
         <button class="btn btn-s btn-sm" style="color:var(--red)" onclick="deleteArrivalRow('${r.id}')">✗</button>
       </div></td>` : '';
+      const chkTd = isMaster && isFirstInInvoice ? `<td rowspan="${group.length}" style="text-align:center"><input type="checkbox" class="arr-chk" data-key="${invKey}" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleArrivalSelect('${invKey}',this.checked)"></td>` : '';
       bodyRows.push(`<tr${isLastInInvoice ? ' class="inv-end"' : ''}>
+      ${chkTd}
       ${isFirstInInvoice ? `<td data-label="DATE" rowspan="${group.length}" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ac);font-weight:600">${r.arrival_date||'-'}</td>
       <td data-label="SUPPLIER" rowspan="${group.length}">${r.supplier||'-'}</td>` : ''}
       <td data-label="BRAND">${r.brand||'-'}</td>
       <td data-label="STYLE NO." style="font-family:'DM Mono',monospace">${r.style_no||''}</td>
-      <td data-label="COLOR CODE">${r.color_code||'-'}</td>
+      <td data-label="COLOR CODE">${formatColorCode(r.color_code)||'-'}</td>
       <td data-label="QTY/COLOR">${Number(r.qty_color||0).toLocaleString()}</td>
       ${isFirstInStyle ? `<td data-label="QTY/TOTAL" rowspan="${styleRows.length}"><strong>${Number(r.qty_total||0).toLocaleString()}</strong></td>` : ''}
-      ${isFirstInInvoice ? `<td data-label="CTN" rowspan="${group.length}">${r.ctn ?? '-'}</td>
+      ${isFirstInInvoice ? `<td data-label="CTN" rowspan="${group.length}">${groupCtn || '-'}</td>
       <td data-label="TYPE" rowspan="${group.length}">${r.container_type||'-'}</td>
       <td data-label="Forwarder" rowspan="${group.length}">${r.forwarder||'-'}</td>
       <td data-label="B/L NO." rowspan="${group.length}">${r.bl_no||'-'}</td>
@@ -2422,9 +2431,13 @@ function renderArrivalList() {
     </tr>`);
     });
   });
-  tbl.innerHTML = `
+  const bulkBarHtml = isMaster ? `
+    <div class="bulk-bar" id="arr-bulk-bar">
+      <button class="btn btn-danger btn-sm" id="arr-bulk-del-btn" onclick="deleteSelectedArrivals()">${L('선택 0건 삭제','Delete 0 Selected')}</button>
+    </div>` : '';
+  tbl.innerHTML = bulkBarHtml + `
     <div class="tbl-wrap"><table>
-    <thead><tr><th>DATE</th><th>SUPPLIER</th><th>BRAND</th><th>STYLE NO.</th><th>COLOR CODE</th><th>QTY/COLOR</th><th>QTY/TOTAL</th><th>CTN</th><th>TYPE</th><th>Forwarder</th><th>B/L NO.</th><th>INVOICE NO.</th>${isMaster?`<th>${L('관리','Manage')}</th>`:''}</tr></thead>
+    <thead><tr>${isMaster?`<th style="width:36px;text-align:center"><input type="checkbox" id="arr-chk-all" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleArrivalSelectAll(this.checked)"></th>`:''}<th>DATE</th><th>SUPPLIER</th><th>BRAND</th><th>STYLE NO.</th><th>COLOR CODE</th><th>QTY/COLOR</th><th>QTY/TOTAL</th><th>CTN</th><th>TYPE</th><th>Forwarder</th><th>B/L NO.</th><th>INVOICE NO.</th>${isMaster?`<th>${L('관리','Manage')}</th>`:''}</tr></thead>
     <tbody>${bodyRows.join('')}</tbody>
     </table></div>
     <div style="display:flex;justify-content:flex-end;gap:24px;padding:12px 16px;background:var(--surf);border:1px solid var(--bdr);border-radius:12px;font-size:13px;font-weight:700;color:var(--txt)">
@@ -2506,6 +2519,13 @@ function showArrivalDayDetail(dateStr) {
 }
 
 // ── 입고 일정 엑셀 업로드 ──
+// COLOR CODE는 항상 문자열로 취급. 엑셀에서 숫자로 읽혔거나(앞자리 0 손실) 순수 숫자 문자열인 경우 3자리로 zero-padding.
+function formatColorCode(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const s = typeof v === 'number' ? String(Math.trunc(v)) : String(v).trim();
+  if (!s) return null;
+  return /^\d+$/.test(s) ? s.padStart(3, '0') : s;
+}
 function openArrivalUploadModal() {
   parsedArrivalRows = [];
   arrivalUploadRowErrors = [];
@@ -2570,7 +2590,7 @@ function handleArrivalExcelUpload(e) {
           brand: COL_BRAND>=0 && row[COL_BRAND] ? String(row[COL_BRAND]).trim() : null,
           packing_type: COL_PACKING>=0 && row[COL_PACKING] ? String(row[COL_PACKING]).trim() : null,
           style_no: styleNo,
-          color_code: COL_COLOR>=0 && row[COL_COLOR] ? String(row[COL_COLOR]).trim() : null,
+          color_code: COL_COLOR>=0 ? formatColorCode(row[COL_COLOR]) : null,
           qty_color: COL_QTY>=0 ? (parseInt(row[COL_QTY]) || 0) : 0,
           ctn: COL_CTN>=0 && row[COL_CTN] ? (parseInt(row[COL_CTN]) || null) : null,
           container_type: COL_TYPE>=0 && row[COL_TYPE] ? String(row[COL_TYPE]).trim() : null,
@@ -2588,6 +2608,23 @@ function handleArrivalExcelUpload(e) {
         totals.set(k, (totals.get(k)||0) + (r.qty_color||0));
       });
       parsed.forEach(r => { r.qty_total = totals.get(`${r.arrival_date}|${r.style_no}`); });
+
+      // 같은 DATE+INVOICE NO. 그룹별 CTN 합산 → 인보이스 첫 행에만 저장, 나머지는 비움
+      const ctnTotals = new Map();
+      parsed.forEach(r => {
+        const k = `${r.arrival_date}|${r.invoice_no}`;
+        ctnTotals.set(k, (ctnTotals.get(k)||0) + (Number(r.ctn)||0));
+      });
+      const seenInvoiceForCtn = new Set();
+      parsed.forEach(r => {
+        const k = `${r.arrival_date}|${r.invoice_no}`;
+        if (!seenInvoiceForCtn.has(k)) {
+          seenInvoiceForCtn.add(k);
+          r.ctn = ctnTotals.get(k) || null;
+        } else {
+          r.ctn = null;
+        }
+      });
 
       parsedArrivalRows = parsed;
 
@@ -2645,20 +2682,30 @@ async function submitArrivalRows() {
 function downloadArrivalExcel() {
   const rows = getArrivalFilteredRows();
   if (!rows.length) { alert(L('다운로드할 데이터가 없습니다.','No data to download.')); return; }
+  // 인보이스(DATE+INVOICE NO.) 단위 CTN 합산 (중복 없이)
+  const ctnTotals = new Map();
+  rows.forEach(r => {
+    const k = `${r.arrival_date}|${r.invoice_no}`;
+    ctnTotals.set(k, (ctnTotals.get(k) || 0) + (Number(r.ctn) || 0));
+  });
   const seen = new Set();
+  const seenInvoice = new Set();
   const data = rows.map(r => {
     const k = arrivalGroupKey(r);
     const isFirst = !seen.has(k);
     seen.add(k);
+    const invKey = `${r.arrival_date}|${r.invoice_no}`;
+    const isFirstInvoice = !seenInvoice.has(invKey);
+    seenInvoice.add(invKey);
     return {
       'DATE': r.arrival_date || '',
       'SUPPLIER': r.supplier || '',
       'BRAND': r.brand || '',
       'STYLE NO.': r.style_no || '',
-      'COLOR CODE': r.color_code || '',
+      'COLOR CODE': formatColorCode(r.color_code) || '',
       'QTY/COLOR': r.qty_color ?? '',
       'QTY/TOTAL': isFirst ? (r.qty_total ?? '') : '',
-      'CTN': isFirst ? (r.ctn ?? '') : '',
+      'CTN': isFirstInvoice ? (ctnTotals.get(invKey) || '') : '',
       'TYPE': isFirst ? (r.container_type || '') : '',
       'Forwarder': isFirst ? (r.forwarder || '') : '',
       'B/L NO.': isFirst ? (r.bl_no || '') : '',
@@ -2751,7 +2798,7 @@ function openArrivalEditModal(id) {
   document.getElementById('aem-brand').value = r.brand || '';
   document.getElementById('aem-packing').value = r.packing_type || '';
   document.getElementById('aem-style').value = r.style_no || '';
-  document.getElementById('aem-color').value = r.color_code || '';
+  document.getElementById('aem-color').value = formatColorCode(r.color_code) || '';
   document.getElementById('aem-qty').value = r.qty_color ?? '';
   document.getElementById('aem-ctn').value = r.ctn ?? '';
   document.getElementById('aem-container').value = r.container_type || '';
@@ -2773,7 +2820,7 @@ async function saveArrivalEdit() {
     brand: document.getElementById('aem-brand').value.trim() || null,
     packing_type: document.getElementById('aem-packing').value.trim() || null,
     style_no,
-    color_code: document.getElementById('aem-color').value.trim() || null,
+    color_code: formatColorCode(document.getElementById('aem-color').value),
     qty_color: parseInt(document.getElementById('aem-qty').value) || 0,
     ctn: document.getElementById('aem-ctn').value ? parseInt(document.getElementById('aem-ctn').value) : null,
     container_type: document.getElementById('aem-container').value.trim() || null,
@@ -2805,6 +2852,57 @@ async function deleteArrivalRow(id) {
     await sb(`arrival_schedule?id=eq.${id}`, 'DELETE');
     await loadAll();
     await recalcAndPatchGroupTotal(row.arrival_date, row.style_no);
+    await loadAll();
+    renderArrivalList();
+    if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar();
+  } catch(e) {
+    alert(e.message);
+  }
+}
+// ── 입고 일정 일괄 선택/삭제 (마스터 전용) ──
+function toggleArrivalSelectAll(checked) {
+  document.querySelectorAll('.arr-chk').forEach(cb => {
+    cb.checked = checked;
+    if (checked) selectedArrivalKeys.add(cb.dataset.key);
+    else selectedArrivalKeys.delete(cb.dataset.key);
+  });
+  updateArrivalBulkBar();
+}
+
+function toggleArrivalSelect(key, checked) {
+  if (checked) selectedArrivalKeys.add(key);
+  else selectedArrivalKeys.delete(key);
+  const allCbs = document.querySelectorAll('.arr-chk');
+  const chkAll = document.getElementById('arr-chk-all');
+  if (chkAll) chkAll.checked = allCbs.length > 0 && [...allCbs].every(cb => cb.checked);
+  updateArrivalBulkBar();
+}
+
+function updateArrivalBulkBar() {
+  const bar = document.getElementById('arr-bulk-bar');
+  if (!bar) return;
+  const cnt = selectedArrivalKeys.size;
+  document.getElementById('arr-bulk-del-btn').textContent = L(`선택 ${cnt}건 삭제`,`Delete ${cnt} Selected`);
+  cnt > 0 ? bar.classList.add('on') : bar.classList.remove('on');
+}
+
+async function deleteSelectedArrivals() {
+  const cnt = selectedArrivalKeys.size;
+  if (cnt === 0) return;
+  if (!confirm(L(`선택한 ${cnt}건을 삭제하시겠습니까?`,`Delete ${cnt} selected item(s)?`))) return;
+  const ids = [...selectedArrivalKeys].flatMap(key => arrivalGroupIdMap.get(key) || []);
+  if (!ids.length) return;
+  const pairs = new Map();
+  ids.forEach(id => {
+    const row = allArrival.find(x => x.id === id);
+    if (row) pairs.set(`${row.arrival_date}|${row.style_no}`, { date: row.arrival_date, style: row.style_no });
+  });
+  try {
+    await sb(`arrival_schedule?id=in.(${ids.join(',')})`, 'DELETE');
+    await loadAll();
+    for (const { date, style } of pairs.values()) {
+      await recalcAndPatchGroupTotal(date, style);
+    }
     await loadAll();
     renderArrivalList();
     if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar();
