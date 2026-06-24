@@ -145,6 +145,21 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .cal-day-panel-style{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--ac)}
 .cal-day-panel-style.manual{color:#2E4A3A;font-family:inherit}
 .cal-day-panel-qty{font-size:13px;font-weight:600;white-space:nowrap}
+.cal-day-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--bdr)}
+.cal-summary-item{text-align:center}
+.cal-summary-val{font-size:15px;font-weight:700;color:var(--txt)}
+.cal-summary-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+.brand-card{border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.brand-card-name{font-size:12px;font-weight:700;margin-bottom:6px}
+.brand-card-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.brand-card-col .v{font-size:14px;font-weight:700}
+.brand-card-col .l{font-size:10px;color:var(--muted);margin-top:2px}
+.cal-day-total{display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--bdr);margin-top:4px;padding-top:8px;font-size:13px}
+.brand-summary-table{width:100%;border-collapse:collapse;font-size:13px}
+.brand-summary-table th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--bdr);color:var(--muted);font-size:11px;font-weight:600}
+.brand-summary-table td{padding:8px 10px;border-bottom:1px solid var(--bdr)}
+.brand-summary-table tfoot td{font-weight:700;border-top:2px solid var(--bdr);border-bottom:none}
+.brand-name-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:12px}
 .modal-section-title{font-size:12px;font-weight:700;color:var(--ac);margin:16px 0 8px 0;border-bottom:1px solid var(--bdr);padding-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto}
 .overlay.on{display:flex}
@@ -2468,34 +2483,61 @@ function renderArrivalCalendar() {
   }));
 }
 
-function computeArrivalBrandTotals(dateStr) {
+const ARRIVAL_BRAND_COLORS = {
+  HANGTEN: { bg: '#e3f2fd', fg: '#1565c0' },
+  JUNIOR: { bg: '#f3e5f5', fg: '#6a1b9a' },
+  KALE: { bg: '#e8f5e9', fg: '#2e7d32' }
+};
+const ARRIVAL_BRAND_COLOR_DEFAULT = { bg: '#f3f4f6', fg: '#4b5563' };
+function getArrivalBrandColor(brand) {
+  return ARRIVAL_BRAND_COLORS[(brand||'').trim().toUpperCase()] || ARRIVAL_BRAND_COLOR_DEFAULT;
+}
+function computeArrivalDaySummary(dateStr) {
   const rows = allArrival.filter(r => r.arrival_date === dateStr);
   const byBrand = new Map();
+  const styleSet = new Set();
+  const invoiceSet = new Set();
   rows.forEach(r => {
     const b = r.brand || L('(브랜드 미입력)','(No Brand)');
-    byBrand.set(b, (byBrand.get(b)||0) + (Number(r.qty_color)||0));
+    if (!byBrand.has(b)) byBrand.set(b, { styles: new Set(), qty: 0, ctn: 0 });
+    const g = byBrand.get(b);
+    if (r.style_no) g.styles.add(r.style_no);
+    g.qty += Number(r.qty_color) || 0;
+    g.ctn += Number(r.ctn) || 0;
+    if (r.style_no) styleSet.add(r.style_no);
+    if (r.invoice_no) invoiceSet.add(r.invoice_no);
   });
-  const totalQty = [...byBrand.values()].reduce((s,v)=>s+v,0);
-  return { byBrand, totalQty, count: rows.length };
+  const totalQty = [...byBrand.values()].reduce((s,g)=>s+g.qty,0);
+  const totalCtn = [...byBrand.values()].reduce((s,g)=>s+g.ctn,0);
+  return { byBrand, totalQty, totalCtn, count: rows.length, styleCount: styleSet.size, invoiceCount: invoiceSet.size };
 }
 function renderArrivalDayPanel(dateStr) {
   inboundDayPanelDate = dateStr;
-  const { byBrand, totalQty, count } = computeArrivalBrandTotals(dateStr);
-  const rows = [...byBrand.entries()].map(([brand, qty]) => `<div class="cal-day-panel-row">
-      <span class="cal-day-panel-style">${brand}</span>
-      <span class="cal-day-panel-qty">${qty.toLocaleString()}${L('장','pcs')}</span>
-    </div>`).join('');
+  const { byBrand, totalQty, totalCtn, count, styleCount, invoiceCount } = computeArrivalDaySummary(dateStr);
+  const cards = [...byBrand.entries()].map(([brand, g]) => {
+    const c = getArrivalBrandColor(brand);
+    return `<div class="brand-card" style="background:${c.bg}">
+      <div class="brand-card-name" style="color:${c.fg}">${brand}</div>
+      <div class="brand-card-row">
+        <div class="brand-card-col"><div class="v" style="color:${c.fg}">${g.styles.size}</div><div class="l">${L('스타일','Styles')}</div></div>
+        <div class="brand-card-col"><div class="v" style="color:${c.fg}">${g.qty.toLocaleString()}</div><div class="l">${L('수량','Qty')}</div></div>
+        <div class="brand-card-col"><div class="v" style="color:${c.fg}">${g.ctn.toLocaleString()}</div><div class="l">${L('박스','CTN')}</div></div>
+      </div>
+    </div>`;
+  }).join('');
   const panel = document.getElementById('inbound-cal-panel');
   panel.innerHTML = `
     <div class="cal-day-panel-hdr">
-      <div>
-        <div class="cal-day-panel-title">${dateStr}</div>
-        <div class="cal-day-panel-sum">${L(`총 ${totalQty.toLocaleString()}장`,`${totalQty.toLocaleString()} pcs total`)}</div>
-      </div>
+      <div class="cal-day-panel-title">${dateStr}</div>
       <button class="cal-day-panel-close" onclick="closeArrivalDayPanel()">✕</button>
     </div>
+    <div class="cal-day-summary">
+      <div class="cal-summary-item"><div class="cal-summary-val">${count}</div><div class="cal-summary-lbl">${L('입고 건수','Inbound')}</div></div>
+      <div class="cal-summary-item"><div class="cal-summary-val">${styleCount}</div><div class="cal-summary-lbl">${L('스타일 종수','Styles')}</div></div>
+      <div class="cal-summary-item"><div class="cal-summary-val">${invoiceCount}</div><div class="cal-summary-lbl">${L('인보이스 건수','Invoices')}</div></div>
+    </div>
     <div class="cal-day-panel-body">
-      ${count ? rows + `<div class="cal-day-panel-row" style="font-weight:700;border-top:1px solid var(--bdr);margin-top:4px;padding-top:8px"><span>${L('총','Total')}</span><span class="cal-day-panel-qty">${totalQty.toLocaleString()}${L('장','pcs')}</span></div>` : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`}
+      ${count ? cards + `<div class="cal-day-total"><span>${L('전체 합계','Total')}</span><span>${totalQty.toLocaleString()}${L('장','pcs')} · ${totalCtn.toLocaleString()}${L('박스','CTN')}</span></div>` : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`}
     </div>`;
   panel.classList.add('on');
 }
@@ -2505,15 +2547,24 @@ function closeArrivalDayPanel() {
   if (panel) { panel.classList.remove('on'); panel.innerHTML = ''; }
 }
 function showArrivalDayDetail(dateStr) {
-  const { byBrand, totalQty, count } = computeArrivalBrandTotals(dateStr);
+  const { byBrand, totalQty, totalCtn, count, styleCount, invoiceCount } = computeArrivalDaySummary(dateStr);
   document.getElementById('dm-title').textContent = dateStr + L(' 입고 예정',' Inbound Schedule');
-  document.getElementById('dm-sub').textContent = L(`${count}개 항목`,`${count} item(s)`);
-  const rows = [...byBrand.entries()].map(([brand, qty]) => `<div style="padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between">
-      <strong>${brand}</strong>
-      <strong>${qty.toLocaleString()}${L('장','pcs')}</strong>
-    </div>`).join('');
+  document.getElementById('dm-sub').textContent = L(`입고 ${count}건 · 스타일 ${styleCount}종 · 인보이스 ${invoiceCount}건`, `${count} inbound · ${styleCount} styles · ${invoiceCount} invoices`);
+  const rows = [...byBrand.entries()].map(([brand, g]) => {
+    const c = getArrivalBrandColor(brand);
+    return `<tr>
+      <td><span class="brand-name-tag" style="background:${c.bg};color:${c.fg}">${brand}</span></td>
+      <td>${g.styles.size}</td>
+      <td>${g.qty.toLocaleString()}</td>
+      <td>${g.ctn.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
   document.getElementById('dm-body').innerHTML = count
-    ? rows + `<div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--bdr);display:flex;justify-content:space-between;font-weight:700"><span>${L('총','Total')}</span><span>${totalQty.toLocaleString()}${L('장','pcs')}</span></div>`
+    ? `<table class="brand-summary-table">
+        <thead><tr><th>${L('브랜드','Brand')}</th><th>${L('스타일','Styles')}</th><th>${L('입고 수량','Qty')}</th><th>${L('박스 수','CTN')}</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>${L('합계','Total')}</td><td>${styleCount}</td><td>${totalQty.toLocaleString()}</td><td>${totalCtn.toLocaleString()}</td></tr></tfoot>
+      </table>`
     : `<div class="empty"><div class="empty-t">${L('항목이 없습니다','No items')}</div></div>`;
   document.getElementById('day-modal').classList.add('on');
 }
