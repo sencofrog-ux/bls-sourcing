@@ -713,10 +713,12 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
         <div class="fg"><label class="fl" data-ko="Target ETD *" data-en="Target ETD *">Target ETD *</label><input type="date" id="oe-etd"></div>
       </div>
       <div class="fg"><label class="fl" data-ko="PO SEND" data-en="PO SEND">PO SEND</label><input type="date" id="oe-po-send"></div>
-      <div class="fg" id="oe-actualqty-wrap" style="display:none">
-        <label class="fl" data-ko="선적 수량 (실제) ⚠️" data-en="Actual Shipped Qty ⚠️">선적 수량 (실제) ⚠️</label>
-        <input type="number" id="oe-actualqty" min="0" placeholder="1000">
-        <div style="font-size:11px;color:var(--muted);margin-top:4px" data-ko="벤더가 선적 확정한 수량입니다. 입력 오류를 정정할 때만 변경하세요." data-en="This is the quantity confirmed at shipment. Only change it to correct an input error.">벤더가 선적 확정한 수량입니다. 입력 오류를 정정할 때만 변경하세요.</div>
+      <div id="oe-actualqty-wrap" style="display:none">
+        <div class="row2">
+          <div class="fg"><label class="fl" data-ko="선적 수량 (실제) ⚠️" data-en="Actual Shipped Qty ⚠️">선적 수량 (실제) ⚠️</label><input type="number" id="oe-actualqty" min="0" placeholder="1000"></div>
+          <div class="fg"><label class="fl" data-ko="선적 예정일 (실제) ⚠️" data-en="Actual ETD ⚠️">선적 예정일 (실제) ⚠️</label><input type="date" id="oe-actualetd"></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:14px" data-ko="벤더가 선적 확정한 수량/예정일입니다. 입력 오류를 정정할 때만 변경하세요." data-en="This is the qty/date confirmed at shipment. Only change it to correct an input error.">벤더가 선적 확정한 수량/예정일입니다. 입력 오류를 정정할 때만 변경하세요.</div>
       </div>
       <div class="fg"><label class="fl" data-ko="비고" data-en="Notes">비고</label><textarea id="oe-notes" style="min-height:80px"></textarea></div>
       <div class="fg" style="display:flex;align-items:center;gap:10px">
@@ -3460,12 +3462,15 @@ function openOrderEditModal(orderId) {
   document.getElementById('oe-po-send').value = o.po_send || '';
 
   const aqWrap = document.getElementById('oe-actualqty-wrap');
-  if (o.actual_qty != null) {
+  const hasActualShipInfo = o.actual_qty != null || !!o.actual_etd;
+  if (hasActualShipInfo) {
     aqWrap.style.display = '';
-    document.getElementById('oe-actualqty').value = o.actual_qty;
+    document.getElementById('oe-actualqty').value = o.actual_qty != null ? o.actual_qty : '';
+    document.getElementById('oe-actualetd').value = o.actual_etd || '';
   } else {
     aqWrap.style.display = 'none';
     document.getElementById('oe-actualqty').value = '';
+    document.getElementById('oe-actualetd').value = '';
   }
 
   const urgent = !!o.is_urgent;
@@ -3500,13 +3505,18 @@ async function saveOrderEdit() {
   if (!newStyleNo || !newStyleName || !newVendorId || !newQty || !newEtd)
     return showAlert('oe-alert', L('스타일번호, 스타일명, 벤더, 발주수량, Target ETD는 필수입니다','Style No., Style Name, Vendor, Order Qty, and Target ETD are required'));
 
-  const hasActualQty = o.actual_qty != null;
-  let newActualQty = null;
-  if (hasActualQty) {
+  const hasActualShipInfo = o.actual_qty != null || !!o.actual_etd;
+  let newActualQty = null, newActualEtd = null;
+  if (hasActualShipInfo) {
     newActualQty = parseInt(document.getElementById('oe-actualqty').value);
+    newActualEtd = document.getElementById('oe-actualetd').value || null;
     if (isNaN(newActualQty) || newActualQty < 0)
       return showAlert('oe-alert', L('선적 수량(실제)을 올바르게 입력해주세요','Please enter a valid actual shipped qty'));
-    if (newActualQty !== o.actual_qty && !confirm(L('선적 확정된 수량을 변경하시겠습니까? 입력 오류 정정 용도로만 사용하세요.','Change the confirmed shipped qty? Use this only to correct an input error.')))
+    if (!newActualEtd)
+      return showAlert('oe-alert', L('선적 예정일(실제)을 입력해주세요','Please enter a valid actual ETD'));
+    const qtyChanged = newActualQty !== o.actual_qty;
+    const etdChanged = newActualEtd !== (o.actual_etd || null);
+    if ((qtyChanged || etdChanged) && !confirm(L('선적 확정된 수량/예정일을 변경하시겠습니까? 입력 오류 정정 용도로만 사용하세요.','Change the confirmed shipped qty/ETD? Use this only to correct an input error.')))
       return;
   }
 
@@ -3531,11 +3541,18 @@ async function saveOrderEdit() {
     quantity_history: quantityHistory,
     updated_at: new Date().toISOString()
   };
-  if (hasActualQty && newActualQty !== o.actual_qty) {
-    // 선적수량(actual_qty) 정정 시, 누적 선적수량(shipped_qty)도 동일한 증감분만큼 함께 보정
-    const delta = newActualQty - o.actual_qty;
-    body.actual_qty = newActualQty;
-    body.shipped_qty = Math.max(0, (o.shipped_qty || 0) + delta);
+  if (hasActualShipInfo) {
+    if (newActualQty !== o.actual_qty) {
+      // 선적수량(actual_qty) 정정 시, 누적 선적수량(shipped_qty)도 동일한 증감분만큼 함께 보정
+      const delta = newActualQty - (o.actual_qty || 0);
+      body.actual_qty = newActualQty;
+      body.shipped_qty = Math.max(0, (o.shipped_qty || 0) + delta);
+    }
+    if (newActualEtd !== (o.actual_etd || null)) {
+      // 선적예정일(actual_etd) 정정 시, 입고예정일(arrival_date)도 함께 재계산
+      body.actual_etd = newActualEtd;
+      body.arrival_date = addBusinessDays(newActualEtd, 4);
+    }
   }
 
   const btn = document.getElementById('oe-save');
