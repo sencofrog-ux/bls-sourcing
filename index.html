@@ -766,6 +766,30 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
   </div>
 </div>
 
+<div class="overlay" id="force-ship-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="mhdr">
+      <div>
+        <div class="mhdr-t" style="color:var(--ac)" data-ko="📦 선적완료 강제 처리" data-en="📦 Force Mark as Shipped">📦 선적완료 강제 처리</div>
+        <div class="mhdr-s" id="fsm-sub"></div>
+      </div>
+      <button class="mclose" id="fsm-close">×</button>
+    </div>
+    <div class="mbody">
+      <div class="alert alert-e" id="fsm-alert"></div>
+      <p id="fsm-msg" style="font-size:15px;margin-bottom:14px;line-height:1.6;color:var(--txt)"></p>
+      <div id="fsm-orders-list" style="margin-bottom:14px;max-height:220px;overflow-y:auto;background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.8;color:var(--txt)"></div>
+      <div style="font-size:12px;color:var(--muted);padding:8px 10px;background:var(--acl);border-radius:6px" data-ko="실선적수량 / 선적예정일은 입력하지 않아도 선적완료 처리할 수 있습니다. 나중에 [수정] 화면에서 입력/변경할 수 있습니다." data-en="You can mark as shipped without entering actual qty / ETD now — they can be added later via [Edit].">
+        실선적수량 / 선적예정일은 입력하지 않아도 선적완료 처리할 수 있습니다. 나중에 [수정] 화면에서 입력/변경할 수 있습니다.
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="fsm-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="fsm-confirm" style="width:auto" data-ko="📦 선적완료 처리" data-en="📦 Mark as Shipped">📦 선적완료 처리</button>
+    </div>
+  </div>
+</div>
+
 <div class="bls-footer">Copyright by BLS Korea Sourcing</div>
 
 <script>
@@ -1114,7 +1138,7 @@ function bindAppEvents() {
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
-  ['vm','defm','fm','dm','oe','fim','aem','aum'].forEach(prefix=>{
+  ['vm','defm','fm','dm','oe','fim','aem','aum','fsm'].forEach(prefix=>{
     document.getElementById(prefix+'-close')?.addEventListener('click', ()=>closeModal(prefix));
     document.getElementById(prefix+'-cancel')?.addEventListener('click', ()=>closeModal(prefix));
   });
@@ -1126,7 +1150,9 @@ function bindAppEvents() {
   document.getElementById('finish-modal').addEventListener('click', e=>{ if(e.target.id==='finish-modal') closeModal('fim'); });
   document.getElementById('arrival-upload-modal').addEventListener('click', e=>{ if(e.target.id==='arrival-upload-modal') closeModal('aum'); });
   document.getElementById('arrival-edit-modal').addEventListener('click', e=>{ if(e.target.id==='arrival-edit-modal') closeModal('aem'); });
+  document.getElementById('force-ship-modal').addEventListener('click', e=>{ if(e.target.id==='force-ship-modal') closeModal('fsm'); });
   document.getElementById('fim-confirm').addEventListener('click', executeBulkFinish);
+  document.getElementById('fsm-confirm').addEventListener('click', executeForceShip);
 
   document.getElementById('vm-save').addEventListener('click', saveVendorProduction);
   document.getElementById('defm-save').addEventListener('click', saveDefectAdd);
@@ -1143,7 +1169,7 @@ function bindAppEvents() {
   document.getElementById('recap-download-btn')?.addEventListener('click', downloadProductionRecap);
 }
 function closeModal(prefix) {
-  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal'};
+  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
@@ -1323,6 +1349,7 @@ function renderDashboard() {
     <div class="bulk-bar" id="bulk-action-bar">
       <span class="bulk-cnt" id="bulk-cnt-label">${L('0건 선택됨','0 selected')}</span>
       <button class="btn btn-ok btn-sm" onclick="openBulkFinish()">${L('✅ 완료 처리','✅ Mark Complete')}</button>
+      <button class="btn btn-p btn-sm" onclick="openForceShip()">${L('📦 선적완료 처리','📦 Mark as Shipped')}</button>
       <button class="btn btn-s btn-sm" onclick="openBulkConfirm('cancel')">${L('선택 취소 처리','Mark Cancelled')}</button>
       <button class="btn btn-danger btn-sm" onclick="openBulkConfirm('delete')">${L('선택 삭제','Delete Selected')}</button>
     </div>` : '';
@@ -3658,6 +3685,70 @@ async function executeBulkFinish() {
     showAlert('fim-alert', e.message);
   } finally {
     btn.disabled = false; btn.textContent = L('✅ 완료 처리 확정','✅ Confirm Completion');
+  }
+}
+
+// ── 오더 강제 선적완료 처리 (마스터 전용) ──
+function openForceShip() {
+  if (selectedOrderIds.size === 0) { alert(L('처리할 오더를 먼저 선택하세요.','Please select orders first.')); return; }
+  const ids = [...selectedOrderIds];
+  const orders = ids.map(id => allOrders.find(o => o.id === id)).filter(Boolean);
+  const cnt = orders.length;
+  document.getElementById('fsm-sub').textContent = L(`${cnt}건 선택됨`,`${cnt} orders selected`);
+  document.getElementById('fsm-msg').textContent = L(`${cnt}건을 선적완료 처리하시겠습니까?`,`Mark ${cnt} selected order(s) as shipped?`);
+  document.getElementById('fsm-orders-list').innerHTML = orders.map((o, i) => {
+    const v = allUsers.find(u => u.id === o.vendor_id);
+    return `<div class="fsm-row" data-id="${o.id}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--bdr)">
+      <div style="flex:1;min-width:160px">[${i+1}] <strong style="font-family:'DM Mono',monospace;color:var(--ac)">${o.style_no}</strong> ${o.style_name} · ${v?.company_name||'-'} · ${L('발주','PO')} ${Number(o.order_qty).toLocaleString()}${L('장','pcs')}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <label style="font-size:11px;color:var(--muted);white-space:nowrap">${L('실선적수량','Actual Qty')}</label>
+        <input type="number" class="fsm-aq" data-id="${o.id}" value="${o.actual_qty ?? ''}" placeholder="${o.order_qty}" min="0" style="width:90px;padding:4px 6px;font-size:12px">
+        <label style="font-size:11px;color:var(--muted);white-space:nowrap">${L('선적예정일','ETD')}</label>
+        <input type="date" class="fsm-etd" data-id="${o.id}" value="${o.actual_etd||''}" style="padding:4px 6px;font-size:12px">
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('fsm-alert').classList.remove('on');
+  document.getElementById('force-ship-modal').classList.add('on');
+}
+
+async function executeForceShip() {
+  const ids = [...selectedOrderIds];
+  if (!ids.length) return;
+  const btn = document.getElementById('fsm-confirm');
+  btn.disabled = true; btn.textContent = L('처리 중...','Processing...');
+  try {
+    for (const id of ids) {
+      const o = allOrders.find(x => x.id === id);
+      if (!o) continue;
+      const aqInput = document.querySelector(`.fsm-aq[data-id="${id}"]`);
+      const etdInput = document.querySelector(`.fsm-etd[data-id="${id}"]`);
+      const aqVal = aqInput?.value ?? '';
+      const etdVal = etdInput?.value ?? '';
+      const patch = { status: 'shipped', updated_at: new Date().toISOString() };
+      // 실선적수량/선적예정일은 입력하지 않으면 건드리지 않는다 (나중에 수정 화면에서 입력 가능)
+      if (aqVal !== '') {
+        const actualQty = parseInt(aqVal) || 0;
+        patch.actual_qty = actualQty;
+        patch.shipped_qty = actualQty;
+      }
+      if (etdVal) {
+        patch.actual_etd = etdVal;
+        patch.arrival_date = addBusinessDays(etdVal, 4);
+      }
+      await sb(`orders?id=eq.${id}`, 'PATCH', patch);
+    }
+    closeModal('fsm');
+    selectedOrderIds.clear();
+    await loadAll();
+    document.querySelectorAll('#dash-status-tabs [data-dstatus]').forEach(b=>b.classList.toggle('on', b.dataset.dstatus==='shipped'));
+    saveDashFilters();
+    renderDashboard();
+    alert(`✅ ${ids.length}${L('건 선적완료 처리되었습니다.',' order(s) marked as shipped.')}`);
+  } catch(e) {
+    showAlert('fsm-alert', e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = L('📦 선적완료 처리','📦 Mark as Shipped');
   }
 }
 
