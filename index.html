@@ -129,6 +129,25 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .inner:has(#view-inbound-list.on){max-width:none}
 #inbound-tbl table{table-layout:auto;width:100%}
 #inbound-tbl th,#inbound-tbl td{white-space:normal}
+.inv-cards{display:none}
+.inv-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.inv-card-hdr{background:var(--ac);color:#fff;padding:12px 14px}
+.inv-card-hdr-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.inv-card-date{font-family:'DM Mono',monospace;font-size:14px;font-weight:700}
+.inv-card-meta{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;opacity:.95}
+.inv-card-del{background:rgba(255,255,255,.18);border:none;color:#fff;width:24px;height:24px;border-radius:6px;font-size:12px;cursor:pointer;line-height:1;flex:none}
+.inv-card-hdr-sub{font-size:11px;opacity:.85;margin-top:5px;word-break:break-all}
+.inv-card-body{padding:4px 14px 6px}
+.inv-style{padding:10px 0;border-bottom:1px dashed rgba(0,0,0,.08)}
+.inv-style:last-child{border-bottom:none}
+.inv-style-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.inv-style-no{font-family:'DM Mono',monospace;font-weight:700;font-size:13px;flex:1}
+.inv-style-total{font-size:13px;font-weight:700;color:var(--ac)}
+.inv-color-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0 4px 6px;font-size:12px;color:var(--txt)}
+.inv-color-left{display:flex;align-items:center;gap:6px}
+.color-chip{background:var(--bg);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:6px;font-family:'DM Mono',monospace;font-weight:600}
+.inv-color-edit{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:2px 4px}
+.inv-card-foot{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg);font-size:13px;font-weight:700;border-top:1px solid var(--bdr)}
 .cal-dots{display:flex;gap:3px;justify-content:center;margin-top:8px;flex-wrap:wrap}
 .cal-dot{width:6px;height:6px;border-radius:50%;background:var(--grn);flex:none}
 .cal-dot.manual{background:#B8D1C2}
@@ -222,6 +241,8 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
   .cal-event{font-size:9px;padding:1px 3px}
   .pend-card .btn{width:100%}
   .bls-footer{font-size:9px;right:6px;bottom:6px}
+  #inbound-tbl .tbl-wrap{display:none}
+  .inv-cards{display:block}
 }
 .order-card{background:var(--surf);border:1px solid var(--bdr);border-radius:14px;padding:16px;margin-bottom:12px}
 .stage-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
@@ -2440,6 +2461,7 @@ function renderArrivalList() {
 
   let totalQty = 0, totalBoxes = 0;
   const bodyRows = [];
+  const cardBlocks = [];
   invoiceGroups.forEach(group => {
     const groupCtn = group.reduce((s, x) => s + (Number(x.ctn) || 0), 0);
     totalBoxes += groupCtn;
@@ -2451,8 +2473,11 @@ function renderArrivalList() {
       if (!styleMap.has(r.style_no)) styleMap.set(r.style_no, []);
       styleMap.get(r.style_no).push(r);
     });
+    let invoiceQty = 0;
     group.forEach((r, idx) => {
-      totalQty += Number(r.qty_color) || 0;
+      const colorQty = Number(r.qty_color) || 0;
+      totalQty += colorQty;
+      invoiceQty += colorQty;
       const isFirstInInvoice = idx === 0;
       const isLastInInvoice = idx === group.length - 1;
       const styleRows = styleMap.get(r.style_no);
@@ -2479,6 +2504,42 @@ function renderArrivalList() {
       ${actionsTd}
     </tr>`);
     });
+
+    // 모바일 인보이스 카드
+    const first = group[0];
+    const styleBlocksHtml = [...styleMap.values()].map(rowsForStyle => {
+      const bc = getArrivalBrandColor(rowsForStyle[0].brand);
+      const colorRowsHtml = rowsForStyle.map(r => `
+        <div class="inv-color-row">
+          <span class="inv-color-left"><span class="color-chip">${formatColorCode(r.color_code)||'-'}</span></span>
+          <span>${Number(r.qty_color||0).toLocaleString()}${isMaster ? `<button class="inv-color-edit" onclick="openArrivalEditModal('${r.id}')">✎</button>` : ''}</span>
+        </div>`).join('');
+      return `
+        <div class="inv-style">
+          <div class="inv-style-hdr">
+            <span class="brand-name-tag" style="background:${bc.bg};color:${bc.fg}">${rowsForStyle[0].brand||'-'}</span>
+            <span class="inv-style-no">${rowsForStyle[0].style_no||'-'}</span>
+            <span class="inv-style-total">${Number(rowsForStyle[0].qty_total||0).toLocaleString()}</span>
+          </div>
+          ${colorRowsHtml}
+        </div>`;
+    }).join('');
+    const delBtnHtml = isMaster ? `<button class="inv-card-del" onclick="deleteArrivalInvoice('${invKey}')">✗</button>` : '';
+    cardBlocks.push(`
+      <div class="inv-card">
+        <div class="inv-card-hdr">
+          <div class="inv-card-hdr-top">
+            <span class="inv-card-date">${formatArrivalCardDate(first.arrival_date)}</span>
+            <span class="inv-card-meta">${groupCtn || '-'} CTN · ${first.container_type||'-'}${delBtnHtml}</span>
+          </div>
+          <div class="inv-card-hdr-sub">${first.supplier||'-'} · ${first.bl_no||'-'} · ${first.invoice_no||'-'}</div>
+        </div>
+        <div class="inv-card-body">${styleBlocksHtml}</div>
+        <div class="inv-card-foot">
+          <span>${L('합계','Total')}</span>
+          <span>${invoiceQty.toLocaleString()}${L('장','pcs')} · ${groupCtn || 0} CTN</span>
+        </div>
+      </div>`);
   });
   const bulkBarHtml = isMaster ? `
     <div class="bulk-bar" id="arr-bulk-bar">
@@ -2489,6 +2550,7 @@ function renderArrivalList() {
     <thead><tr>${isMaster?`<th style="width:36px;text-align:center"><input type="checkbox" id="arr-chk-all" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleArrivalSelectAll(this.checked)"></th>`:''}<th>DATE</th><th>SUPPLIER</th><th>BRAND</th><th>STYLE NO.</th><th>COLOR CODE</th><th>QTY/COLOR</th><th>QTY/TOTAL</th><th>CTN</th><th>TYPE</th><th>Forwarder</th><th>B/L NO.</th><th>INVOICE NO.</th>${isMaster?`<th>${L('관리','Manage')}</th>`:''}</tr></thead>
     <tbody>${bodyRows.join('')}</tbody>
     </table></div>
+    <div class="inv-cards">${cardBlocks.join('')}</div>
     <div style="display:flex;justify-content:flex-end;gap:24px;padding:12px 16px;background:var(--surf);border:1px solid var(--bdr);border-radius:12px;font-size:13px;font-weight:700;color:var(--txt)">
       <span>${L('총 수량','Total Qty')}: ${totalQty.toLocaleString()}${L('장','pcs')}</span>
       <span>${L('총 박스','Total CTN')}: ${totalBoxes.toLocaleString()}</span>
@@ -2610,6 +2672,16 @@ function formatColorCode(v) {
   const s = typeof v === 'number' ? String(Math.trunc(v)) : String(v).trim();
   if (!s) return null;
   return /^\d+$/.test(s) ? s.padStart(3, '0') : s;
+}
+// 모바일 인보이스 카드 날짜 표시 (예: 06/15 (월))
+function formatArrivalCardDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return dateStr;
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const dow = L(['일','월','화','수','목','금','토'],['Sun','Mon','Tue','Wed','Thu','Fri','Sat'])[d.getDay()];
+  return `${mm}/${dd} (${dow})`;
 }
 function openArrivalUploadModal() {
   parsedArrivalRows = [];
@@ -2997,6 +3069,29 @@ async function deleteSelectedArrivals() {
   if (!confirm(L(`선택한 ${cnt}건을 삭제하시겠습니까?`,`Delete ${cnt} selected item(s)?`))) return;
   const ids = [...selectedArrivalKeys].flatMap(key => arrivalGroupIdMap.get(key) || []);
   if (!ids.length) return;
+  const pairs = new Map();
+  ids.forEach(id => {
+    const row = allArrival.find(x => x.id === id);
+    if (row) pairs.set(`${row.arrival_date}|${row.style_no}`, { date: row.arrival_date, style: row.style_no });
+  });
+  try {
+    await sb(`arrival_schedule?id=in.(${ids.join(',')})`, 'DELETE');
+    await loadAll();
+    for (const { date, style } of pairs.values()) {
+      await recalcAndPatchGroupTotal(date, style);
+    }
+    await loadAll();
+    renderArrivalList();
+    if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar();
+  } catch(e) {
+    alert(e.message);
+  }
+}
+// 모바일 인보이스 카드의 삭제 버튼 (해당 인보이스의 모든 행을 한 번에 삭제)
+async function deleteArrivalInvoice(invKey) {
+  const ids = arrivalGroupIdMap.get(invKey) || [];
+  if (!ids.length) return;
+  if (!confirm(L('이 인보이스의 모든 항목을 삭제하시겠습니까?','Delete all items in this invoice?'))) return;
   const pairs = new Map();
   ids.forEach(id => {
     const row = allArrival.find(x => x.id === id);
