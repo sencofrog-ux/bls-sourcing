@@ -902,6 +902,25 @@ function calcDday(dateStr) {
   if (diff > 14 || diff < 0) return null;
   return diff;
 }
+// 현재 시각을 KST(Asia/Seoul) 기준 ISO 문자열(+09:00)로 반환. 호스트 OS의 시간대 설정과 무관하게
+// 벤더가 누른 실제 한국 시간을 정확히 기록하기 위해 사용 (DB의 now()는 서버 시간대에 의존하므로 미사용).
+function nowKstIso() {
+  const p = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date()).reduce((o, x) => { o[x.type] = x.value; return o; }, {});
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}+09:00`;
+}
+// timestamptz 값을 KST 기준 'YYYY-MM-DD'로 변환 (UTC로 단순 slice 시 자정~오전 9시 사이 날짜가 하루 당겨지는 문제 방지)
+function kstDateStr(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (isNaN(d)) return '';
+  const p = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(d).reduce((o, x) => { o[x.type] = x.value; return o; }, {});
+  return `${p.year}-${p.month}-${p.day}`;
+}
 function addBusinessDays(dateStr, days) {
   let d = new Date(dateStr + 'T00:00:00');
   let added = 0;
@@ -1511,7 +1530,7 @@ function renderVendorOrderCards(list) {
 // ── 생산 단계 체크/해제 이력 기록 (대시보드 미노출, RECAP 다운로드용) ──
 async function logProductionStage(orderId, stage, action) {
   try {
-    await sb('production_log', 'POST', { order_id: orderId, stage, action, logged_by: me.id });
+    await sb('production_log', 'POST', { order_id: orderId, stage, action, logged_by: me.id, logged_at: nowKstIso() });
   } catch (e) { console.error('production_log insert failed', e); }
 }
 
@@ -2698,9 +2717,11 @@ function handleArrivalExcelUpload(e) {
   reader.onload = function(evt) {
     try {
       const data = evt.target.result;
-      const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+      // cellDates 미사용: 엑셀 날짜 셀을 JS Date(시간대 영향을 받음)로 변환하지 않고
+      // 원본 시리얼 번호/문자열을 그대로 읽어 시간대 변환 없이 날짜를 파싱한다.
+      const workbook = XLSX.read(data, { type: 'binary', cellDates: false });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
       const headerRow = rows[0] || [];
       const normHeader = (s) => String(s).split('\n')[0].trim().toUpperCase().replace(/\s+/g, ' ').replace(/\s*\/\s*/g, '/');
       const colMap = {};
@@ -2720,12 +2741,20 @@ function handleArrivalExcelUpload(e) {
       const COL_BL = findCol(['B/L NO.','B/L NO','BL NO']);
       const COL_INV = findCol(['INVOICE NO.','INVOICE NO']);
 
+      // 엑셀 DATE 셀 → 'YYYY-MM-DD' 문자열. 시간대 변환(UTC↔KST) 없이 셀에 기록된 날짜 그대로 추출한다.
       const getDt = (v) => {
+        if (v === null || v === undefined || v === '') return '';
+        if (typeof v === 'number') {
+          // 엑셀 날짜 시리얼 번호 → 순수 날짜 산술로 y/m/d 추출 (Date 객체/시간대 미사용)
+          const dc = XLSX.SSF.parse_date_code(v);
+          if (!dc) return '';
+          return `${dc.y}-${String(dc.m).padStart(2,'0')}-${String(dc.d).padStart(2,'0')}`;
+        }
         if (v instanceof Date) {
           const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,'0'), d=String(v.getDate()).padStart(2,'0');
           return `${y}-${m}-${d}`;
         }
-        return v ? String(v).trim().slice(0,10) : '';
+        return String(v).trim().slice(0,10);
       };
 
       const parsed = [];
@@ -2922,7 +2951,7 @@ async function downloadProductionRecap() {
       const stage = {};
       STAGES.forEach(s => {
         const log = o[s+'_done'] ? latestByOrderStage[o.id+'_'+s] : null;
-        stage[s+'_date'] = log ? log.logged_at.slice(0,10) : '';
+        stage[s+'_date'] = log ? kstDateStr(log.logged_at) : '';
         const byUser = log ? allUsers.find(u => u.id === log.logged_by) : null;
         stage[s+'_by'] = byUser ? byUser.company_name : '';
       });
