@@ -1308,6 +1308,10 @@ async function loadAll() {
       (me.role==='master'||me.role==='cs') ? sb('defect_history?select=*&order=created_at.desc') : Promise.resolve([]),
       (me.role==='master'||me.role==='md') ? sb('sample_tracking?select=*') : Promise.resolve([])
     ]);
+    console.log('[loadAll] orders:', allOrders.length, 'sample_tracking:', allSampleTracking.length, allSampleTracking);
+    if ((me.role==='master'||me.role==='md') && allSampleTracking.length === 0) {
+      console.warn('[loadAll] sample_tracking이 비어 있습니다. orders는 있는데 이 값이 0이면 sample_tracking 행이 생성되지 않은 것입니다 (백필 마이그레이션 필요).');
+    }
     setupFilters();
     renderDashboard();
     updateBadges();
@@ -1378,12 +1382,16 @@ function setupFilters() {
   const sampleSeasonSel = document.getElementById('sample-season-filter');
   const sampleVendorSel = document.getElementById('sample-vendor-filter');
   if (sampleSeasonSel) {
+    const prevVal = sampleSeasonSel.value;
     sampleSeasonSel.innerHTML = `<option value="">${L('전체 시즌','All Seasons')}</option>`;
-    allSeasons.forEach(s => { sampleSeasonSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`; });
+    allSeasons.forEach(s => { sampleSeasonSel.innerHTML += `<option value="${s.id}">${s.name}</option>`; });
+    if (prevVal && sampleSeasonSel.querySelector(`option[value="${prevVal}"]`)) sampleSeasonSel.value = prevVal;
   }
   if (sampleVendorSel) {
+    const prevVal = sampleVendorSel.value;
     sampleVendorSel.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>`;
     vendors.forEach(v => { const code = v.vendor_code ? ` [${v.vendor_code}]` : ''; sampleVendorSel.innerHTML += `<option value="${v.id}">${v.company_name}${code}</option>`; });
+    if (prevVal && sampleVendorSel.querySelector(`option[value="${prevVal}"]`)) sampleVendorSel.value = prevVal;
   }
   restoreDashFilters();
 }
@@ -3988,9 +3996,10 @@ function getSampleFiltered() {
   const seasonVal = document.getElementById('sample-season-filter')?.value || '';
   const vendorVal = document.getElementById('sample-vendor-filter')?.value || '';
   const searchVal = (document.getElementById('sample-search')?.value || '').toLowerCase().trim();
-  return allSampleTracking.filter(st => {
+  const orphaned = [];
+  const result = allSampleTracking.filter(st => {
     const order = allOrders.find(o => o.id === st.order_id);
-    if (!order) return false;
+    if (!order) { orphaned.push(st.order_id); return false; }
     if (seasonVal && order.season_id !== seasonVal) return false;
     if (vendorVal && order.vendor_id !== vendorVal) return false;
     if (searchVal) {
@@ -3999,6 +4008,11 @@ function getSampleFiltered() {
     }
     return true;
   });
+  console.log('[getSampleFiltered] season:', seasonVal || '(전체)', 'vendor:', vendorVal || '(전체)', 'search:', searchVal || '(없음)', '→', result.length, '/', allSampleTracking.length, '건');
+  if (orphaned.length > 0) {
+    console.warn('[sample] orders 테이블에서 찾을 수 없는 sample_tracking.order_id:', orphaned);
+  }
+  return result;
 }
 
 function sampleResultBadge(val) {
@@ -4012,6 +4026,7 @@ function sampleResultBadge(val) {
 function renderSampleTracking() {
   const rows = getSampleFiltered();
   const tbody = document.getElementById('sample-tbody');
+  console.log('[renderSampleTracking] tbody found:', !!tbody, '표시할 행:', rows.length);
   if (!tbody) return;
   if (rows.length === 0) {
     tbody.innerHTML = `<tr><td colspan="22" style="text-align:center;padding:32px;color:var(--muted)">등록된 샘플 데이터가 없습니다</td></tr>`;
