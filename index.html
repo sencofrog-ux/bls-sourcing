@@ -269,6 +269,16 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .util-donut-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:20px;margin-bottom:16px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
 .util-bar-track{width:100%;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:5px}
 .util-bar-fill{height:100%;border-radius:4px;transition:width .4s ease}
+/* ── 샘플 관리 ── */
+.sample-tbl-wrap{overflow-x:auto;border:1px solid var(--bdr);border-radius:12px;background:var(--surf);margin-bottom:15px}
+.sample-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:1600px}
+.sample-tbl thead th{background:var(--bg);padding:9px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--bdr);white-space:nowrap}
+.sample-tbl .th-group{background:var(--acl);color:var(--ac);text-align:center;font-size:10px;font-weight:700}
+.sample-tbl tbody td{padding:8px 10px;border-bottom:1px solid var(--bdr);vertical-align:middle;white-space:nowrap}
+.sample-tbl tbody tr:last-child td{border-bottom:none}
+.sample-tbl tbody tr:hover{background:var(--bg)}
+.bdg-fix{background:#fef9ec;color:#b7770d}
+.bdg-reject{background:var(--redl);color:var(--red)}
 </style>
 </head>
 <body class="theme-master">
@@ -533,6 +543,46 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
             <div class="manual-step"><div class="manual-step-num">1</div><div data-ko="회원가입 후 마스터 승인 대기" data-en="Sign up and wait for master approval">회원가입 후 마스터 승인 대기</div></div>
             <div class="manual-step"><div class="manual-step-num">2</div><div data-ko="오더 등록 → 벤더에게 스타일 배정" data-en="Register Order → Assign styles to vendors">오더 등록 → 벤더에게 스타일 배정</div></div>
             <div class="manual-step"><div class="manual-step-num">3</div><div data-ko="대시보드에서 전체 현황 조회 (읽기 전용)" data-en="View overall status on Dashboard (read-only)">대시보드에서 전체 현황 조회 (읽기 전용)</div></div>
+          </div>
+        </div>
+
+        <div class="sec" id="sec-sample">
+          <div class="sec-hdr">
+            <div><div class="sec-title">🧾 샘플 관리</div><div class="sec-sub">TP · QC · PP · Shipping 샘플 수령 및 결과 관리</div></div>
+            <button class="btn btn-s btn-sm" id="sample-pcl-btn" style="width:auto">⬇️ PCL RAW DATA 다운로드</button>
+          </div>
+          <div class="filter-row">
+            <select class="fsel" id="sample-season-filter"><option value="">전체 시즌</option></select>
+            <select class="fsel" id="sample-vendor-filter"><option value="">전체 벤더</option></select>
+            <input class="fsearch" type="text" id="sample-search" placeholder="스타일 검색">
+          </div>
+          <div class="sample-tbl-wrap">
+            <table class="sample-tbl">
+              <thead>
+                <tr>
+                  <th rowspan="2">STYLE NO.</th>
+                  <th rowspan="2">STYLE NAME</th>
+                  <th rowspan="2">VENDOR</th>
+                  <th rowspan="2">TP 발송일</th>
+                  <th colspan="3" class="th-group">QC1</th>
+                  <th colspan="3" class="th-group">QC2</th>
+                  <th colspan="3" class="th-group">QC3</th>
+                  <th colspan="3" class="th-group">QC4</th>
+                  <th colspan="3" class="th-group">PP</th>
+                  <th colspan="3" class="th-group">SHIPPING</th>
+                  <th rowspan="2"></th>
+                </tr>
+                <tr>
+                  <th>수령일</th><th>결과</th><th>코멘트</th>
+                  <th>수령일</th><th>결과</th><th>코멘트</th>
+                  <th>수령일</th><th>결과</th><th>코멘트</th>
+                  <th>수령일</th><th>결과</th><th>코멘트</th>
+                  <th>수령일</th><th>결과</th><th>코멘트</th>
+                  <th>수령일</th><th>결과</th><th>코멘트</th>
+                </tr>
+              </thead>
+              <tbody id="sample-tbody"></tbody>
+            </table>
           </div>
         </div>
 
@@ -811,6 +861,21 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
   </div>
 </div>
 
+<div class="overlay" id="sample-modal">
+  <div class="modal" style="max-width:640px">
+    <div class="mhdr"><div><div class="mhdr-t" id="sm-title">샘플 관리 입력</div><div class="mhdr-s" id="sm-sub"></div></div><button class="mclose" id="sm-close">×</button></div>
+    <div class="mbody">
+      <div class="alert alert-e" id="sm-alert"></div>
+      <div class="fg"><label class="fl">TP 발송일</label><input type="date" id="sm-tp-date"></div>
+      <div id="sm-stages"></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="sm-cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="sm-save" style="width:auto">저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="bls-footer">Copyright by BLS Korea Sourcing</div>
 
 <script>
@@ -820,7 +885,7 @@ const SUPABASE_KEY = "sb_publishable_b19kpVsItvdlFneFpzYb2Q_Z_Xc3ccr";
 
 // ── 전역 상태 ──
 let me = null;
-let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allErrors = [], allArrival = [], allDefectHistory = [];
+let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allErrors = [], allArrival = [], allDefectHistory = [], allSampleTracking = [];
 let activeOrderId = null, editFactoryId = null, editArrivalId = null;
 let inboundCalYear, inboundCalMonth;
 let inboundDayPanelDate = null;
@@ -1042,6 +1107,7 @@ function buildSidebar() {
       <button class="nav-btn" data-sec="pending" data-ko="⏳ 승인 대기" data-en="⏳ Pending Approval">⏳ 승인 대기 <span class="nav-badge" id="pend-badge">0</span></button>
       <button class="nav-btn" data-sec="order-reg" data-ko="➕ 오더 등록" data-en="➕ Order Registration">➕ 오더 등록</button>
       <button class="nav-btn" data-sec="shipout" data-ko="📦 선적 확정" data-en="📦 Confirm Shipment">📦 선적 확정</button>
+      <button class="nav-btn" data-sec="sample" data-ko="🧾 샘플 관리" data-en="🧾 Sample Tracking">🧾 샘플 관리</button>
       <button class="nav-btn" data-sec="recap" data-ko="📊 생산 RECAP 다운로드" data-en="📊 Production Recap">📊 생산 RECAP 다운로드</button>
       <button class="nav-btn" data-sec="inbound" data-ko="📅 입고 일정표" data-en="📅 Inbound Schedule">📅 입고 일정표</button>
       <button class="nav-btn" data-sec="factory-all" data-ko="🏭 공장 현황" data-en="🏭 Factory Overview">🏭 공장 현황</button>
@@ -1061,6 +1127,7 @@ function buildSidebar() {
     menu = `
       <button class="nav-btn on" data-sec="dashboard" data-ko="📋 전체 오더 현황" data-en="📋 All Orders">📋 전체 오더 현황</button>
       <button class="nav-btn" data-sec="order-reg" data-ko="➕ 오더 등록" data-en="➕ Order Registration">➕ 오더 등록</button>
+      <button class="nav-btn" data-sec="sample" data-ko="🧾 샘플 관리" data-en="🧾 Sample Tracking">🧾 샘플 관리</button>
       <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
   } else if (me.role === 'viewer') {
     menu = `
@@ -1088,6 +1155,7 @@ function switchSec(id) {
   if (id === 'factory-mine') renderFactoryMine();
   if (id === 'members') renderMembers();
   if (id === 'errors') renderErrors();
+  if (id === 'sample') renderSampleTracking();
   if (id === 'manual') setTimeout(()=>{ if(!document.getElementById('base-url').value) document.getElementById('base-url').value = location.href.replace(/\/[^/]*$/,''); genQR(); }, 100);
 }
 function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sb-shade').classList.remove('on'); }
@@ -1207,9 +1275,18 @@ function bindAppEvents() {
   });
   document.getElementById('defm-qty').addEventListener('input', previewDefectRate);
   document.getElementById('recap-download-btn')?.addEventListener('click', downloadProductionRecap);
+
+  document.getElementById('sample-pcl-btn')?.addEventListener('click', downloadPCLData);
+  document.getElementById('sample-season-filter')?.addEventListener('change', renderSampleTracking);
+  document.getElementById('sample-vendor-filter')?.addEventListener('change', renderSampleTracking);
+  document.getElementById('sample-search')?.addEventListener('input', renderSampleTracking);
+  document.getElementById('sm-close')?.addEventListener('click', closeSampleModal);
+  document.getElementById('sm-cancel')?.addEventListener('click', closeSampleModal);
+  document.getElementById('sm-save')?.addEventListener('click', saveSampleData);
+  document.getElementById('sample-modal')?.addEventListener('click', e=>{ if(e.target.id==='sample-modal') closeSampleModal(); });
 }
 function closeModal(prefix) {
-  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal'};
+  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal', sm:'sample-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
@@ -1221,14 +1298,15 @@ async function loadAll() {
     const factoriesQuery = isVendor ? `factories?select=*&vendor_id=eq.${me.id}` : 'factories?select=*';
     const usersQuery = isVendor ? `users?select=id,company_name,role&id=eq.${me.id}` : 'users?select=*';
 
-    [allUsers, allSeasons, allOrders, allFactories, allErrors, allArrival, allDefectHistory] = await Promise.all([
+    [allUsers, allSeasons, allOrders, allFactories, allErrors, allArrival, allDefectHistory, allSampleTracking] = await Promise.all([
       sb(usersQuery),
       sb('seasons?select=*'),
       sb(ordersQuery),
       sb(factoriesQuery),
       me.role==='master' ? sb('errors?select=*&order=created_at.desc') : Promise.resolve([]),
       sb('arrival_schedule?select=*&order=arrival_date.asc,style_no.asc'),
-      (me.role==='master'||me.role==='cs') ? sb('defect_history?select=*&order=created_at.desc') : Promise.resolve([])
+      (me.role==='master'||me.role==='cs') ? sb('defect_history?select=*&order=created_at.desc') : Promise.resolve([]),
+      (me.role==='master'||me.role==='md') ? sb('sample_tracking?select=*') : Promise.resolve([])
     ]);
     setupFilters();
     renderDashboard();
@@ -1296,6 +1374,16 @@ function setupFilters() {
   if (facSeasonSel) {
     facSeasonSel.innerHTML = `<option value="">${L('전체 시즌','All Seasons')}</option>`;
     allSeasons.forEach(s => { facSeasonSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`; });
+  }
+  const sampleSeasonSel = document.getElementById('sample-season-filter');
+  const sampleVendorSel = document.getElementById('sample-vendor-filter');
+  if (sampleSeasonSel) {
+    sampleSeasonSel.innerHTML = `<option value="">${L('전체 시즌','All Seasons')}</option>`;
+    allSeasons.forEach(s => { sampleSeasonSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`; });
+  }
+  if (sampleVendorSel) {
+    sampleVendorSel.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>`;
+    vendors.forEach(v => { const code = v.vendor_code ? ` [${v.vendor_code}]` : ''; sampleVendorSel.innerHTML += `<option value="${v.id}">${v.company_name}${code}</option>`; });
   }
   restoreDashFilters();
 }
@@ -1749,7 +1837,11 @@ function closeDupStyleModal() {
 async function doSubmitOrder(body) {
   const btn = document.getElementById('reg-submit'); btn.disabled=true; btn.textContent=L('등록 중...','Registering...');
   try {
-    await sb('orders', 'POST', body);
+    const newOrderRes = await sb('orders', 'POST', body);
+    const newOrder = Array.isArray(newOrderRes) ? newOrderRes[0] : newOrderRes;
+    if (newOrder?.id) {
+      try { await sb('sample_tracking', 'POST', { order_id: newOrder.id }); } catch(e) { console.warn('sample_tracking 생성 실패:', e); }
+    }
     showAlert('reg-alert', L('✓ 오더가 등록되었습니다','✓ Order registered successfully'), 's');
     ['reg-styleno','reg-stylename','reg-cat','reg-qty','reg-price','reg-shipdate','reg-notes','reg-po-send'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('reg-urgent').checked = false;
@@ -2036,7 +2128,11 @@ async function submitBulkOrders() {
       if (item._action === 'NEW') {
         // _로 시작하는 클라이언트 전용 필드 제거 후 전송
         const { _action, _rowNum, _supplierName, _matchedVendorName, _matchedVendorCode, _unmatched, ...orderData } = item;
-        await sb('orders', 'POST', orderData);
+        const newOrderRes = await sb('orders', 'POST', orderData);
+        const newOrder = Array.isArray(newOrderRes) ? newOrderRes[0] : newOrderRes;
+        if (newOrder?.id) {
+          try { await sb('sample_tracking', 'POST', { order_id: newOrder.id }); } catch(e) { console.warn('sample_tracking 생성 실패:', e); }
+        }
         counts.NEW++;
       } else if (item._action === 'UPDATE') {
         const history = Array.isArray(allOrders.find(o => o.id === item._existingId)?.quantity_history)
@@ -2579,8 +2675,16 @@ function renderArrivalList() {
 function renderArrivalCalendar() {
   const groups = groupArrivalRows(allArrival);
   const data = [...groups.values()].map(g => ({ date: g[0].arrival_date, name: g[0].style_no, qty: g[0].qty_total }));
+  // 날짜별 고유 INVOICE NO. 수 (컬러별 행 중복 제외)
+  const invoiceSetsByDate = new Map();
+  allArrival.forEach(r => {
+    if (!r.arrival_date || !r.invoice_no) return;
+    if (!invoiceSetsByDate.has(r.arrival_date)) invoiceSetsByDate.set(r.arrival_date, new Set());
+    invoiceSetsByDate.get(r.arrival_date).add(r.invoice_no);
+  });
+  const dayInvoiceCounts = new Map([...invoiceSetsByDate].map(([d, s]) => [d, s.size]));
   if (!inboundCalYear) { const n = new Date(); inboundCalYear = n.getFullYear(); inboundCalMonth = n.getMonth(); }
-  document.getElementById('inbound-cal').innerHTML = buildCal(data, inboundCalYear, inboundCalMonth, 'inbound', r=>r.date, r=>r.name, r=>r.qty);
+  document.getElementById('inbound-cal').innerHTML = buildCal(data, inboundCalYear, inboundCalMonth, 'inbound', r=>r.date, r=>r.name, r=>r.qty, null, null, dayInvoiceCounts);
   closeArrivalDayPanel();
   document.querySelectorAll('[data-cal="inbound"]').forEach(b=>b.addEventListener('click', ()=>{
     inboundCalMonth += +b.dataset.dir;
@@ -2647,7 +2751,7 @@ function renderArrivalDayPanel(dateStr) {
       <button class="cal-day-panel-close" onclick="closeArrivalDayPanel()">✕</button>
     </div>
     <div class="cal-day-summary">
-      <div class="cal-summary-item"><div class="cal-summary-val">${count}</div><div class="cal-summary-lbl">${L('입고 건수','Inbound')}</div></div>
+      <div class="cal-summary-item"><div class="cal-summary-val">${invoiceCount}</div><div class="cal-summary-lbl">${L('입고 건수','Inbound')}</div></div>
       <div class="cal-summary-item"><div class="cal-summary-val">${styleCount}</div><div class="cal-summary-lbl">${L('스타일 종수','Styles')}</div></div>
       <div class="cal-summary-item"><div class="cal-summary-val">${invoiceCount}</div><div class="cal-summary-lbl">${L('인보이스 건수','Invoices')}</div></div>
     </div>
@@ -2664,7 +2768,7 @@ function closeArrivalDayPanel() {
 function showArrivalDayDetail(dateStr) {
   const { byBrand, totalQty, totalCtn, count, styleCount, invoiceCount } = computeArrivalDaySummary(dateStr);
   document.getElementById('dm-title').textContent = dateStr + L(' 입고 예정',' Inbound Schedule');
-  document.getElementById('dm-sub').textContent = L(`입고 ${count}건 · 스타일 ${styleCount}종 · 인보이스 ${invoiceCount}건`, `${count} inbound · ${styleCount} styles · ${invoiceCount} invoices`);
+  document.getElementById('dm-sub').textContent = L(`입고 ${invoiceCount}건 · 스타일 ${styleCount}종`, `${invoiceCount} inbound · ${styleCount} styles`);
   const rows = [...byBrand.entries()].map(([brand, g]) => {
     const c = getArrivalBrandColor(brand);
     return `<tr>
@@ -3154,7 +3258,7 @@ const KR_HOLIDAYS = new Set([
   '2027-05-13','2027-06-06','2027-08-15','2027-08-16','2027-09-14','2027-09-15','2027-09-16',
   '2027-10-03','2027-10-04','2027-10-09','2027-10-11','2027-12-25','2027-12-27'
 ]);
-function buildCal(data, year, month, prefix, getDate, getName, getQty, highlightDates, getManual) {
+function buildCal(data, year, month, prefix, getDate, getName, getQty, highlightDates, getManual, dayCounts) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month+1, 0);
   const startDow = first.getDay();
@@ -3183,13 +3287,14 @@ function buildCal(data, year, month, prefix, getDate, getName, getQty, highlight
     const dateClass = isHoliday||dow===0 ? 'cal-date-red' : dow===6 ? 'cal-date-sat' : '';
     html += `<div class="cal-cell ${isToday?'today':''} ${hasEv?'has-events':''} ${isHighlight?'cal-highlight':''}" ${hasEv?`data-day="${dateStr}"`:'style="cursor:default"'}><div class="cal-date ${dateClass}">${d}</div>`;
     if (isMobile) {
-      if (hasEv) {
-        html += `<div class="cal-dots">${evs.slice(0,3).map(e=>`<span class="cal-dot ${e.manual?'manual':''}"></span>`).join('')}</div>`;
-        if (evs.length>=2) html += `<div class="cal-cell-count">${evs.length}건</div>`;
-      }
+      if (hasEv) html += `<div class="cal-dots">${evs.slice(0,3).map(e=>`<span class="cal-dot ${e.manual?'manual':''}"></span>`).join('')}</div>`;
     } else {
       evs.slice(0,3).forEach(e=>html+=`<div class="cal-event ${e.manual?'manual':'confirmed'}">${e.name}</div>`);
-      if (evs.length>3) html += `<div style="font-size:9px;color:var(--muted)">+${evs.length-3}건</div>`;
+      if (evs.length>3) html += `<div style="font-size:9px;color:var(--muted)">+${evs.length-3}${L(' 종 더보기',' more')}</div>`;
+    }
+    if (hasEv && evs.length>=2) {
+      const cellCount = dayCounts ? (dayCounts.get(dateStr)||0) : evs.length;
+      html += `<div class="cal-cell-count">${cellCount}건</div>`;
     }
     html += '</div>';
   }
@@ -3874,6 +3979,165 @@ async function executeForceShip() {
   } finally {
     btn.disabled = false; btn.textContent = L('📦 선적완료 처리','📦 Mark as Shipped');
   }
+}
+
+// ── 샘플 관리 ──
+let activeSampleOrderId = null;
+
+function getSampleFiltered() {
+  const seasonVal = document.getElementById('sample-season-filter')?.value || '';
+  const vendorVal = document.getElementById('sample-vendor-filter')?.value || '';
+  const searchVal = (document.getElementById('sample-search')?.value || '').toLowerCase().trim();
+  return allSampleTracking.filter(st => {
+    const order = allOrders.find(o => o.id === st.order_id);
+    if (!order) return false;
+    if (seasonVal && order.season_id !== seasonVal) return false;
+    if (vendorVal && order.vendor_id !== vendorVal) return false;
+    if (searchVal) {
+      const hay = `${order.style_no||''} ${order.style_name||''}`.toLowerCase();
+      if (!hay.includes(searchVal)) return false;
+    }
+    return true;
+  });
+}
+
+function sampleResultBadge(val) {
+  if (!val) return '<span style="color:var(--muted)">-</span>';
+  if (val === 'OK') return `<span class="bdg bdg-ok">OK</span>`;
+  if (val === '수정') return `<span class="bdg bdg-fix">수정</span>`;
+  if (val === '반려') return `<span class="bdg bdg-reject">반려</span>`;
+  return `<span class="bdg">${val}</span>`;
+}
+
+function renderSampleTracking() {
+  const rows = getSampleFiltered();
+  const tbody = document.getElementById('sample-tbody');
+  if (!tbody) return;
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="22" style="text-align:center;padding:32px;color:var(--muted)">등록된 샘플 데이터가 없습니다</td></tr>`;
+    return;
+  }
+  const stageKeys = ['qc1','qc2','qc3','qc4','pp','shipping'];
+  tbody.innerHTML = rows.map(st => {
+    const order = allOrders.find(o => o.id === st.order_id);
+    if (!order) return '';
+    const vendor = allUsers.find(u => u.id === order.vendor_id);
+    const stageCells = stageKeys.map(k => {
+      const date = st[`${k}_date`] || '';
+      const result = st[`${k}_result`] || '';
+      const comment = st[`${k}_comment`] || '';
+      return `<td style="min-width:88px">${date||'<span style="color:var(--muted)">-</span>'}</td><td>${sampleResultBadge(result)}</td><td style="min-width:100px;max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--muted)">${comment||'-'}</td>`;
+    }).join('');
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace">${order.style_no||''}</td>
+      <td>${order.style_name||''}</td>
+      <td>${vendor?.company_name||'-'}</td>
+      <td>${st.tp_date||'<span style="color:var(--muted)">-</span>'}</td>
+      ${stageCells}
+      <td><button class="btn btn-s btn-sm" onclick="openSampleModal('${st.order_id}','${st.id}')">입력</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openSampleModal(orderId, trackingId) {
+  activeSampleOrderId = orderId;
+  const order = allOrders.find(o => o.id === orderId);
+  const st = allSampleTracking.find(s => s.id === trackingId || s.order_id === orderId);
+  document.getElementById('sm-title').textContent = L('샘플 관리 입력','Sample Tracking Input');
+  document.getElementById('sm-sub').textContent = order ? `${order.style_no||''} · ${order.style_name||''}` : '';
+  document.getElementById('sm-tp-date').value = st?.tp_date || '';
+  document.getElementById('sm-alert').classList.remove('on');
+  const stages = [
+    {key:'qc1',label:'QC1'},{key:'qc2',label:'QC2'},
+    {key:'qc3',label:'QC3'},{key:'qc4',label:'QC4'},
+    {key:'pp',label:'PP'},{key:'shipping',label:'SHIPPING'}
+  ];
+  document.getElementById('sm-stages').innerHTML = stages.map(({key, label}) => `
+    <div style="border:1px solid var(--bdr);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--ac);margin-bottom:8px">${label}</div>
+      <div class="row3">
+        <div class="fg"><label class="fl">수령일</label><input type="date" id="sm-${key}-date" value="${st?.[key+'_date']||''}"></div>
+        <div class="fg"><label class="fl">결과</label>
+          <select id="sm-${key}-result">
+            <option value="">-</option>
+            <option value="OK"${st?.[key+'_result']==='OK'?' selected':''}>OK</option>
+            <option value="수정"${st?.[key+'_result']==='수정'?' selected':''}>수정</option>
+            <option value="반려"${st?.[key+'_result']==='반려'?' selected':''}>반려</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">코멘트</label><input type="text" id="sm-${key}-comment" value="${(st?.[key+'_comment']||'').replace(/"/g,'&quot;')}"></div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('sample-modal').classList.add('on');
+}
+
+function closeSampleModal() {
+  document.getElementById('sample-modal').classList.remove('on');
+  activeSampleOrderId = null;
+}
+
+async function saveSampleData() {
+  if (!activeSampleOrderId) return;
+  const btn = document.getElementById('sm-save');
+  btn.disabled = true; btn.textContent = L('저장 중...','Saving...');
+  const patch = {
+    tp_date: document.getElementById('sm-tp-date').value || null,
+    updated_by: me.id,
+    updated_at: nowKstIso()
+  };
+  ['qc1','qc2','qc3','qc4','pp','shipping'].forEach(k => {
+    patch[k+'_date'] = document.getElementById(`sm-${k}-date`)?.value || null;
+    patch[k+'_result'] = document.getElementById(`sm-${k}-result`)?.value || null;
+    patch[k+'_comment'] = document.getElementById(`sm-${k}-comment`)?.value || null;
+  });
+  try {
+    const existing = allSampleTracking.find(s => s.order_id === activeSampleOrderId);
+    if (existing) {
+      await sb(`sample_tracking?id=eq.${existing.id}`, 'PATCH', patch);
+    } else {
+      await sb('sample_tracking', 'POST', { order_id: activeSampleOrderId, ...patch });
+    }
+    allSampleTracking = await sb('sample_tracking?select=*');
+    closeSampleModal();
+    renderSampleTracking();
+  } catch(e) {
+    showAlert('sm-alert', e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = L('저장','Save');
+  }
+}
+
+function downloadPCLData() {
+  const rows = getSampleFiltered();
+  if (rows.length === 0) { alert(L('다운로드할 데이터가 없습니다.','No data to download.')); return; }
+  const headers = [
+    'STYLE NO.','STYLE NAME','VENDOR','TP 발송일',
+    'QC1 수령일','QC1 결과','QC1 코멘트',
+    'QC2 수령일','QC2 결과','QC2 코멘트',
+    'QC3 수령일','QC3 결과','QC3 코멘트',
+    'QC4 수령일','QC4 결과','QC4 코멘트',
+    'PP 수령일','PP 결과','PP 코멘트',
+    'SHIPPING 수령일','SHIPPING 결과','SHIPPING 코멘트'
+  ];
+  const data = rows.map(st => {
+    const order = allOrders.find(o => o.id === st.order_id);
+    if (!order) return null;
+    const vendor = allUsers.find(u => u.id === order.vendor_id);
+    return [
+      order.style_no||'', order.style_name||'', vendor?.company_name||'', st.tp_date||'',
+      st.qc1_date||'', st.qc1_result||'', st.qc1_comment||'',
+      st.qc2_date||'', st.qc2_result||'', st.qc2_comment||'',
+      st.qc3_date||'', st.qc3_result||'', st.qc3_comment||'',
+      st.qc4_date||'', st.qc4_result||'', st.qc4_comment||'',
+      st.pp_date||'', st.pp_result||'', st.pp_comment||'',
+      st.shipping_date||'', st.shipping_result||'', st.shipping_comment||''
+    ];
+  }).filter(Boolean);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'PCL_RAW_DATA');
+  XLSX.writeFile(wb, `PCL_RAW_DATA_${today()}.xlsx`);
 }
 
 // ── 오류 자동 수집 ──
