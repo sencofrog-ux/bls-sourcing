@@ -549,7 +549,10 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
         <div class="sec" id="sec-sample">
           <div class="sec-hdr">
             <div><div class="sec-title">🧾 샘플 관리</div><div class="sec-sub">TP · QC · PP · Shipping 샘플 수령 및 결과 관리</div></div>
-            <button class="btn btn-s btn-sm" id="sample-pcl-btn" style="width:auto">⬇️ PCL RAW DATA 다운로드</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-s btn-sm" id="sample-upload-btn" style="width:auto">⬆️ 엑셀 업로드</button>
+              <button class="btn btn-s btn-sm" id="sample-pcl-btn" style="width:auto">⬇️ PCL RAW DATA 다운로드</button>
+            </div>
           </div>
           <div class="filter-row">
             <select class="fsel" id="sample-season-filter"><option value="">전체 시즌</option></select>
@@ -876,6 +879,27 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
   </div>
 </div>
 
+<div class="overlay" id="sample-upload-modal">
+  <div class="modal" style="max-width:640px">
+    <div class="mhdr"><div><div class="mhdr-t" data-ko="샘플 관리 엑셀 업로드" data-en="Upload Sample Tracking Excel">샘플 관리 엑셀 업로드</div><div class="mhdr-s" data-ko="입고일정_업로드양식.xlsx 기준" data-en="Based on the inbound schedule upload template">입고일정_업로드양식.xlsx 기준</div></div><button class="mclose" id="sum-close">×</button></div>
+    <div class="mbody">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5" data-ko="컬럼: STYLE NO. / SUPPLIER / VENDOR_CODE / ORDER Q'TY / 통화 / FOB / TARGET ETD / DESCRIPTION / PO SEND<br>같은 STYLE NO.가 이미 있으면 정보가 업데이트되고, 없으면 새로 생성됩니다." data-en="Columns: STYLE NO. / SUPPLIER / VENDOR_CODE / ORDER Q'TY / CURRENCY / FOB / TARGET ETD / DESCRIPTION / PO SEND<br>Existing STYLE NO. rows are updated; new ones are created.">컬럼: STYLE NO. / SUPPLIER / VENDOR_CODE / ORDER Q'TY / 통화 / FOB / TARGET ETD / DESCRIPTION / PO SEND<br>같은 STYLE NO.가 이미 있으면 정보가 업데이트되고, 없으면 새로 생성됩니다.</p>
+      <div class="fg"><label class="fl" data-ko="시즌 *" data-en="Season *">시즌 *</label><select id="sum-season"></select></div>
+      <input type="file" id="sum-excel-file" accept=".xlsx,.xls" style="display:none">
+      <button class="btn btn-s" type="button" onclick="document.getElementById('sum-excel-file').click()" style="width:auto;margin-top:10px" data-ko="엑셀 파일 선택" data-en="Select Excel File">엑셀 파일 선택</button>
+      <div id="sum-preview-zone" style="display:none;margin-top:16px;border-top:1px solid var(--bdr);padding-top:14px">
+        <h4 style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--txt)" id="sum-preview-count-txt"></h4>
+        <div id="sum-preview-error-wrap" style="display:none;margin-bottom:8px;background:#fdecea;border:1px solid #f1b0b7;border-radius:6px;padding:8px;font-size:11px;color:#c0392b;max-height:100px;overflow-y:auto;font-family:monospace;line-height:1.4"></div>
+        <div id="sum-preview-list-wrap" style="max-height:220px;overflow-y:auto;background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:8px;font-size:11px;font-family:monospace;line-height:1.4"></div>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="sum-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-ok btn-sm" id="sum-submit-btn" style="width:auto;display:none" data-ko="✓ 업로드" data-en="✓ Upload">✓ 업로드</button>
+    </div>
+  </div>
+</div>
+
 <div class="bls-footer">Copyright by BLS Korea Sourcing</div>
 
 <script>
@@ -893,6 +917,8 @@ let parsedBulkOrders = []; // 대량 엑셀 홀더
 let parsedArrivalRows = []; // 입고일정 대량 엑셀 홀더
 let arrivalUploadRowErrors = [];
 let bulkUploadRowErrors = []; // ACTION 검증 실패 등으로 스킵된 행
+let parsedSampleUploadRows = []; // 샘플 관리 대량 엑셀 홀더
+let sampleUploadRowErrors = [];
 let selectedOrderIds = new Set();
 let pendingBulkAction = null; // 'cancel' | 'delete'
 let selectedArrivalKeys = new Set(); // 선택된 입고일정 인보이스 그룹 키
@@ -1246,7 +1272,7 @@ function bindAppEvents() {
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
-  ['vm','defm','fm','dm','oe','fim','aem','aum','fsm'].forEach(prefix=>{
+  ['vm','defm','fm','dm','oe','fim','aem','aum','fsm','sum'].forEach(prefix=>{
     document.getElementById(prefix+'-close')?.addEventListener('click', ()=>closeModal(prefix));
     document.getElementById(prefix+'-cancel')?.addEventListener('click', ()=>closeModal(prefix));
   });
@@ -1284,9 +1310,13 @@ function bindAppEvents() {
   document.getElementById('sm-cancel')?.addEventListener('click', closeSampleModal);
   document.getElementById('sm-save')?.addEventListener('click', saveSampleData);
   document.getElementById('sample-modal')?.addEventListener('click', e=>{ if(e.target.id==='sample-modal') closeSampleModal(); });
+  document.getElementById('sample-upload-btn')?.addEventListener('click', openSampleUploadModal);
+  document.getElementById('sum-excel-file')?.addEventListener('change', handleSampleExcelUpload);
+  document.getElementById('sum-submit-btn')?.addEventListener('click', submitSampleUploadRows);
+  document.getElementById('sample-upload-modal')?.addEventListener('click', e=>{ if(e.target.id==='sample-upload-modal') closeModal('sum'); });
 }
 function closeModal(prefix) {
-  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal', sm:'sample-modal'};
+  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal', sm:'sample-modal', sum:'sample-upload-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
@@ -1309,9 +1339,6 @@ async function loadAll() {
       (me.role==='master'||me.role==='md') ? sb('sample_tracking?select=*') : Promise.resolve([])
     ]);
     console.log('[loadAll] orders:', allOrders.length, 'sample_tracking:', allSampleTracking.length, allSampleTracking);
-    if ((me.role==='master'||me.role==='md') && allSampleTracking.length === 0) {
-      console.warn('[loadAll] sample_tracking이 비어 있습니다. orders는 있는데 이 값이 0이면 sample_tracking 행이 생성되지 않은 것입니다 (백필 마이그레이션 필요).');
-    }
     setupFilters();
     renderDashboard();
     updateBadges();
@@ -1379,19 +1406,23 @@ function setupFilters() {
     facSeasonSel.innerHTML = `<option value="">${L('전체 시즌','All Seasons')}</option>`;
     allSeasons.forEach(s => { facSeasonSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`; });
   }
+  // sample_tracking은 orders와 조인하지 않는 독립 테이블이므로, 필터 옵션도
+  // 실제 sample_tracking 데이터에 들어있는 season/vendor 텍스트 값에서 직접 추출한다.
   const sampleSeasonSel = document.getElementById('sample-season-filter');
   const sampleVendorSel = document.getElementById('sample-vendor-filter');
   if (sampleSeasonSel) {
     const prevVal = sampleSeasonSel.value;
-    sampleSeasonSel.innerHTML = `<option value="">${L('전체 시즌','All Seasons')}</option>`;
-    allSeasons.forEach(s => { sampleSeasonSel.innerHTML += `<option value="${s.id}">${s.name}</option>`; });
-    if (prevVal && sampleSeasonSel.querySelector(`option[value="${prevVal}"]`)) sampleSeasonSel.value = prevVal;
+    const sampleSeasons = [...new Set(allSampleTracking.map(st => st.season).filter(Boolean))].sort();
+    sampleSeasonSel.innerHTML = `<option value="">${L('전체 시즌','All Seasons')}</option>` +
+      sampleSeasons.map(s => `<option value="${s}">${s}</option>`).join('');
+    if (prevVal && sampleSeasons.includes(prevVal)) sampleSeasonSel.value = prevVal;
   }
   if (sampleVendorSel) {
     const prevVal = sampleVendorSel.value;
-    sampleVendorSel.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>`;
-    vendors.forEach(v => { const code = v.vendor_code ? ` [${v.vendor_code}]` : ''; sampleVendorSel.innerHTML += `<option value="${v.id}">${v.company_name}${code}</option>`; });
-    if (prevVal && sampleVendorSel.querySelector(`option[value="${prevVal}"]`)) sampleVendorSel.value = prevVal;
+    const sampleVendors = [...new Set(allSampleTracking.map(st => st.vendor).filter(Boolean))].sort();
+    sampleVendorSel.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>` +
+      sampleVendors.map(v => `<option value="${v}">${v}</option>`).join('');
+    if (prevVal && sampleVendors.includes(prevVal)) sampleVendorSel.value = prevVal;
   }
   restoreDashFilters();
 }
@@ -1845,11 +1876,7 @@ function closeDupStyleModal() {
 async function doSubmitOrder(body) {
   const btn = document.getElementById('reg-submit'); btn.disabled=true; btn.textContent=L('등록 중...','Registering...');
   try {
-    const newOrderRes = await sb('orders', 'POST', body);
-    const newOrder = Array.isArray(newOrderRes) ? newOrderRes[0] : newOrderRes;
-    if (newOrder?.id) {
-      try { await sb('sample_tracking', 'POST', { order_id: newOrder.id }); } catch(e) { console.warn('sample_tracking 생성 실패:', e); }
-    }
+    await sb('orders', 'POST', body);
     showAlert('reg-alert', L('✓ 오더가 등록되었습니다','✓ Order registered successfully'), 's');
     ['reg-styleno','reg-stylename','reg-cat','reg-qty','reg-price','reg-shipdate','reg-notes','reg-po-send'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('reg-urgent').checked = false;
@@ -2136,11 +2163,7 @@ async function submitBulkOrders() {
       if (item._action === 'NEW') {
         // _로 시작하는 클라이언트 전용 필드 제거 후 전송
         const { _action, _rowNum, _supplierName, _matchedVendorName, _matchedVendorCode, _unmatched, ...orderData } = item;
-        const newOrderRes = await sb('orders', 'POST', orderData);
-        const newOrder = Array.isArray(newOrderRes) ? newOrderRes[0] : newOrderRes;
-        if (newOrder?.id) {
-          try { await sb('sample_tracking', 'POST', { order_id: newOrder.id }); } catch(e) { console.warn('sample_tracking 생성 실패:', e); }
-        }
+        await sb('orders', 'POST', orderData);
         counts.NEW++;
       } else if (item._action === 'UPDATE') {
         const history = Array.isArray(allOrders.find(o => o.id === item._existingId)?.quantity_history)
@@ -3990,28 +4013,21 @@ async function executeForceShip() {
 }
 
 // ── 샘플 관리 ──
-let activeSampleOrderId = null;
+let activeSampleTrackingId = null;
 
 function getSampleFiltered() {
   const seasonVal = document.getElementById('sample-season-filter')?.value || '';
   const vendorVal = document.getElementById('sample-vendor-filter')?.value || '';
   const searchVal = (document.getElementById('sample-search')?.value || '').toLowerCase().trim();
-  const orphaned = [];
   const result = allSampleTracking.filter(st => {
-    const order = allOrders.find(o => o.id === st.order_id);
-    if (!order) { orphaned.push(st.order_id); return false; }
-    if (seasonVal && order.season_id !== seasonVal) return false;
-    if (vendorVal && order.vendor_id !== vendorVal) return false;
+    if (seasonVal && st.season !== seasonVal) return false;
+    if (vendorVal && st.vendor !== vendorVal) return false;
     if (searchVal) {
-      const hay = `${order.style_no||''} ${order.style_name||''}`.toLowerCase();
+      const hay = `${st.style_no||''} ${st.style_name||''}`.toLowerCase();
       if (!hay.includes(searchVal)) return false;
     }
     return true;
   });
-  console.log('[getSampleFiltered] season:', seasonVal || '(전체)', 'vendor:', vendorVal || '(전체)', 'search:', searchVal || '(없음)', '→', result.length, '/', allSampleTracking.length, '건');
-  if (orphaned.length > 0) {
-    console.warn('[sample] orders 테이블에서 찾을 수 없는 sample_tracking.order_id:', orphaned);
-  }
   return result;
 }
 
@@ -4026,7 +4042,6 @@ function sampleResultBadge(val) {
 function renderSampleTracking() {
   const rows = getSampleFiltered();
   const tbody = document.getElementById('sample-tbody');
-  console.log('[renderSampleTracking] tbody found:', !!tbody, '표시할 행:', rows.length);
   if (!tbody) return;
   if (rows.length === 0) {
     tbody.innerHTML = `<tr><td colspan="22" style="text-align:center;padding:32px;color:var(--muted)">등록된 샘플 데이터가 없습니다</td></tr>`;
@@ -4034,9 +4049,6 @@ function renderSampleTracking() {
   }
   const stageKeys = ['qc1','qc2','qc3','qc4','pp','shipping'];
   tbody.innerHTML = rows.map(st => {
-    const order = allOrders.find(o => o.id === st.order_id);
-    if (!order) return '';
-    const vendor = allUsers.find(u => u.id === order.vendor_id);
     const stageCells = stageKeys.map(k => {
       const date = st[`${k}_date`] || '';
       const result = st[`${k}_result`] || '';
@@ -4044,22 +4056,21 @@ function renderSampleTracking() {
       return `<td style="min-width:88px">${date||'<span style="color:var(--muted)">-</span>'}</td><td>${sampleResultBadge(result)}</td><td style="min-width:100px;max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--muted)">${comment||'-'}</td>`;
     }).join('');
     return `<tr>
-      <td style="font-family:'DM Mono',monospace">${order.style_no||''}</td>
-      <td>${order.style_name||''}</td>
-      <td>${vendor?.company_name||'-'}</td>
+      <td style="font-family:'DM Mono',monospace">${st.style_no||''}</td>
+      <td>${st.style_name||''}</td>
+      <td>${st.vendor||'-'}</td>
       <td>${st.tp_date||'<span style="color:var(--muted)">-</span>'}</td>
       ${stageCells}
-      <td><button class="btn btn-s btn-sm" onclick="openSampleModal('${st.order_id}','${st.id}')">입력</button></td>
+      <td><button class="btn btn-s btn-sm" onclick="openSampleModal('${st.id}')">입력</button></td>
     </tr>`;
   }).join('');
 }
 
-function openSampleModal(orderId, trackingId) {
-  activeSampleOrderId = orderId;
-  const order = allOrders.find(o => o.id === orderId);
-  const st = allSampleTracking.find(s => s.id === trackingId || s.order_id === orderId);
+function openSampleModal(trackingId) {
+  activeSampleTrackingId = trackingId;
+  const st = allSampleTracking.find(s => s.id === trackingId);
   document.getElementById('sm-title').textContent = L('샘플 관리 입력','Sample Tracking Input');
-  document.getElementById('sm-sub').textContent = order ? `${order.style_no||''} · ${order.style_name||''}` : '';
+  document.getElementById('sm-sub').textContent = st ? `${st.style_no||''} · ${st.style_name||''}` : '';
   document.getElementById('sm-tp-date').value = st?.tp_date || '';
   document.getElementById('sm-alert').classList.remove('on');
   const stages = [
@@ -4089,11 +4100,11 @@ function openSampleModal(orderId, trackingId) {
 
 function closeSampleModal() {
   document.getElementById('sample-modal').classList.remove('on');
-  activeSampleOrderId = null;
+  activeSampleTrackingId = null;
 }
 
 async function saveSampleData() {
-  if (!activeSampleOrderId) return;
+  if (!activeSampleTrackingId) return;
   const btn = document.getElementById('sm-save');
   btn.disabled = true; btn.textContent = L('저장 중...','Saving...');
   const patch = {
@@ -4107,12 +4118,7 @@ async function saveSampleData() {
     patch[k+'_comment'] = document.getElementById(`sm-${k}-comment`)?.value || null;
   });
   try {
-    const existing = allSampleTracking.find(s => s.order_id === activeSampleOrderId);
-    if (existing) {
-      await sb(`sample_tracking?id=eq.${existing.id}`, 'PATCH', patch);
-    } else {
-      await sb('sample_tracking', 'POST', { order_id: activeSampleOrderId, ...patch });
-    }
+    await sb(`sample_tracking?id=eq.${activeSampleTrackingId}`, 'PATCH', patch);
     allSampleTracking = await sb('sample_tracking?select=*');
     closeSampleModal();
     renderSampleTracking();
@@ -4120,6 +4126,149 @@ async function saveSampleData() {
     showAlert('sm-alert', e.message);
   } finally {
     btn.disabled = false; btn.textContent = L('저장','Save');
+  }
+}
+
+function openSampleUploadModal() {
+  parsedSampleUploadRows = [];
+  sampleUploadRowErrors = [];
+  document.getElementById('sum-excel-file').value = '';
+  document.getElementById('sum-preview-zone').style.display = 'none';
+  document.getElementById('sum-submit-btn').style.display = 'none';
+  const sel = document.getElementById('sum-season');
+  sel.innerHTML = '';
+  allSeasons.forEach(s => { sel.innerHTML += `<option value="${s.name}" ${s.is_active?'selected':''}>${s.name}</option>`; });
+  document.getElementById('sample-upload-modal').classList.add('on');
+}
+
+function handleSampleExcelUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const seasonName = document.getElementById('sum-season').value;
+  if (!seasonName) {
+    alert(L('엑셀 파일을 올리기 전, [시즌]을 먼저 선택해 주세요.','Please select a [Season] before uploading the Excel file.'));
+    e.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = evt.target.result;
+      const workbook = XLSX.read(data, { type: 'binary', cellDates: false });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true });
+      const headerRow = rows[0] || [];
+      const normHeader = (s) => String(s).split('\n')[0].trim().toUpperCase().replace(/\s+/g, ' ');
+      const colMap = {};
+      headerRow.forEach((h, i) => { if (h != null) colMap[normHeader(h)] = i; });
+      const findCol = (names) => { for (const n of names) { const k = normHeader(n); if (colMap[k] !== undefined) return colMap[k]; } return -1; };
+
+      const COL_STYLE = findCol(["STYLE NO.",'STYLE NO','STYLE_NO','STYLE']);
+      const COL_SUPPLIER = findCol(['SUPPLIER']);
+      const COL_QTY = findCol(["ORDER Q'TY",'ORDER QTY','QTY']);
+      const COL_TARGET_ETD = findCol(['TARGET ETD','TARGET_ETD','ETD']);
+      const COL_DESC = findCol(['DESCRIPTION','DESC']);
+
+      const getDt = (v) => {
+        if (v === null || v === undefined || v === '') return '';
+        if (typeof v === 'number') {
+          const dc = XLSX.SSF.parse_date_code(v);
+          if (!dc) return '';
+          return `${dc.y}-${String(dc.m).padStart(2,'0')}-${String(dc.d).padStart(2,'0')}`;
+        }
+        if (v instanceof Date) {
+          const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,'0'), d=String(v.getDate()).padStart(2,'0');
+          return `${y}-${m}-${d}`;
+        }
+        return String(v).trim().slice(0,10);
+      };
+
+      const parsed = [];
+      sampleUploadRowErrors = [];
+      const claimedStyles = new Set();
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+        const styleNo = COL_STYLE>=0 && row[COL_STYLE] ? String(row[COL_STYLE]).trim() : '';
+        if (!styleNo || styleNo.toLowerCase() === 'style') continue;
+        const rowNum = i + 1;
+        if (claimedStyles.has(styleNo)) {
+          sampleUploadRowErrors.push({ rowNum, styleNo, reason: L('같은 시트 내 중복된 STYLE NO.입니다 (마지막 행만 반영됩니다)','Duplicate STYLE NO. within the sheet (only the last row is kept)') });
+        }
+        claimedStyles.add(styleNo);
+        const existing = allSampleTracking.find(s => s.style_no === styleNo);
+        parsed.push({
+          _rowNum: rowNum,
+          _action: existing ? 'UPDATE' : 'NEW',
+          _existingId: existing ? existing.id : null,
+          season: seasonName,
+          style_no: styleNo,
+          style_name: COL_DESC>=0 && row[COL_DESC] ? String(row[COL_DESC]).trim() : null,
+          vendor: COL_SUPPLIER>=0 && row[COL_SUPPLIER] ? String(row[COL_SUPPLIER]).trim() : null,
+          order_qty: COL_QTY>=0 ? (parseInt(row[COL_QTY]) || 0) : 0,
+          target_etd: COL_TARGET_ETD>=0 ? (getDt(row[COL_TARGET_ETD]) || null) : null
+        });
+      }
+      // 같은 시트 내 중복 STYLE NO.는 마지막 행만 유지
+      const dedup = new Map();
+      parsed.forEach(r => dedup.set(r.style_no, r));
+      parsedSampleUploadRows = [...dedup.values()];
+
+      if (!parsedSampleUploadRows.length) {
+        alert(L('엑셀 시트 내부에 파싱 가능한 샘플 데이터 행이 없습니다.','No parseable sample rows found in the Excel sheet.'));
+        document.getElementById('sum-preview-zone').style.display = 'none';
+        e.target.value = '';
+        return;
+      }
+
+      const errWrap = document.getElementById('sum-preview-error-wrap');
+      if (sampleUploadRowErrors.length) {
+        errWrap.style.display = 'block';
+        errWrap.innerHTML = `⚠️ ${L('중복 스킵','Duplicates skipped')} ${sampleUploadRowErrors.length}${L('건','cases')}<br>` +
+          sampleUploadRowErrors.map(er => `· Row ${er.rowNum} [${er.styleNo||'-'}] — ${er.reason}`).join('<br>');
+      } else {
+        errWrap.style.display = 'none'; errWrap.innerHTML = '';
+      }
+
+      const newCnt = parsedSampleUploadRows.filter(r => r._action === 'NEW').length;
+      const updCnt = parsedSampleUploadRows.filter(r => r._action === 'UPDATE').length;
+      document.getElementById('sum-preview-count-txt').textContent =
+        `${L('검출된 행: 총','Detected rows:')} ${parsedSampleUploadRows.length}${L('건','cases')} (NEW ${newCnt} / UPDATE ${updCnt})`;
+      document.getElementById('sum-preview-list-wrap').innerHTML = parsedSampleUploadRows.map((r, idx) =>
+        `[${idx+1}] <b>${r._action}</b> ${r.style_no} | ${r.style_name||'-'} | ${r.vendor||'-'} | ${Number(r.order_qty).toLocaleString()}${L('장','pcs')} | ETD ${r.target_etd||'-'}`
+      ).join('<br>');
+      document.getElementById('sum-preview-zone').style.display = 'block';
+      document.getElementById('sum-submit-btn').style.display = '';
+    } catch(err) {
+      alert(L('엑셀 파일을 읽는 중 오류가 발생했습니다: ','Error reading Excel file: ')+err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+async function submitSampleUploadRows() {
+  if (!parsedSampleUploadRows.length) return;
+  const btn = document.getElementById('sum-submit-btn');
+  btn.disabled = true;
+  try {
+    for (const r of parsedSampleUploadRows) {
+      const { _rowNum, _action, _existingId, ...body } = r;
+      if (_action === 'UPDATE') {
+        await sb(`sample_tracking?id=eq.${_existingId}`, 'PATCH', body);
+      } else {
+        await sb('sample_tracking', 'POST', body);
+      }
+    }
+    allSampleTracking = await sb('sample_tracking?select=*');
+    parsedSampleUploadRows = []; sampleUploadRowErrors = [];
+    closeModal('sum');
+    setupFilters();
+    renderSampleTracking();
+    alert(L('샘플 데이터가 업로드되었습니다.','Sample data uploaded.'));
+  } catch(err) {
+    alert(L('업로드 실패: ','Upload failed: ')+err.message);
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -4135,20 +4284,15 @@ function downloadPCLData() {
     'PP 수령일','PP 결과','PP 코멘트',
     'SHIPPING 수령일','SHIPPING 결과','SHIPPING 코멘트'
   ];
-  const data = rows.map(st => {
-    const order = allOrders.find(o => o.id === st.order_id);
-    if (!order) return null;
-    const vendor = allUsers.find(u => u.id === order.vendor_id);
-    return [
-      order.style_no||'', order.style_name||'', vendor?.company_name||'', st.tp_date||'',
-      st.qc1_date||'', st.qc1_result||'', st.qc1_comment||'',
-      st.qc2_date||'', st.qc2_result||'', st.qc2_comment||'',
-      st.qc3_date||'', st.qc3_result||'', st.qc3_comment||'',
-      st.qc4_date||'', st.qc4_result||'', st.qc4_comment||'',
-      st.pp_date||'', st.pp_result||'', st.pp_comment||'',
-      st.shipping_date||'', st.shipping_result||'', st.shipping_comment||''
-    ];
-  }).filter(Boolean);
+  const data = rows.map(st => [
+    st.style_no||'', st.style_name||'', st.vendor||'', st.tp_date||'',
+    st.qc1_date||'', st.qc1_result||'', st.qc1_comment||'',
+    st.qc2_date||'', st.qc2_result||'', st.qc2_comment||'',
+    st.qc3_date||'', st.qc3_result||'', st.qc3_comment||'',
+    st.qc4_date||'', st.qc4_result||'', st.qc4_comment||'',
+    st.pp_date||'', st.pp_result||'', st.pp_comment||'',
+    st.shipping_date||'', st.shipping_result||'', st.shipping_comment||''
+  ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'PCL_RAW_DATA');
