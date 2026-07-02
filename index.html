@@ -1070,6 +1070,7 @@ function bindAuth() {
   document.getElementById('login-btn').addEventListener('click', doLogin);
   document.getElementById('reg-btn').addEventListener('click', doRegister);
   document.getElementById('l-pw').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  document.getElementById('l-email').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
   document.getElementById('auth-lang-toggle').addEventListener('click', toggleLang);
 }
 function switchAuthTab(t) {
@@ -1082,8 +1083,16 @@ function switchAuthTab(t) {
 async function getScheduleAccessCode() {
   try {
     const res = await sb('app_settings?key=eq.schedule_code&select=value');
-    return res && res[0] ? res[0].value : null;
-  } catch(e) { return null; }
+    console.log('[schedule-code] app_settings 조회 결과:', res);
+    if (!res || !res.length) {
+      console.warn('[schedule-code] 행이 0건입니다. RLS 정책이 anon 키 요청을 필터링하고 있을 가능성이 높습니다 (이 앱은 Supabase Auth를 쓰지 않고 publishable/anon 키로만 통신합니다. auth.uid() / auth.role()=\'authenticated\' 조건의 정책은 항상 실패합니다).');
+      return null;
+    }
+    return res[0].value;
+  } catch(e) {
+    console.error('[schedule-code] app_settings 조회 실패:', e);
+    return null;
+  }
 }
 async function doLogin() {
   const email = document.getElementById('l-email').value.trim();
@@ -1091,8 +1100,12 @@ async function doLogin() {
   if (!email) return showAlert('login-alert', L('이메일과 비밀번호를 입력해주세요','Please enter your email and password'));
   const btn = document.getElementById('login-btn'); btn.disabled=true; btn.textContent=L('로그인 중...','Logging in...');
   try {
-    const scheduleCode = await getScheduleAccessCode();
-    if (scheduleCode && email === scheduleCode) {
+    console.log('[schedule-code] doLogin 진입, 입력값:', JSON.stringify(email));
+    const scheduleCodeRaw = await getScheduleAccessCode();
+    const scheduleCode = scheduleCodeRaw ? String(scheduleCodeRaw).trim() : null;
+    const emailNorm = email.toLowerCase();
+    console.log('[schedule-code] 비교:', { scheduleCode, emailNorm, match: scheduleCode && emailNorm === scheduleCode.toLowerCase() });
+    if (scheduleCode && emailNorm === scheduleCode.toLowerCase()) {
       me = { role: 'schedule', company_name: L('입고 일정 조회 전용','Schedule Viewer') };
       sessionStorage.setItem('bls_schedule_guest', JSON.stringify(me));
       launchApp();
@@ -1147,18 +1160,8 @@ async function launchApp() {
   if (ordVendorSel) ordVendorSel.style.display = me.role === 'vendor' ? 'none' : '';
   const arrUploadBtn = document.getElementById('arr-upload-btn');
   if (arrUploadBtn) arrUploadBtn.style.display = me.role === 'master' ? '' : 'none';
-  // 회사 코드 간편 접속: 캘린더(읽기 전용)만 노출, 목록/업로드/다운로드/인쇄 차단
-  const isScheduleGuest = me.role === 'schedule';
-  const arrDownloadBtn = document.getElementById('arr-download-btn');
-  if (arrDownloadBtn) arrDownloadBtn.style.display = isScheduleGuest ? 'none' : '';
-  const inboundPrintBtn = document.getElementById('inbound-print');
-  if (inboundPrintBtn) inboundPrintBtn.style.display = isScheduleGuest ? 'none' : '';
-  const inboundViewTabs = document.querySelector('#sec-inbound .view-tabs');
-  if (inboundViewTabs) inboundViewTabs.style.display = isScheduleGuest ? 'none' : '';
-  if (isScheduleGuest) {
-    document.getElementById('view-inbound-list').classList.remove('on');
-    document.getElementById('view-inbound-cal').classList.add('on');
-  }
+  // 회사 코드 간편 접속(내부 직원 조회 전용): 목록/캘린더 탭 전환, 엑셀 다운로드/인쇄/주간 이동/날짜/검색은 그대로 사용 가능.
+  // 목록 화면의 엑셀 업로드(위 arrUploadBtn)·행 관리(수정/삭제)·체크박스는 renderArrivalList()의 isMaster 분기에서 계속 차단됨.
   buildSidebar();
   bindAppEvents();
   await loadAll();
