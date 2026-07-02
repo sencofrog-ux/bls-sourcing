@@ -506,6 +506,18 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
           <div id="err-tbl"></div>
         </div>
 
+        <div class="sec" id="sec-settings">
+          <div class="sec-hdr"><div><div class="sec-title" data-ko="설정" data-en="Settings">설정</div><div class="sec-sub" data-ko="시스템 환경 설정" data-en="System settings">시스템 환경 설정</div></div></div>
+          <div class="card" style="max-width:480px"><div class="card-body">
+            <div class="alert alert-e" id="settings-alert"></div>
+            <div class="alert alert-s" id="settings-alert-s"></div>
+            <label class="fl" data-ko="🔑 입고 일정표 간편 접속 코드" data-en="🔑 Schedule Quick Access Code">🔑 입고 일정표 간편 접속 코드</label>
+            <p style="color:var(--muted);font-size:12px;margin:4px 0 10px" data-ko="로그인 화면 이메일란에 이 코드를 입력하면 비밀번호 없이 입고 일정표 캘린더(읽기 전용)로 바로 접속할 수 있습니다." data-en="Entering this code in the login email field grants direct read-only access to the inbound schedule calendar without a password.">로그인 화면 이메일란에 이 코드를 입력하면 비밀번호 없이 입고 일정표 캘린더(읽기 전용)로 바로 접속할 수 있습니다.</p>
+            <div class="fg"><label class="fl" data-ko="코드" data-en="Code">코드</label><input type="text" id="settings-schedule-code" placeholder="bls0701"></div>
+            <button class="btn btn-p" id="settings-schedule-code-save" data-ko="저장" data-en="Save">저장</button>
+          </div></div>
+        </div>
+
         <div class="sec" id="sec-manual">
           <div class="sec-hdr"><div><div class="sec-title" data-ko="📖 사용 매뉴얼" data-en="📖 User Manual">📖 사용 매뉴얼</div><div class="sec-sub" data-ko="시스템 사용법 및 모바일 QR 코드" data-en="System guide and mobile QR code">시스템 사용법 및 모바일 QR 코드</div></div></div>
           <div class="manual-section">
@@ -1045,6 +1057,8 @@ function parsePoNotes(notesString) {
 window.addEventListener('load', () => {
   bindAuth();
   applyLang();
+  const guestSaved = sessionStorage.getItem('bls_schedule_guest');
+  if (guestSaved) { try { me = JSON.parse(guestSaved); launchApp(); return; } catch{} }
   const saved = localStorage.getItem('bls_user');
   if (saved) { try { me = JSON.parse(saved); launchApp(); } catch{} }
 });
@@ -1064,12 +1078,27 @@ function switchAuthTab(t) {
   document.getElementById('frm-login').style.display = t==='login'?'block':'none';
   document.getElementById('frm-reg').style.display = t==='reg'?'block':'none';
 }
+// 마스터가 설정에서 변경 가능한 간편 접속 코드(app_settings.schedule_code) 조회
+async function getScheduleAccessCode() {
+  try {
+    const res = await sb('app_settings?key=eq.schedule_code&select=value');
+    return res && res[0] ? res[0].value : null;
+  } catch(e) { return null; }
+}
 async function doLogin() {
   const email = document.getElementById('l-email').value.trim();
   const pw = document.getElementById('l-pw').value;
-  if (!email || !pw) return showAlert('login-alert', L('이메일과 비밀번호를 입력해주세요','Please enter your email and password'));
+  if (!email) return showAlert('login-alert', L('이메일과 비밀번호를 입력해주세요','Please enter your email and password'));
   const btn = document.getElementById('login-btn'); btn.disabled=true; btn.textContent=L('로그인 중...','Logging in...');
   try {
+    const scheduleCode = await getScheduleAccessCode();
+    if (scheduleCode && email === scheduleCode) {
+      me = { role: 'schedule', company_name: L('입고 일정 조회 전용','Schedule Viewer') };
+      sessionStorage.setItem('bls_schedule_guest', JSON.stringify(me));
+      launchApp();
+      return;
+    }
+    if (!pw) return showAlert('login-alert', L('이메일과 비밀번호를 입력해주세요','Please enter your email and password'));
     const res = await sb(`users?email=eq.${encodeURIComponent(email)}&password_hash=eq.${encodeURIComponent(pw)}`);
     if (!res.length) return showAlert('login-alert', L('이메일 또는 비밀번호가 올바르지 않습니다','Invalid email or password'));
     const user = res[0];
@@ -1109,15 +1138,27 @@ async function doRegister() {
 // ── 앱 시작 ──
 async function launchApp() {
   showPg('pg-app');
-  document.body.className = 'theme-' + me.role;
+  document.body.className = 'theme-' + (me.role === 'schedule' ? 'viewer' : me.role);
   document.getElementById('sb-name').textContent = me.company_name;
-  const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD'), viewer: L('내부 직원','Viewer') };
+  const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD'), viewer: L('내부 직원','Viewer'), schedule: L('입고 일정 조회','Schedule Viewer') };
   document.getElementById('sb-role').textContent = roleMap[me.role] || me.role;
-  
+
   const ordVendorSel = document.getElementById('ord-vendor');
   if (ordVendorSel) ordVendorSel.style.display = me.role === 'vendor' ? 'none' : '';
   const arrUploadBtn = document.getElementById('arr-upload-btn');
   if (arrUploadBtn) arrUploadBtn.style.display = me.role === 'master' ? '' : 'none';
+  // 회사 코드 간편 접속: 캘린더(읽기 전용)만 노출, 목록/업로드/다운로드/인쇄 차단
+  const isScheduleGuest = me.role === 'schedule';
+  const arrDownloadBtn = document.getElementById('arr-download-btn');
+  if (arrDownloadBtn) arrDownloadBtn.style.display = isScheduleGuest ? 'none' : '';
+  const inboundPrintBtn = document.getElementById('inbound-print');
+  if (inboundPrintBtn) inboundPrintBtn.style.display = isScheduleGuest ? 'none' : '';
+  const inboundViewTabs = document.querySelector('#sec-inbound .view-tabs');
+  if (inboundViewTabs) inboundViewTabs.style.display = isScheduleGuest ? 'none' : '';
+  if (isScheduleGuest) {
+    document.getElementById('view-inbound-list').classList.remove('on');
+    document.getElementById('view-inbound-cal').classList.add('on');
+  }
   buildSidebar();
   bindAppEvents();
   await loadAll();
@@ -1139,6 +1180,7 @@ function buildSidebar() {
       <button class="nav-btn" data-sec="factory-all" data-ko="🏭 공장 현황" data-en="🏭 Factory Overview">🏭 공장 현황</button>
       <button class="nav-btn" data-sec="members" data-ko="👥 회원 관리" data-en="👥 Member Management">👥 회원 관리</button>
       <button class="nav-btn" data-sec="errors" data-ko="🛠️ 오류 관리" data-en="🛠️ Error Log">🛠️ 오류 관리 <span class="nav-badge" id="err-badge">0</span></button>
+      <button class="nav-btn" data-sec="settings" data-ko="⚙️ 설정" data-en="⚙️ Settings">⚙️ 설정</button>
       <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
   } else if (me.role === 'vendor') {
     menu = `
@@ -1158,11 +1200,14 @@ function buildSidebar() {
   } else if (me.role === 'viewer') {
     menu = `
       <button class="nav-btn on" data-sec="inbound" data-ko="📅 입고 일정표" data-en="📅 Inbound Schedule">📅 입고 일정표</button>`;
+  } else if (me.role === 'schedule') {
+    menu = `
+      <button class="nav-btn on" data-sec="inbound" data-ko="📅 입고 일정표" data-en="📅 Inbound Schedule">📅 입고 일정표</button>`;
   }
   nav.innerHTML = menu;
   nav.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click', ()=>switchSec(b.dataset.sec)));
 
-  if (me.role === 'viewer') {
+  if (me.role === 'viewer' || me.role === 'schedule') {
     document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
     document.getElementById('sec-inbound').classList.add('on');
   }
@@ -1182,6 +1227,7 @@ function switchSec(id) {
   if (id === 'members') renderMembers();
   if (id === 'errors') renderErrors();
   if (id === 'sample') renderSampleTracking();
+  if (id === 'settings') renderSettings();
   if (id === 'manual') setTimeout(()=>{ if(!document.getElementById('base-url').value) document.getElementById('base-url').value = location.href.replace(/\/[^/]*$/,''); genQR(); }, 100);
 }
 function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sb-shade').classList.remove('on'); }
@@ -1190,7 +1236,7 @@ function bindAppEvents() {
   const toggleSb = ()=>{ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sb-shade').classList.toggle('on'); };
   document.getElementById('hamburger').addEventListener('click', toggleSb);
   document.getElementById('sb-shade').addEventListener('click', closeSidebar);
-  document.getElementById('logout-btn').addEventListener('click', ()=>{ localStorage.removeItem('bls_user'); location.reload(); });
+  document.getElementById('logout-btn').addEventListener('click', ()=>{ localStorage.removeItem('bls_user'); sessionStorage.removeItem('bls_schedule_guest'); location.reload(); });
 
   document.getElementById('dash-season').addEventListener('change', ()=>{ saveDashFilters(); renderDashboard(); });
   document.getElementById('ord-vendor').addEventListener('change', ()=>{ saveDashFilters(); renderDashboard(); });
@@ -1233,6 +1279,7 @@ function bindAppEvents() {
     if (b.dataset.iview === 'cal') renderArrivalCalendar();
   }));
   document.getElementById('arr-upload-btn')?.addEventListener('click', openArrivalUploadModal);
+  document.getElementById('settings-schedule-code-save')?.addEventListener('click', saveScheduleCode);
   document.getElementById('arr-download-btn').addEventListener('click', downloadArrivalExcel);
   document.getElementById('arr-excel-file').addEventListener('change', handleArrivalExcelUpload);
   document.getElementById('arr-submit-btn').addEventListener('click', submitArrivalRows);
@@ -3640,6 +3687,27 @@ async function clearResolvedErrors() {
   catch(e) { alert(e.message); }
 }
 
+// ── 설정 (입고 일정표 간편 접속 코드) ──
+async function renderSettings() {
+  const input = document.getElementById('settings-schedule-code');
+  input.value = '';
+  try {
+    const code = await getScheduleAccessCode();
+    input.value = code || '';
+  } catch(e) { showAlert('settings-alert', e.message); }
+}
+async function saveScheduleCode() {
+  const val = document.getElementById('settings-schedule-code').value.trim();
+  if (!val) return showAlert('settings-alert', L('코드를 입력해주세요','Please enter a code'));
+  const btn = document.getElementById('settings-schedule-code-save');
+  btn.disabled = true;
+  try {
+    await sb('app_settings?key=eq.schedule_code', 'PATCH', { value: val });
+    showAlert('settings-alert-s', L('✓ 저장되었습니다','✓ Saved'), 's');
+  } catch(e) { showAlert('settings-alert', e.message); }
+  finally { btn.disabled = false; }
+}
+
 // ── 매뉴얼 QR ──
 function genQR() {
   let base = document.getElementById('base-url').value.trim().replace(/\/$/,'');
@@ -3681,7 +3749,7 @@ function applyLang() {
   const authT = document.getElementById('auth-lang-toggle');
   if (authT) authT.textContent = lang === 'ko' ? '🌐 EN' : '🌐 한';
   if (me) {
-    const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD'), viewer: L('내부 직원','Viewer') };
+    const roleMap = { master: L('마스터','Master'), vendor: L('벤더','Vendor'), cs: L('CS팀','CS Team'), md: L('MD','MD'), viewer: L('내부 직원','Viewer'), schedule: L('입고 일정 조회','Schedule Viewer') };
     const sbRole = document.getElementById('sb-role');
     if (sbRole) sbRole.textContent = roleMap[me.role] || me.role;
     if (typeof setupFilters === 'function' && allUsers.length) {
