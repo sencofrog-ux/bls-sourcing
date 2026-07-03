@@ -271,7 +271,7 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .util-bar-fill{height:100%;border-radius:4px;transition:width .4s ease}
 /* ── 샘플 관리 ── */
 .sample-tbl-wrap{overflow-x:auto;border:1px solid var(--bdr);border-radius:12px;background:var(--surf);margin-bottom:15px}
-.sample-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:1600px}
+.sample-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
 .sample-tbl thead th{background:var(--bg);padding:9px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--bdr);white-space:nowrap}
 .sample-tbl .th-group{background:var(--acl);color:var(--ac);text-align:center;font-size:10px;font-weight:700}
 .sample-tbl tbody td{padding:8px 10px;border-bottom:1px solid var(--bdr);vertical-align:middle;white-space:nowrap}
@@ -279,6 +279,30 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .sample-tbl tbody tr:hover{background:var(--bg)}
 .bdg-fix{background:#fef9ec;color:#b7770d}
 .bdg-reject{background:var(--redl);color:var(--red)}
+.sample-tbl tbody td.ss-style-cell{white-space:normal;min-width:150px}
+.ss-style-no{font-family:'DM Mono',monospace;font-weight:700;color:var(--ac);cursor:pointer;text-decoration:underline;text-underline-offset:2px;background:none;border:none;padding:0;font-size:12px}
+.ss-style-no:hover{color:var(--ach)}
+.ss-style-name{font-size:11px;color:var(--txt);margin-top:2px;white-space:normal}
+.ss-vendor{font-size:11px;color:var(--muted);margin-top:1px;white-space:normal}
+.sample-tbl tbody td.ss-stage-cell{min-width:140px;white-space:normal;vertical-align:top}
+.ss-stage-line{font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;flex-wrap:wrap;white-space:normal}
+.ss-stage-comment{font-size:11px;color:var(--muted);margin-top:3px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ss-qc-add-btn{margin-top:6px;font-size:10px;padding:3px 8px;border:1px dashed var(--bdr);border-radius:6px;background:transparent;color:var(--ac);cursor:pointer;font-weight:600}
+.ss-qc-add-btn:hover{background:var(--acl)}
+.sd-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:18px;font-size:12px}
+.sd-info-grid .sd-info-lbl{color:var(--muted);font-size:11px;margin-bottom:2px}
+.sd-info-grid .sd-info-val{color:var(--txt);font-weight:600}
+.sd-timeline{position:relative;padding-left:22px;margin-top:6px}
+.sd-timeline::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:var(--bdr)}
+.sd-tl-item{position:relative;padding-bottom:18px}
+.sd-tl-item:last-child{padding-bottom:0}
+.sd-tl-dot{position:absolute;left:-22px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--ac);border:2px solid var(--surf)}
+.sd-tl-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sd-tl-label{font-size:12px;font-weight:700;color:var(--txt)}
+.sd-tl-date{font-size:12px;color:var(--muted);margin-top:2px}
+.sd-tl-comment{font-size:12px;color:var(--txt);margin-top:5px;background:var(--bg);border-radius:6px;padding:6px 8px}
+.sd-tl-edit-btn{font-size:10px;padding:2px 7px;border:1px solid var(--bdr);border-radius:5px;background:transparent;color:var(--muted);cursor:pointer}
+.sd-tl-edit-btn:hover{color:var(--ac);border-color:var(--ac)}
 </style>
 </head>
 <body class="theme-master">
@@ -575,25 +599,12 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
             <table class="sample-tbl">
               <thead>
                 <tr>
-                  <th rowspan="2">STYLE NO.</th>
-                  <th rowspan="2">STYLE NAME</th>
-                  <th rowspan="2">VENDOR</th>
-                  <th rowspan="2">TP 발송일</th>
-                  <th colspan="3" class="th-group">QC1</th>
-                  <th colspan="3" class="th-group">QC2</th>
-                  <th colspan="3" class="th-group">QC3</th>
-                  <th colspan="3" class="th-group">QC4</th>
-                  <th colspan="3" class="th-group">PP</th>
-                  <th colspan="3" class="th-group">SHIPPING</th>
-                  <th rowspan="2"></th>
-                </tr>
-                <tr>
-                  <th>수령일</th><th>결과</th><th>코멘트</th>
-                  <th>수령일</th><th>결과</th><th>코멘트</th>
-                  <th>수령일</th><th>결과</th><th>코멘트</th>
-                  <th>수령일</th><th>결과</th><th>코멘트</th>
-                  <th>수령일</th><th>결과</th><th>코멘트</th>
-                  <th>수령일</th><th>결과</th><th>코멘트</th>
+                  <th>STYLE</th>
+                  <th>TP</th>
+                  <th>QC</th>
+                  <th>PP</th>
+                  <th>SHIPPING</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="sample-tbody"></tbody>
@@ -891,6 +902,43 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
   </div>
 </div>
 
+<div class="overlay" id="qc-round-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="mhdr"><div><div class="mhdr-t" id="qcr-title">QC 차수 추가</div><div class="mhdr-s" id="qcr-sub"></div></div><button class="mclose" id="qcr-close">×</button></div>
+    <div class="mbody">
+      <div class="alert alert-e" id="qcr-alert"></div>
+      <div class="fg"><label class="fl" id="qcr-round-label">차수</label><div id="qcr-round-no" style="font-size:14px;font-weight:700;color:var(--ac)"></div></div>
+      <div class="fg"><label class="fl">수령일</label><input type="date" id="qcr-date"></div>
+      <div class="fg"><label class="fl">결과</label>
+        <select id="qcr-status">
+          <option value="">-</option>
+          <option value="OK">OK</option>
+          <option value="수정">수정</option>
+          <option value="반려">반려</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">코멘트</label><input type="text" id="qcr-comment"></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="qcr-delete-btn" style="width:auto;margin-right:auto;color:var(--red);border-color:var(--red)">삭제</button>
+      <button class="btn btn-s btn-sm" id="qcr-cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="qcr-save" style="width:auto">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="sample-detail-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="mhdr"><div><div class="mhdr-t" id="sd-title"></div><div class="mhdr-s" id="sd-sub"></div></div><button class="mclose" id="sd-close">×</button></div>
+    <div class="mbody">
+      <div id="sd-timeline" class="sd-timeline"></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="sd-close-btn">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="sample-upload-modal">
   <div class="modal" style="max-width:640px">
     <div class="mhdr"><div><div class="mhdr-t" data-ko="샘플 관리 엑셀 업로드" data-en="Upload Sample Tracking Excel">샘플 관리 엑셀 업로드</div><div class="mhdr-s" data-ko="입고일정_업로드양식.xlsx 기준" data-en="Based on the inbound schedule upload template">입고일정_업로드양식.xlsx 기준</div></div><button class="mclose" id="sum-close">×</button></div>
@@ -921,7 +969,16 @@ const SUPABASE_KEY = "sb_publishable_b19kpVsItvdlFneFpzYb2Q_Z_Xc3ccr";
 
 // ── 전역 상태 ──
 let me = null;
-let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allErrors = [], allArrival = [], allDefectHistory = [], allSampleTracking = [];
+let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allErrors = [], allArrival = [], allDefectHistory = [], allSampleTracking = [], allQcRounds = [];
+let qcRoundsByStyle = {};
+function rebuildQcRoundsMap() {
+  qcRoundsByStyle = {};
+  allQcRounds.forEach(r => {
+    if (!qcRoundsByStyle[r.style_id]) qcRoundsByStyle[r.style_id] = [];
+    qcRoundsByStyle[r.style_id].push(r);
+  });
+  Object.values(qcRoundsByStyle).forEach(list => list.sort((a,b) => a.round_no - b.round_no));
+}
 let activeOrderId = null, editFactoryId = null, editArrivalId = null;
 let inboundCalYear, inboundCalMonth;
 let inboundDayPanelDate = null;
@@ -1364,6 +1421,16 @@ function bindAppEvents() {
   document.getElementById('sum-excel-file')?.addEventListener('change', handleSampleExcelUpload);
   document.getElementById('sum-submit-btn')?.addEventListener('click', submitSampleUploadRows);
   document.getElementById('sample-upload-modal')?.addEventListener('click', e=>{ if(e.target.id==='sample-upload-modal') closeModal('sum'); });
+
+  document.getElementById('qcr-close')?.addEventListener('click', closeQcRoundModal);
+  document.getElementById('qcr-cancel')?.addEventListener('click', closeQcRoundModal);
+  document.getElementById('qcr-save')?.addEventListener('click', saveQcRound);
+  document.getElementById('qcr-delete-btn')?.addEventListener('click', deleteQcRound);
+  document.getElementById('qc-round-modal')?.addEventListener('click', e=>{ if(e.target.id==='qc-round-modal') closeQcRoundModal(); });
+
+  document.getElementById('sd-close')?.addEventListener('click', closeSampleDetailModal);
+  document.getElementById('sd-close-btn')?.addEventListener('click', closeSampleDetailModal);
+  document.getElementById('sample-detail-modal')?.addEventListener('click', e=>{ if(e.target.id==='sample-detail-modal') closeSampleDetailModal(); });
 }
 function closeModal(prefix) {
   const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal', sm:'sample-modal', sum:'sample-upload-modal'};
@@ -1378,7 +1445,8 @@ async function loadAll() {
     const factoriesQuery = isVendor ? `factories?select=*&vendor_id=eq.${me.id}` : 'factories?select=*';
     const usersQuery = isVendor ? `users?select=id,company_name,role&id=eq.${me.id}` : 'users?select=*';
 
-    [allUsers, allSeasons, allOrders, allFactories, allErrors, allArrival, allDefectHistory, allSampleTracking] = await Promise.all([
+    const canSeeSample = me.role==='master'||me.role==='md';
+    [allUsers, allSeasons, allOrders, allFactories, allErrors, allArrival, allDefectHistory, allSampleTracking, allQcRounds] = await Promise.all([
       sb(usersQuery),
       sb('seasons?select=*'),
       sb(ordersQuery),
@@ -1386,8 +1454,10 @@ async function loadAll() {
       me.role==='master' ? sb('errors?select=*&order=created_at.desc') : Promise.resolve([]),
       sb('arrival_schedule?select=*&order=arrival_date.asc,style_no.asc'),
       (me.role==='master'||me.role==='cs') ? sb('defect_history?select=*&order=created_at.desc') : Promise.resolve([]),
-      (me.role==='master'||me.role==='md') ? sb('sample_tracking?select=*') : Promise.resolve([])
+      canSeeSample ? sb('sample_tracking?select=*') : Promise.resolve([]),
+      canSeeSample ? sb('qc_rounds?select=*') : Promise.resolve([])
     ]);
+    rebuildQcRoundsMap();
     console.log('[loadAll] orders:', allOrders.length, 'sample_tracking:', allSampleTracking.length, allSampleTracking);
     setupFilters();
     renderDashboard();
@@ -4085,6 +4155,13 @@ async function executeForceShip() {
 
 // ── 샘플 관리 ──
 let activeSampleTrackingId = null;
+let activeQcRoundStyleId = null;
+let editingQcRoundId = null;
+let activeDetailStyleId = null;
+
+function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 function getSampleFiltered() {
   const seasonVal = document.getElementById('sample-season-filter')?.value || '';
@@ -4107,7 +4184,18 @@ function sampleResultBadge(val) {
   if (val === 'OK') return `<span class="bdg bdg-ok">OK</span>`;
   if (val === '수정') return `<span class="bdg bdg-fix">수정</span>`;
   if (val === '반려') return `<span class="bdg bdg-reject">반려</span>`;
-  return `<span class="bdg">${val}</span>`;
+  return `<span class="bdg">${escHtml(val)}</span>`;
+}
+
+function sampleStageCell(st, key) {
+  const date = st[`${key}_date`];
+  const result = st[`${key}_result`];
+  const comment = st[`${key}_comment`];
+  if (!date && !result && !comment) return `<td class="ss-stage-cell"><span style="color:var(--muted)">-</span></td>`;
+  return `<td class="ss-stage-cell">
+    <div class="ss-stage-line">${date||'-'} ${sampleResultBadge(result)}</div>
+    ${comment ? `<div class="ss-stage-comment" title="${escHtml(comment)}">${escHtml(comment)}</div>` : ''}
+  </td>`;
 }
 
 function renderSampleTracking() {
@@ -4115,23 +4203,28 @@ function renderSampleTracking() {
   const tbody = document.getElementById('sample-tbody');
   if (!tbody) return;
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="22" style="text-align:center;padding:32px;color:var(--muted)">등록된 샘플 데이터가 없습니다</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)">등록된 샘플 데이터가 없습니다</td></tr>`;
     return;
   }
-  const stageKeys = ['qc1','qc2','qc3','qc4','pp','shipping'];
   tbody.innerHTML = rows.map(st => {
-    const stageCells = stageKeys.map(k => {
-      const date = st[`${k}_date`] || '';
-      const result = st[`${k}_result`] || '';
-      const comment = st[`${k}_comment`] || '';
-      return `<td style="min-width:88px">${date||'<span style="color:var(--muted)">-</span>'}</td><td>${sampleResultBadge(result)}</td><td style="min-width:100px;max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--muted)">${comment||'-'}</td>`;
-    }).join('');
+    const rounds = qcRoundsByStyle[st.id] || [];
+    const latest = rounds.length ? rounds[rounds.length - 1] : null;
+    const qcLatestHtml = latest
+      ? `<div class="ss-stage-line">${latest.round_no}차 · ${latest.qc_date||'-'} ${sampleResultBadge(latest.status)}</div>${latest.comment ? `<div class="ss-stage-comment" title="${escHtml(latest.comment)}">${escHtml(latest.comment)}</div>` : ''}`
+      : `<div style="color:var(--muted);font-size:12px">-</div>`;
     return `<tr>
-      <td style="font-family:'DM Mono',monospace">${st.style_no||''}</td>
-      <td>${st.style_name||''}</td>
-      <td>${st.vendor||'-'}</td>
-      <td>${st.tp_date||'<span style="color:var(--muted)">-</span>'}</td>
-      ${stageCells}
+      <td class="ss-style-cell">
+        <div class="ss-style-no" onclick="openSampleDetail('${st.id}')">${escHtml(st.style_no||'')}</div>
+        <div class="ss-style-name">${escHtml(st.style_name||'-')}</div>
+        <div class="ss-vendor">${escHtml(st.vendor||'-')}</div>
+      </td>
+      <td class="ss-stage-cell">${st.tp_date||'<span style="color:var(--muted)">-</span>'}</td>
+      <td class="ss-stage-cell">
+        ${qcLatestHtml}
+        <button class="ss-qc-add-btn" onclick="openQcRoundModal('${st.id}')">+ 차수 추가</button>
+      </td>
+      ${sampleStageCell(st, 'pp')}
+      ${sampleStageCell(st, 'shipping')}
       <td><button class="btn btn-s btn-sm" onclick="openSampleModal('${st.id}')">입력</button></td>
     </tr>`;
   }).join('');
@@ -4140,13 +4233,11 @@ function renderSampleTracking() {
 function openSampleModal(trackingId) {
   activeSampleTrackingId = trackingId;
   const st = allSampleTracking.find(s => s.id === trackingId);
-  document.getElementById('sm-title').textContent = L('샘플 관리 입력','Sample Tracking Input');
-  document.getElementById('sm-sub').textContent = st ? `${st.style_no||''} · ${st.style_name||''}` : '';
+  document.getElementById('sm-title').textContent = L('TP / PP / SHIPPING 입력','TP / PP / SHIPPING Input');
+  document.getElementById('sm-sub').textContent = st ? `${st.style_no||''} · ${st.style_name||''} · ${L('QC는 목록의 [+ 차수 추가]로 입력','QC is entered via [+ Add Round] in the list')}` : '';
   document.getElementById('sm-tp-date').value = st?.tp_date || '';
   document.getElementById('sm-alert').classList.remove('on');
   const stages = [
-    {key:'qc1',label:'QC1'},{key:'qc2',label:'QC2'},
-    {key:'qc3',label:'QC3'},{key:'qc4',label:'QC4'},
     {key:'pp',label:'PP'},{key:'shipping',label:'SHIPPING'}
   ];
   document.getElementById('sm-stages').innerHTML = stages.map(({key, label}) => `
@@ -4183,7 +4274,7 @@ async function saveSampleData() {
     updated_by: me.id,
     updated_at: nowKstIso()
   };
-  ['qc1','qc2','qc3','qc4','pp','shipping'].forEach(k => {
+  ['pp','shipping'].forEach(k => {
     patch[k+'_date'] = document.getElementById(`sm-${k}-date`)?.value || null;
     patch[k+'_result'] = document.getElementById(`sm-${k}-result`)?.value || null;
     patch[k+'_comment'] = document.getElementById(`sm-${k}-comment`)?.value || null;
@@ -4198,6 +4289,136 @@ async function saveSampleData() {
   } finally {
     btn.disabled = false; btn.textContent = L('저장','Save');
   }
+}
+
+// ── QC 차수 관리 ──
+async function reloadQcRounds() {
+  allQcRounds = await sb('qc_rounds?select=*');
+  rebuildQcRoundsMap();
+}
+
+function findQcRoundById(roundId) {
+  for (const sid in qcRoundsByStyle) {
+    const r = qcRoundsByStyle[sid].find(x => x.id === roundId);
+    if (r) return r;
+  }
+  return null;
+}
+
+function openQcRoundModal(styleId, roundToEdit) {
+  activeQcRoundStyleId = styleId;
+  editingQcRoundId = roundToEdit ? roundToEdit.id : null;
+  const rounds = qcRoundsByStyle[styleId] || [];
+  const maxRound = rounds.length ? Math.max(...rounds.map(r => r.round_no)) : 0;
+  const roundNo = roundToEdit ? roundToEdit.round_no : maxRound + 1;
+  const st = allSampleTracking.find(s => s.id === styleId);
+  document.getElementById('qcr-title').textContent = roundToEdit ? L('QC 차수 수정','Edit QC Round') : L('QC 차수 추가','Add QC Round');
+  document.getElementById('qcr-sub').textContent = st ? `${st.style_no||''} · ${st.style_name||''}` : '';
+  document.getElementById('qcr-round-no').textContent = `${roundNo}${L('차','')}`;
+  document.getElementById('qcr-date').value = roundToEdit?.qc_date || '';
+  document.getElementById('qcr-status').value = roundToEdit?.status || '';
+  document.getElementById('qcr-comment').value = roundToEdit?.comment || '';
+  document.getElementById('qcr-alert').classList.remove('on');
+  document.getElementById('qcr-delete-btn').style.display = roundToEdit ? '' : 'none';
+  document.getElementById('qc-round-modal').classList.add('on');
+}
+
+function closeQcRoundModal() {
+  document.getElementById('qc-round-modal').classList.remove('on');
+  activeQcRoundStyleId = null;
+  editingQcRoundId = null;
+}
+
+async function saveQcRound() {
+  if (!activeQcRoundStyleId) return;
+  const btn = document.getElementById('qcr-save');
+  btn.disabled = true; btn.textContent = L('저장 중...','Saving...');
+  try {
+    const rounds = qcRoundsByStyle[activeQcRoundStyleId] || [];
+    const roundNo = editingQcRoundId
+      ? rounds.find(r => r.id === editingQcRoundId)?.round_no
+      : (rounds.length ? Math.max(...rounds.map(r => r.round_no)) + 1 : 1);
+    const body = {
+      style_id: activeQcRoundStyleId,
+      round_no: roundNo,
+      qc_date: document.getElementById('qcr-date').value || null,
+      status: document.getElementById('qcr-status').value || null,
+      comment: document.getElementById('qcr-comment').value || null
+    };
+    if (editingQcRoundId) {
+      await sb(`qc_rounds?id=eq.${editingQcRoundId}`, 'PATCH', body);
+    } else {
+      await sb('qc_rounds', 'POST', body);
+    }
+    const wasStyleId = activeQcRoundStyleId;
+    await reloadQcRounds();
+    closeQcRoundModal();
+    renderSampleTracking();
+    if (document.getElementById('sample-detail-modal')?.classList.contains('on')) renderSampleDetailContent(wasStyleId);
+  } catch(e) {
+    showAlert('qcr-alert', e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = L('저장','Save');
+  }
+}
+
+async function deleteQcRound() {
+  if (!editingQcRoundId) return;
+  if (!confirm(L('이 QC 차수를 삭제하시겠습니까?','Delete this QC round?'))) return;
+  try {
+    const wasStyleId = activeQcRoundStyleId;
+    await sb(`qc_rounds?id=eq.${editingQcRoundId}`, 'DELETE');
+    await reloadQcRounds();
+    closeQcRoundModal();
+    renderSampleTracking();
+    if (document.getElementById('sample-detail-modal')?.classList.contains('on')) renderSampleDetailContent(wasStyleId);
+  } catch(e) {
+    showAlert('qcr-alert', e.message);
+  }
+}
+
+// ── 샘플 상세(타임라인) ──
+function openSampleDetail(styleId) {
+  activeDetailStyleId = styleId;
+  renderSampleDetailContent(styleId);
+  document.getElementById('sample-detail-modal').classList.add('on');
+}
+
+function closeSampleDetailModal() {
+  document.getElementById('sample-detail-modal').classList.remove('on');
+  activeDetailStyleId = null;
+}
+
+function renderSampleDetailContent(styleId) {
+  const st = allSampleTracking.find(s => s.id === styleId);
+  if (!st) return;
+  document.getElementById('sd-title').textContent = st.style_no || '';
+  const subParts = [st.style_name||'-', st.vendor||'-'];
+  if (st.season) subParts.push(st.season);
+  if (st.order_qty) subParts.push(`${Number(st.order_qty).toLocaleString()}${L('장',' pcs')}`);
+  if (st.target_etd) subParts.push(`ETD ${st.target_etd}`);
+  document.getElementById('sd-sub').textContent = subParts.join(' · ');
+
+  const rounds = (qcRoundsByStyle[styleId] || []).slice().sort((a,b) => a.round_no - b.round_no);
+  const items = [
+    { label: 'TP', date: st.tp_date, status: null, comment: null, editable: false }
+  ];
+  rounds.forEach(r => items.push({ label: `QC ${r.round_no}${L('차','')}`, date: r.qc_date, status: r.status, comment: r.comment, editable: true, roundId: r.id }));
+  items.push({ label: 'PP', date: st.pp_date, status: st.pp_result, comment: st.pp_comment, editable: false });
+  items.push({ label: 'SHIPPING', date: st.shipping_date, status: st.shipping_result, comment: st.shipping_comment, editable: false });
+
+  document.getElementById('sd-timeline').innerHTML = items.map(it => `
+    <div class="sd-tl-item">
+      <div class="sd-tl-dot"></div>
+      <div class="sd-tl-head">
+        <span class="sd-tl-label">${escHtml(it.label)}</span>
+        ${it.status ? sampleResultBadge(it.status) : ''}
+        ${it.editable ? `<button class="sd-tl-edit-btn" onclick="openQcRoundModal('${styleId}', findQcRoundById('${it.roundId}'))">${L('수정','Edit')}</button>` : ''}
+      </div>
+      <div class="sd-tl-date">${it.date ? it.date : `<span style="color:var(--muted)">${L('미입력','Not entered')}</span>`}</div>
+      ${it.comment ? `<div class="sd-tl-comment">${escHtml(it.comment)}</div>` : ''}
+    </div>
+  `).join('');
 }
 
 function openSampleUploadModal() {
@@ -4355,15 +4576,20 @@ function downloadPCLData() {
     'PP 수령일','PP 결과','PP 코멘트',
     'SHIPPING 수령일','SHIPPING 결과','SHIPPING 코멘트'
   ];
-  const data = rows.map(st => [
-    st.style_no||'', st.style_name||'', st.vendor||'', st.tp_date||'',
-    st.qc1_date||'', st.qc1_result||'', st.qc1_comment||'',
-    st.qc2_date||'', st.qc2_result||'', st.qc2_comment||'',
-    st.qc3_date||'', st.qc3_result||'', st.qc3_comment||'',
-    st.qc4_date||'', st.qc4_result||'', st.qc4_comment||'',
-    st.pp_date||'', st.pp_result||'', st.pp_comment||'',
-    st.shipping_date||'', st.shipping_result||'', st.shipping_comment||''
-  ]);
+  const data = rows.map(st => {
+    const byRound = {};
+    (qcRoundsByStyle[st.id] || []).forEach(r => { byRound[r.round_no] = r; });
+    const qcCols = [1,2,3,4].flatMap(n => {
+      const r = byRound[n];
+      return [r?.qc_date||'', r?.status||'', r?.comment||''];
+    });
+    return [
+      st.style_no||'', st.style_name||'', st.vendor||'', st.tp_date||'',
+      ...qcCols,
+      st.pp_date||'', st.pp_result||'', st.pp_comment||'',
+      st.shipping_date||'', st.shipping_result||'', st.shipping_comment||''
+    ];
+  });
   const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'PCL_RAW_DATA');
