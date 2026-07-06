@@ -95,6 +95,7 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .bdg-urgent{background:#fde8e8;color:var(--red);font-weight:700;border:1px solid #f5c6c6}
 .bdg-reorder{background:#e8eefd;color:#2952cc;font-weight:700;border:1px solid #c6d3f5}
 .bdg-cancelled{background:#e8e8e8;color:#888;border:1px solid #d0d0d0}
+.bdg-changed{background:var(--purplel);color:var(--purple);font-weight:700;cursor:pointer}
 .bdg-dday{background:var(--oral);color:var(--ora);font-weight:700;border:1px solid #f0d080}
 .bdg-dday0{background:#fff3cd;color:#856404;font-weight:700;border:1px solid #ffc107}
 .bulk-bar{display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--acl);border:1px solid var(--ac);border-radius:10px;margin-bottom:12px;flex-wrap:wrap}
@@ -522,6 +523,24 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
           <div id="members-tbl"></div>
         </div>
 
+        <div class="sec" id="sec-po-match">
+          <div class="sec-hdr"><div><div class="sec-title" data-ko="PO 매칭 관리" data-en="PO Matching">PO 매칭 관리</div><div class="sec-sub" data-ko="AX에서 넘어온 미매칭 PO를 벤더 계정과 연결하세요" data-en="Link unmatched AX POs to vendor accounts">AX에서 넘어온 미매칭 PO를 벤더 계정과 연결하세요</div></div></div>
+          <div id="po-match-tbl"></div>
+        </div>
+
+        <div class="sec" id="sec-ax-import">
+          <div class="sec-hdr"><div><div class="sec-title" data-ko="AX PO 연동 (임시)" data-en="AX PO Import (Temporary)">AX PO 연동 (임시)</div><div class="sec-sub" data-ko="추후 MCP 자동연동으로 교체 예정. 지금은 JSON을 붙여넣어 수동 테스트합니다." data-en="Will be replaced by automatic MCP integration later. Paste JSON to test manually for now.">추후 MCP 자동연동으로 교체 예정. 지금은 JSON을 붙여넣어 수동 테스트합니다.</div></div></div>
+          <div class="card" style="max-width:680px"><div class="card-body">
+            <div class="alert alert-e" id="ax-import-alert"></div>
+            <div class="alert alert-s" id="ax-import-result"></div>
+            <div class="fg">
+              <label class="fl" data-ko="AX PO JSON 배열" data-en="AX PO JSON Array">AX PO JSON 배열</label>
+              <textarea id="ax-import-json" style="min-height:220px;font-family:'DM Mono',monospace;font-size:12px" placeholder='[{"po_number":"PO-2026-0001","vendor_code":"AXV-0012","vendor_name":"닝보진룽","style_no":"WJ-2025-001","style_name":"WOOL BLAZER","color_code":"BLACK","qty":600,"unit_price":24.5,"currency":"USD","delivery_date":"2025-07-30","brand":"BLS","season":"2026SS"}]'></textarea>
+            </div>
+            <button class="btn btn-p" id="ax-import-btn" data-ko="가져오기" data-en="Import">가져오기</button>
+          </div></div>
+        </div>
+
         <div class="sec" id="sec-errors">
           <div class="sec-hdr"><div><div class="sec-title" data-ko="오류 관리" data-en="Error Management">오류 관리</div><div class="sec-sub" data-ko="사이트 오류 로그" data-en="Site error log">사이트 오류 로그</div></div>
             <button class="btn btn-s btn-sm" id="err-clear-btn" data-ko="✓ 해결된 오류 삭제" data-en="✓ Delete Resolved Errors">✓ 해결된 오류 삭제</button>
@@ -834,6 +853,21 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
   </div>
 </div>
 
+<div class="overlay" id="po-change-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="mhdr">
+      <div><div class="mhdr-t" data-ko="PO 변경 내역" data-en="PO Change Log">PO 변경 내역</div><div class="mhdr-s" id="pcm-sub"></div></div>
+      <button class="mclose" id="pcm-close">×</button>
+    </div>
+    <div class="mbody">
+      <div id="pcm-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="pcm-cancel" data-ko="닫기" data-en="Close">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="finish-modal">
   <div class="modal" style="max-width:520px">
     <div class="mhdr">
@@ -969,7 +1003,7 @@ const SUPABASE_KEY = "sb_publishable_b19kpVsItvdlFneFpzYb2Q_Z_Xc3ccr";
 
 // ── 전역 상태 ──
 let me = null;
-let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allErrors = [], allArrival = [], allDefectHistory = [], allSampleTracking = [], allQcRounds = [];
+let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allErrors = [], allArrival = [], allDefectHistory = [], allSampleTracking = [], allQcRounds = [], allVendorMappings = [], allPoChangeLogs = [];
 let qcRoundsByStyle = {};
 function rebuildQcRoundsMap() {
   qcRoundsByStyle = {};
@@ -1239,6 +1273,8 @@ function buildSidebar() {
       <button class="nav-btn" data-sec="inbound" data-ko="📅 입고 일정표" data-en="📅 Inbound Schedule">📅 입고 일정표</button>
       <button class="nav-btn" data-sec="factory-all" data-ko="🏭 공장 현황" data-en="🏭 Factory Overview">🏭 공장 현황</button>
       <button class="nav-btn" data-sec="members" data-ko="👥 회원 관리" data-en="👥 Member Management">👥 회원 관리</button>
+      <button class="nav-btn" data-sec="po-match" data-ko="🔄 PO 매칭 관리" data-en="🔄 PO Matching">🔄 PO 매칭 관리</button>
+      <button class="nav-btn" data-sec="ax-import" data-ko="🔗 AX PO 연동(임시)" data-en="🔗 AX PO Import (Temp)">🔗 AX PO 연동(임시)</button>
       <button class="nav-btn" data-sec="errors" data-ko="🛠️ 오류 관리" data-en="🛠️ Error Log">🛠️ 오류 관리 <span class="nav-badge" id="err-badge">0</span></button>
       <button class="nav-btn" data-sec="settings" data-ko="⚙️ 설정" data-en="⚙️ Settings">⚙️ 설정</button>
       <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
@@ -1256,6 +1292,7 @@ function buildSidebar() {
       <button class="nav-btn on" data-sec="dashboard" data-ko="📋 전체 오더 현황" data-en="📋 All Orders">📋 전체 오더 현황</button>
       <button class="nav-btn" data-sec="order-reg" data-ko="➕ 오더 등록" data-en="➕ Order Registration">➕ 오더 등록</button>
       <button class="nav-btn" data-sec="sample" data-ko="🧾 샘플 관리" data-en="🧾 Sample Tracking">🧾 샘플 관리</button>
+      <button class="nav-btn" data-sec="po-match" data-ko="🔄 PO 매칭 관리" data-en="🔄 PO Matching">🔄 PO 매칭 관리</button>
       <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
   } else if (me.role === 'viewer') {
     menu = `
@@ -1285,6 +1322,7 @@ function switchSec(id) {
   if (id === 'factory-all') renderFactoryAll();
   if (id === 'factory-mine') renderFactoryMine();
   if (id === 'members') renderMembers();
+  if (id === 'po-match') renderPoMatch();
   if (id === 'errors') renderErrors();
   if (id === 'sample') renderSampleTracking();
   if (id === 'settings') renderSettings();
@@ -1379,10 +1417,12 @@ function bindAppEvents() {
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
-  ['vm','defm','fm','dm','oe','fim','aem','aum','fsm','sum'].forEach(prefix=>{
+  ['vm','defm','fm','dm','oe','fim','aem','aum','fsm','sum','pcm'].forEach(prefix=>{
     document.getElementById(prefix+'-close')?.addEventListener('click', ()=>closeModal(prefix));
     document.getElementById(prefix+'-cancel')?.addEventListener('click', ()=>closeModal(prefix));
   });
+  document.getElementById('po-change-modal').addEventListener('click', e=>{ if(e.target.id==='po-change-modal') closeModal('pcm'); });
+  document.getElementById('ax-import-btn')?.addEventListener('click', handleAxImportClick);
   document.getElementById('vendor-modal').addEventListener('click', e=>{ if(e.target.id==='vendor-modal') closeModal('vm'); });
   document.getElementById('defect-modal').addEventListener('click', e=>{ if(e.target.id==='defect-modal') closeModal('defm'); });
   document.getElementById('factory-modal').addEventListener('click', e=>{ if(e.target.id==='factory-modal') closeModal('fm'); });
@@ -1433,7 +1473,7 @@ function bindAppEvents() {
   document.getElementById('sample-detail-modal')?.addEventListener('click', e=>{ if(e.target.id==='sample-detail-modal') closeSampleDetailModal(); });
 }
 function closeModal(prefix) {
-  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal', sm:'sample-modal', sum:'sample-upload-modal'};
+  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal', sm:'sample-modal', sum:'sample-upload-modal', pcm:'po-change-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
@@ -1446,7 +1486,7 @@ async function loadAll() {
     const usersQuery = isVendor ? `users?select=id,company_name,role&id=eq.${me.id}` : 'users?select=*';
 
     const canSeeSample = me.role==='master'||me.role==='md';
-    [allUsers, allSeasons, allOrders, allFactories, allErrors, allArrival, allDefectHistory, allSampleTracking, allQcRounds] = await Promise.all([
+    [allUsers, allSeasons, allOrders, allFactories, allErrors, allArrival, allDefectHistory, allSampleTracking, allQcRounds, allVendorMappings, allPoChangeLogs] = await Promise.all([
       sb(usersQuery),
       sb('seasons?select=*'),
       sb(ordersQuery),
@@ -1455,7 +1495,9 @@ async function loadAll() {
       sb('arrival_schedule?select=*&order=arrival_date.asc,style_no.asc'),
       (me.role==='master'||me.role==='cs') ? sb('defect_history?select=*&order=created_at.desc') : Promise.resolve([]),
       canSeeSample ? sb('sample_tracking?select=*') : Promise.resolve([]),
-      canSeeSample ? sb('qc_rounds?select=*') : Promise.resolve([])
+      canSeeSample ? sb('qc_rounds?select=*') : Promise.resolve([]),
+      canSeeSample ? sb('vendor_mappings?select=*') : Promise.resolve([]),
+      canSeeSample ? sb('po_change_logs?select=*&confirmed=eq.false') : Promise.resolve([])
     ]);
     rebuildQcRoundsMap();
     console.log('[loadAll] orders:', allOrders.length, 'sample_tracking:', allSampleTracking.length, allSampleTracking);
@@ -1568,6 +1610,7 @@ function getDashStatusFilter() {
 }
 function getVisibleOrders() {
   let list = allOrders.slice();
+  list = list.filter(o => o.match_status !== 'unmatched'); // 미매칭 AX PO는 PO 매칭 관리 화면에서만 노출
   if (me.role === 'vendor') list = list.filter(o=>o.vendor_id===me.id);
   const sid = document.getElementById('dash-season').value;
   const vid = document.getElementById('ord-vendor').value;
@@ -1680,7 +1723,7 @@ function renderDashboard() {
         if (me.role !== 'md' && isInShippedTab(o)) {
           actBtn += `<button class="btn btn-purple btn-sm" onclick="openDefectModal('${o.id}')">${L('불량 추가','Add Defect')}</button>`;
         }
-        if (me.role === 'master') {
+        if (me.role === 'master' && o.source !== 'ax') {
           actBtn += ` <button class="btn btn-sm" style="background:var(--ac);color:#fff" onclick="openOrderEditModal('${o.id}')">${L('수정','Edit')}</button>`;
         }
       }
@@ -1699,10 +1742,12 @@ function renderDashboard() {
         : o.is_urgent
           ? `<span class="bdg bdg-urgent" style="font-size:9px;padding:2px 5px">${L('긴급','URGENT')}</span>`
           : '';
+      const hasUnconfirmedChange = allPoChangeLogs.some(l => l.order_id === o.id && !l.confirmed);
+      const changedBadge = hasUnconfirmedChange ? `<span class="bdg bdg-changed" style="font-size:9px;padding:2px 5px" onclick="openPoChangeModal('${o.id}')">${L('변경됨','Changed')}</span>` : '';
       return `<tr${rowBg}>
-        ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
+        ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" ${o.source==='ax'?'disabled title="AX 연동 PO는 삭제/취소할 수 없습니다"':''} style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
         <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
-        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${priorityBadge?` ${priorityBadge}`:''}</td>
+        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${priorityBadge?` ${priorityBadge}`:''}${changedBadge?` ${changedBadge}`:''}</td>
         <td data-label="${L('스타일명','Style Name')}">${o.style_name}</td>
         <td data-label="${L('오더','Order')}">${Number(o.order_qty).toLocaleString()}</td>
         <td data-label="${L('진행율','Progress')}"><div class="stage-progbar">${stageSegs}</div></td>
@@ -1718,21 +1763,47 @@ function renderDashboard() {
 }
 
 // ── 벤더 오더 카드 렌더링 ──
+// ── 벤더 생산현황: PO번호+스타일번호 단위로 컬러 행을 묶는 그룹 키 ──
+// AX는 컬러별로 별도 행(order)을 만들되(같은 po_number+style_no), 수기 등록은 ax_po_number가 없으므로
+// 자기 자신의 id를 키에 섞어 항상 단독 그룹이 되게 한다(다른 수기 오더와 잘못 합쳐지지 않도록).
+function getOrderGroupKey(o) {
+  return `${o.ax_po_number || o.id}__${o.style_no}`;
+}
+function getOrderGroup(orderId) {
+  const o = allOrders.find(x => x.id === orderId);
+  if (!o) return [];
+  const key = getOrderGroupKey(o);
+  return allOrders.filter(x => getOrderGroupKey(x) === key);
+}
+function buildOrderGroups(list) {
+  const map = new Map();
+  list.forEach(o => {
+    const key = getOrderGroupKey(o);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(o);
+  });
+  return [...map.values()];
+}
+
 function renderVendorOrderCards(list) {
   if (!list.length) return `<div class="empty"><div class="empty-t">${L('배정된 오더가 없습니다','No orders assigned')}</div></div>`;
   const t = today();
   const STAGES = ['cut','artwork','sew','finish'];
   const LABELS = {cut:'CUT',artwork:'ARTWORK',sew:'SEW',finish:'FINISH'};
   const ICONS  = {cut:'✂️',artwork:'🎨',sew:'🪡',finish:'✅'};
-  return list.map(o=>{
-    const done = STAGES.map(s=>!!o[s+'_done']);
+  const groups = buildOrderGroups(list);
+  return groups.map(group=>{
+    const o = group[0]; // 대표 행 (스타일/일정 등 공통 정보 — 컬러 행 전체가 동일하다고 가정)
+    const totalQty = group.reduce((s,x)=>s+(x.order_qty||0),0);
+    const totalShipped = group.reduce((s,x)=>s+(x.shipped_qty||0),0);
+    const done = STAGES.map(s=>group.every(x=>!!x[s+'_done'])); // 컬러 전원 완료해야 해당 단계 완료로 표시
     const cnt  = done.filter(Boolean).length;
     const pct  = Math.round(cnt / 4 * 100);
-    const late = o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty;
-    const shipped = isOrderShipped(o);
-    const shipRequested = isOrderShipRequested(o);
-    const canRequestShip = cnt === STAGES.length && o.status !== 'shipping_requested' && o.status !== 'shipped' && o.status !== 'cancelled';
-    const qtyLabel = `${L('발주','Order')} ${Number(o.order_qty||0).toLocaleString()}${L('장','pcs')}`;
+    const late = o.planned_ship_date && o.planned_ship_date<t && totalShipped<totalQty;
+    const shipped = group.every(isOrderShipped);
+    const shipRequested = group.every(isOrderShipRequested);
+    const canRequestShip = cnt === STAGES.length && group.every(x=>x.status !== 'shipping_requested' && x.status !== 'shipped' && x.status !== 'cancelled');
+    const qtyLabel = `${L('발주','Order')} ${Number(totalQty).toLocaleString()}${L('장','pcs')}`;
     const chips = STAGES.map((s,i)=>`
       <div class="stage-chip ${done[i]?'done-'+s:''}" onclick="toggleStage('${o.id}','${s}')">
         <span class="stage-chip-icon">${ICONS[s]}</span>
@@ -1746,6 +1817,14 @@ function renderVendorOrderCards(list) {
       : o.is_urgent
         ? `<span class="bdg bdg-urgent">🚨 ${L('긴급','URGENT')}</span>`
         : '';
+    // 컬러가 여러 개인 그룹(AX)만 접이식 컬러별 수량 참고 영역 노출
+    const colorBreakdown = group.length > 1 ? `
+      <details style="margin-top:8px">
+        <summary style="cursor:pointer;font-size:12px;color:var(--muted)">${L('컬러별 수량 보기','View qty by color')} (${group.length})</summary>
+        <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">
+          ${group.map(x=>`<div style="display:flex;justify-content:space-between;padding:4px 8px;background:var(--bg);border-radius:6px;font-size:12px"><span>${x.ax_color_code||'-'}</span><span>${Number(x.order_qty||0).toLocaleString()}${L('장','pcs')}</span></div>`).join('')}
+        </div>
+      </details>` : '';
     return `<div class="order-card" id="ocard-${o.id}"${priorityCardStyle}>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div>
@@ -1757,6 +1836,7 @@ function renderVendorOrderCards(list) {
           </div>
           <div style="font-size:15px;font-weight:700">${o.style_name}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px">${qtyLabel} · ${(o.planned_ship_date||'-').slice(0,10)}${(()=>{const d=calcDday(o.planned_ship_date);return d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;})()}${late?` <span style="color:var(--red);font-weight:600">⚠ ${L('지연','Delayed')}</span>`:''}</div>
+          ${colorBreakdown}
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-size:20px;font-weight:700;color:var(--ac)">${pct}%</div>
@@ -1781,37 +1861,62 @@ async function logProductionStage(orderId, stage, action) {
   } catch (e) { console.error('production_log insert failed', e); }
 }
 
-async function toggleStage(orderId, stage) {
-  const o = allOrders.find(x=>x.id===orderId);
-  if (!o) return;
-  const field = stage+'_done';
-  const newVal = !o[field];
+// ── 그룹(같은 PO+스타일의 컬러 행 전체) 단위 생산 단계 검증 + 낙관적 반영 ──
+// 벤더 카드에서 체크하든 상세 모달에서 체크하든 항상 같은 그룹 전체에 적용되어야
+// 컬러 행들이 항상 동일한 단계값을 유지하고(마스터/MD 집계가 스타일 합산과 일치), 카드 진행율이 정확하다.
+function computeStageGroupUpdate(orderId, stage) {
+  const group = getOrderGroup(orderId);
+  if (!group.length) return null;
   const STAGES = ['cut','artwork','sew','finish'];
   const LABELS = {cut:'CUT',artwork:'ARTWORK',sew:'SEW',finish:'FINISH'};
+  const field = stage + '_done';
   const idx = STAGES.indexOf(stage);
-  if (newVal) {
-    for (let i=0;i<idx;i++) {
-      if (!o[STAGES[i]+'_done']) { alert(L(`먼저 '${LABELS[STAGES[i]]}' 단계를 완료해주세요`,`Please complete the '${LABELS[STAGES[i]]}' stage first`)); return; }
-    }
-  } else {
-    for (let i=idx+1;i<STAGES.length;i++) {
-      if (o[STAGES[i]+'_done']) { alert(L(`먼저 '${LABELS[STAGES[i]]}' 단계를 해제해주세요`,`Please uncheck the '${LABELS[STAGES[i]]}' stage first`)); return; }
+  const currentVal = group.every(x => !!x[field]); // 컬러 전원 완료 상태만 '완료'로 간주
+  const newVal = !currentVal;
+  const isMasterForce = me.role === 'master';
+  if (!isMasterForce) {
+    if (newVal) {
+      for (let i = 0; i < idx; i++) {
+        if (!group.every(x => !!x[STAGES[i]+'_done'])) { alert(L(`먼저 '${LABELS[STAGES[i]]}' 단계를 완료해주세요`,`Please complete the '${LABELS[STAGES[i]]}' stage first`)); return null; }
+      }
+    } else {
+      for (let i = idx+1; i < STAGES.length; i++) {
+        if (group.some(x => !!x[STAGES[i]+'_done'])) { alert(L(`먼저 '${LABELS[STAGES[i]]}' 단계를 해제해주세요`,`Please uncheck the '${LABELS[STAGES[i]]}' stage first`)); return null; }
+      }
     }
   }
-  const cnt = STAGES.reduce((n,s)=>n+((s===stage?newVal:!!o[s+'_done'])?1:0),0);
-  const newProduced = Math.round((o.order_qty||0)*cnt/4);
-  o[field] = newVal;
-  o.produced_qty = newProduced;
-  document.getElementById('ord-tbl').innerHTML = renderVendorOrderCards(getVisibleOrders());
+  const snapshot = group.map(x => ({ id: x.id, stages: STAGES.map(s => !!x[s+'_done']), produced: x.produced_qty }));
+  group.forEach(x => {
+    x[field] = newVal;
+    const cnt = STAGES.reduce((n,s) => n + ((s===stage?newVal:!!x[s+'_done']) ? 1 : 0), 0);
+    x.produced_qty = Math.round((x.order_qty||0) * cnt / 4);
+  });
+  return { group, field, stage, snapshot };
+}
+
+async function commitStageGroupUpdate(upd) {
+  const { group, field, stage, snapshot } = upd;
+  const STAGES = ['cut','artwork','sew','finish'];
   try {
-    await sb(`orders?id=eq.${orderId}`,'PATCH',{[field]:newVal,produced_qty:newProduced,updated_at:new Date().toISOString()});
-    await logProductionStage(orderId, stage, newVal ? 'checked' : 'unchecked');
-  } catch(e) {
-    o[field] = !newVal;
-    o.produced_qty = Math.round((o.order_qty||0)*STAGES.reduce((n,s)=>n+(!!o[s+'_done']?1:0),0)/4);
-    document.getElementById('ord-tbl').innerHTML = renderVendorOrderCards(getVisibleOrders());
-    alert(L('저장 실패: ','Save failed: ')+e.message);
+    await Promise.all(group.map(x => sb(`orders?id=eq.${x.id}`, 'PATCH', { [field]: x[field], produced_qty: x.produced_qty, updated_at: nowKstIso() })));
+    await Promise.all(group.map(x => logProductionStage(x.id, stage, x[field] ? 'checked' : 'unchecked')));
+    return true;
+  } catch (e) {
+    group.forEach((x, i) => {
+      STAGES.forEach((s, j) => { x[s+'_done'] = snapshot[i].stages[j]; });
+      x.produced_qty = snapshot[i].produced;
+    });
+    alert(L('저장 실패: ','Save failed: ') + e.message);
+    return false;
   }
+}
+
+async function toggleStage(orderId, stage) {
+  const upd = computeStageGroupUpdate(orderId, stage);
+  if (!upd) return;
+  document.getElementById('ord-tbl').innerHTML = renderVendorOrderCards(getVisibleOrders());
+  const ok = await commitStageGroupUpdate(upd);
+  if (!ok) document.getElementById('ord-tbl').innerHTML = renderVendorOrderCards(getVisibleOrders());
 }
 
 function renderVmStageSection(o) {
@@ -1839,50 +1944,23 @@ function renderVmStageSection(o) {
 }
 
 async function vmToggleStage(orderId, stage) {
-  const o = allOrders.find(x=>x.id===orderId);
-  if (!o) return;
-  const field = stage+'_done';
-  const newVal = !o[field];
-  const STAGES = ['cut','artwork','sew','finish'];
-  const LABELS = {cut:'CUT',artwork:'ARTWORK',sew:'SEW',finish:'FINISH'};
-  const idx = STAGES.indexOf(stage);
-  const isMasterForce = me.role === 'master';
-  if (!isMasterForce) {
-    if (newVal) {
-      for (let i=0;i<idx;i++) {
-        if (!o[STAGES[i]+'_done']) { alert(L(`먼저 '${LABELS[STAGES[i]]}' 단계를 완료해주세요`,`Please complete the '${LABELS[STAGES[i]]}' stage first`)); return; }
-      }
-    } else {
-      for (let i=idx+1;i<STAGES.length;i++) {
-        if (o[STAGES[i]+'_done']) { alert(L(`먼저 '${LABELS[STAGES[i]]}' 단계를 해제해주세요`,`Please uncheck the '${LABELS[STAGES[i]]}' stage first`)); return; }
-      }
-    }
-  }
-  const cnt = STAGES.reduce((n,s)=>n+((s===stage?newVal:!!o[s+'_done'])?1:0),0);
-  const newProduced = Math.round((o.order_qty||0)*cnt/4);
-  o[field] = newVal;
-  o.produced_qty = newProduced;
+  const upd = computeStageGroupUpdate(orderId, stage);
+  if (!upd) return;
+  const o = allOrders.find(x => x.id === orderId);
   renderVmStageSection(o);
-  document.getElementById('vm-produced').value = newProduced;
-  try {
-    await sb(`orders?id=eq.${orderId}`,'PATCH',{[field]:newVal,produced_qty:newProduced,updated_at:new Date().toISOString()});
-    await logProductionStage(orderId, stage, newVal ? 'checked' : 'unchecked');
-  } catch(e) {
-    o[field] = !newVal;
-    o.produced_qty = Math.round((o.order_qty||0)*STAGES.reduce((n,s)=>n+(!!o[s+'_done']?1:0),0)/4);
-    renderVmStageSection(o);
-    document.getElementById('vm-produced').value = o.produced_qty;
-    alert(L('저장 실패: ','Save failed: ')+e.message);
-  }
+  document.getElementById('vm-produced').value = o.produced_qty;
+  const ok = await commitStageGroupUpdate(upd);
+  if (!ok) { renderVmStageSection(o); document.getElementById('vm-produced').value = o.produced_qty; }
 }
 
-// ── 벤더 선적 요청 (FINISH까지 모두 완료된 오더 대상) ──
+// ── 벤더 선적 요청 (FINISH까지 모두 완료된 오더 대상, 같은 PO+스타일의 컬러 행 전체 일괄 요청) ──
 async function requestShipping(orderId) {
-  const o = allOrders.find(x=>x.id===orderId);
-  if (!o) return;
+  const group = getOrderGroup(orderId);
+  if (!group.length) return;
   if (!confirm(L('선적을 요청하시겠습니까? 요청 후에는 마스터의 선적 확정이 필요합니다.','Request shipment? Master confirmation will be required afterward.'))) return;
   try {
-    await sb(`orders?id=eq.${orderId}`, 'PATCH', { status: 'shipping_requested', updated_at: new Date().toISOString() });
+    const ids = group.map(x => x.id);
+    await sb(`orders?id=in.(${ids.join(',')})`, 'PATCH', { status: 'shipping_requested', updated_at: nowKstIso() });
     await loadAll();
     alert(L('선적 요청이 완료되었습니다','Shipping request submitted'));
   } catch(e) { alert(e.message); }
@@ -2007,6 +2085,163 @@ async function doSubmitOrder(body) {
   } catch(e) { showAlert('reg-alert', e.message); }
   finally { btn.disabled=false; btn.textContent=L('오더 등록','Register Order'); }
 }
+// ── AX(사내 ERP) PO 연동 ──
+// AX는 리오더를 새 po_number로 발행하므로 round(차수) 개념이 없다.
+// 컬러 단위로 집계되어 들어오므로(사이즈 합산 완료) 컬러까지 포함해야 라인을 유일하게 식별할 수 있다.
+function buildAxLineKey(rec) { return `${rec.po_number}__${rec.style_no}__${rec.color_code}`; }
+
+async function importAxPo(records) {
+  const result = { created: 0, changeLogged: 0, skipped: 0, errors: [] };
+  for (const rec of records) {
+    try {
+      const key = buildAxLineKey(rec);
+      const existing = allOrders.find(o => o.ax_line_key === key);
+      if (!existing) {
+        const mapping = allVendorMappings.find(m => m.ax_vendor_code === rec.vendor_code);
+        // AX의 season(예: "2026SS")을 시즌명과 매칭. 매칭 실패 시 활성 시즌으로 폴백.
+        const season = allSeasons.find(s => s.name === rec.season) || allSeasons.find(s => s.is_active) || allSeasons[0];
+        await sb('orders', 'POST', {
+          season_id: season?.id || null,
+          vendor_id: mapping ? mapping.vendor_user_id : null,
+          style_no: rec.style_no,
+          style_name: rec.style_name || rec.style_no,
+          category: null,
+          order_qty: rec.qty,
+          unit_price: rec.unit_price,
+          currency: rec.currency || 'USD',
+          planned_ship_date: rec.delivery_date,
+          shipped_qty: 0,
+          is_urgent: false,
+          is_reorder: false,
+          source: 'ax',
+          ax_po_number: rec.po_number,
+          ax_vendor_code: rec.vendor_code,
+          ax_vendor_name: rec.vendor_name,
+          ax_color_code: rec.color_code || null,
+          ax_brand: rec.brand || null,
+          ax_line_key: key,
+          match_status: mapping ? 'matched' : 'unmatched'
+        });
+        result.created++;
+      } else {
+        const logs = [];
+        if (Number(existing.order_qty) !== Number(rec.qty))
+          logs.push({ order_id: existing.id, changed_field: 'order_qty', old_value: String(existing.order_qty), new_value: String(rec.qty) });
+        if (Number(existing.unit_price) !== Number(rec.unit_price))
+          logs.push({ order_id: existing.id, changed_field: 'unit_price', old_value: String(existing.unit_price), new_value: String(rec.unit_price) });
+        if (!logs.length) { result.skipped++; continue; }
+        await sb('po_change_logs', 'POST', logs);
+        result.changeLogged++;
+      }
+    } catch (e) { result.errors.push({ rec, message: e.message }); }
+  }
+  await loadAll();
+  return result;
+}
+
+async function handleAxImportClick() {
+  document.getElementById('ax-import-alert').classList.remove('on');
+  document.getElementById('ax-import-result').classList.remove('on');
+  let records;
+  try {
+    records = JSON.parse(document.getElementById('ax-import-json').value);
+    if (!Array.isArray(records)) throw new Error(L('JSON 배열 형식이어야 합니다','Must be a JSON array'));
+  } catch (e) {
+    showAlert('ax-import-alert', L('JSON 파싱 오류: ','JSON parse error: ') + e.message);
+    return;
+  }
+  const btn = document.getElementById('ax-import-btn');
+  btn.disabled = true; btn.textContent = L('처리 중...','Processing...');
+  try {
+    const r = await importAxPo(records);
+    showAlert('ax-import-result', L(`✓ 신규 ${r.created}건 · 변경감지 ${r.changeLogged}건 · 동일(스킵) ${r.skipped}건 · 오류 ${r.errors.length}건`,`✓ New ${r.created} · Changed ${r.changeLogged} · Skipped ${r.skipped} · Errors ${r.errors.length}`), 's');
+    if (r.errors.length) console.error('AX import errors:', r.errors);
+  } catch (e) {
+    showAlert('ax-import-alert', e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = L('가져오기','Import');
+  }
+}
+
+// ── PO 매칭 관리 (마스터/MD) ──
+function renderPoMatch() {
+  const unmatched = allOrders.filter(o => o.source === 'ax' && o.match_status === 'unmatched');
+  const wrap = document.getElementById('po-match-tbl');
+  if (!unmatched.length) { wrap.innerHTML = `<div class="empty"><div class="empty-t">${L('미매칭 PO가 없습니다','No unmatched POs')}</div></div>`; return; }
+  const groups = {};
+  unmatched.forEach(o => {
+    const key = o.ax_vendor_code || '(unknown)';
+    if (!groups[key]) groups[key] = { vendorName: o.ax_vendor_name, orders: [] };
+    groups[key].orders.push(o);
+  });
+  const vendors = allUsers.filter(u => u.role === 'vendor' && u.status === 'active');
+  wrap.innerHTML = Object.entries(groups).map(([code, g]) => {
+    const totalQty = g.orders.reduce((s,o)=>s+(o.order_qty||0),0);
+    const selId = `pm-sel-${code.replace(/[^a-zA-Z0-9]/g,'_')}`;
+    return `<div class="pend-card">
+      <div class="pend-info">
+        <div class="pend-name"><strong>${g.vendorName || '-'}</strong> <span class="bdg bdg-cs" style="margin-left:6px">${code}</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">${L('미매칭','Unmatched')} ${g.orders.length}${L('건','cases')} · ${L('총 수량','Total Qty')} ${totalQty.toLocaleString()}${L('장','pcs')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${g.orders.map(o=>o.style_no).join(', ')}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="${selId}" class="fsel" style="max-width:220px">
+          <option value="">${L('벤더 선택','Select Vendor')}</option>
+          ${vendors.map(v=>`<option value="${v.id}">${v.company_name}${v.vendor_code?` [${v.vendor_code}]`:''}</option>`).join('')}
+        </select>
+        <button class="btn btn-p btn-sm" style="width:auto" onclick="matchAxVendor('${code}', document.getElementById('${selId}').value)">${L('매칭','Match')}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function matchAxVendor(axVendorCode, vendorUserId) {
+  if (!vendorUserId) { alert(L('벤더를 선택해주세요','Please select a vendor')); return; }
+  try {
+    const existingMapping = allVendorMappings.find(m => m.ax_vendor_code === axVendorCode);
+    if (existingMapping) {
+      await sb(`vendor_mappings?id=eq.${existingMapping.id}`, 'PATCH', { vendor_user_id: vendorUserId });
+    } else {
+      await sb('vendor_mappings', 'POST', { ax_vendor_code: axVendorCode, vendor_user_id: vendorUserId });
+    }
+    const ids = allOrders.filter(o => o.ax_vendor_code === axVendorCode && o.match_status === 'unmatched').map(o => o.id);
+    if (ids.length) {
+      await sb(`orders?id=in.(${ids.join(',')})`, 'PATCH', { vendor_id: vendorUserId, match_status: 'matched' });
+    }
+    await loadAll();
+    renderPoMatch();
+    alert(L('매칭이 완료되었습니다','Matching completed'));
+  } catch (e) { alert(e.message); }
+}
+
+// ── PO 변경 감지 모달 (마스터/MD) ──
+function openPoChangeModal(orderId) {
+  activeOrderId = orderId;
+  const o = allOrders.find(x => x.id === orderId);
+  if (!o) return;
+  const logs = allPoChangeLogs.filter(l => l.order_id === orderId && !l.confirmed);
+  document.getElementById('pcm-sub').textContent = `${o.style_no} · ${o.style_name}`;
+  const fieldLabel = { order_qty: L('발주수량','Order Qty'), unit_price: L('단가','Unit Price') };
+  document.getElementById('pcm-list').innerHTML = logs.length ? logs.map(l => `
+    <div style="border:1px solid var(--bdr);border-radius:8px;padding:10px 12px">
+      <div style="font-weight:600;font-size:13px">${fieldLabel[l.changed_field] || l.changed_field}</div>
+      <div style="font-size:13px;color:var(--muted);margin:4px 0">${l.old_value} → <strong style="color:var(--txt)">${l.new_value}</strong></div>
+      <div style="font-size:11px;color:var(--muted)">${(l.detected_at||'').slice(0,16).replace('T',' ')}</div>
+      <button class="btn btn-p btn-sm" style="width:auto;margin-top:8px" onclick="applyPoChangeLog('${l.id}','${orderId}','${l.changed_field}','${l.new_value}')">${L('반영','Apply')}</button>
+    </div>`).join('') : `<div class="empty"><div class="empty-t">${L('반영 대기 중인 변경사항이 없습니다','No pending changes')}</div></div>`;
+  document.getElementById('po-change-modal').classList.add('on');
+}
+
+async function applyPoChangeLog(logId, orderId, field, newValue) {
+  try {
+    const castValue = (field === 'order_qty') ? (parseInt(newValue)||0) : parseFloat(newValue);
+    await sb(`orders?id=eq.${orderId}`, 'PATCH', { [field]: castValue, updated_at: nowKstIso() });
+    await sb(`po_change_logs?id=eq.${logId}`, 'PATCH', { confirmed: true, confirmed_at: nowKstIso() });
+    await loadAll();
+    openPoChangeModal(orderId);
+  } catch (e) { alert(e.message); }
+}
+
 async function addSeason() {
   const name = document.getElementById('new-season-input').value.trim();
   if (!name) return;
@@ -2340,7 +2575,7 @@ async function submitBulkOrders() {
 
 // ── 오더 일괄 선택/삭제/취소 (마스터 전용) ──
 function toggleSelectAll(checked) {
-  document.querySelectorAll('.ord-chk').forEach(cb => {
+  document.querySelectorAll('.ord-chk:not(:disabled)').forEach(cb => {
     cb.checked = checked;
     if (checked) selectedOrderIds.add(cb.dataset.id);
     else selectedOrderIds.delete(cb.dataset.id);
@@ -2351,7 +2586,7 @@ function toggleSelectAll(checked) {
 function toggleOrderSelect(id, checked) {
   if (checked) selectedOrderIds.add(id);
   else selectedOrderIds.delete(id);
-  const allCbs = document.querySelectorAll('.ord-chk');
+  const allCbs = document.querySelectorAll('.ord-chk:not(:disabled)');
   const chkAll = document.getElementById('chk-all');
   if (chkAll) chkAll.checked = allCbs.length > 0 && [...allCbs].every(cb => cb.checked);
   updateBulkBar();
@@ -2386,7 +2621,8 @@ function openBulkConfirm(action) {
 async function executeBulkAction() {
   if (!pendingBulkAction || selectedOrderIds.size === 0) return;
   const action = pendingBulkAction;
-  const ids = [...selectedOrderIds];
+  // AX 연동 PO(source='ax')는 마스터도 취소/삭제할 수 없으므로 방어적으로 제외
+  const ids = [...selectedOrderIds].filter(id => allOrders.find(o => o.id === id)?.source !== 'ax');
   const btn = document.getElementById('bcm-confirm-btn');
   btn.disabled = true;
   btn.textContent = L('처리 중...','Processing...');
