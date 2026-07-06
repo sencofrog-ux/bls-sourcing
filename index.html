@@ -666,8 +666,6 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
       
       <div id="po-info-top-zone"></div>
 
-      <div id="vm-po-change-section"></div>
-
       <div id="vm-readonly-view" style="display:none"></div>
 
       <div id="vendor-input-fields">
@@ -690,6 +688,8 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
         </div>
         <div class="fg"><label class="fl" data-ko="비고" data-en="Notes">비고</label><textarea id="vm-notes" style="min-height:90px" data-ko-ph="생산 현황, 특이사항, 지연 사유 등" data-en-ph="Production status, special notes, delay reason, etc." placeholder="생산 현황, 특이사항, 지연 사유 등"></textarea></div>
       </div>
+
+      <div id="vm-po-change-section"></div>
     </div>
     <div class="mfooter" id="vm-footer-actions">
       <button class="btn btn-s btn-sm" id="vm-cancel" data-ko="취소" data-en="Cancel">취소</button>
@@ -2376,6 +2376,85 @@ function renderPoChangeHistoryHtml(orderId, canAct) {
   const listHtml = [...pending.map(l=>rowHtml(l,true)), ...resolved.map(l=>rowHtml(l,false))].join('');
   return `${applyAllBtn}${noteHtml}<div style="display:flex;flex-direction:column;gap:8px">${listHtml}</div>`;
 }
+// ── 오더 상세 모달 전용: AX PO 변경 이력 + 수량 변경(레거시 엑셀) 이력을 하나의 타임라인으로 통합 ──
+// group(같은 PO번호+스타일번호의 컬러 행 전체) 기준으로 po_change_logs와 quantity_history를 모두 모아
+// 시간순으로 정렬해 보여준다. 미확정 건은 반영/무시 버튼을, 처리된 건은 처리 결과와 일시를 회색으로 표시.
+function fmtHistVal(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toLocaleString() : v;
+}
+function renderMergedChangeHistoryHtml(orderId, canAct) {
+  const group = getOrderGroup(orderId);
+  const groupIds = new Set(group.map(x => x.id));
+
+  const poItems = allPoChangeLogs.filter(l => groupIds.has(l.order_id)).map(l => {
+    const rowOrder = group.find(x => x.id === l.order_id);
+    return {
+      kind: 'po',
+      ts: l.detected_at,
+      colorCode: rowOrder?.ax_color_code || '',
+      fieldLabel: poChangeFieldLabel(l.changed_field),
+      oldVal: l.old_value,
+      newVal: l.new_value,
+      pending: !l.confirmed,
+      resolvedAt: l.confirmed_at,
+      resolution: l.resolution,
+      logId: l.id,
+      changedField: l.changed_field,
+      logOrderId: l.order_id
+    };
+  });
+
+  const qtyItems = [];
+  group.forEach(x => {
+    (Array.isArray(x.quantity_history) ? x.quantity_history : []).forEach(h => {
+      qtyItems.push({
+        kind: 'qty',
+        ts: h.changed_at,
+        colorCode: x.ax_color_code || '',
+        fieldLabel: L('수량','Qty'),
+        oldVal: h.before,
+        newVal: h.after,
+        pending: false,
+        resolvedAt: h.changed_at,
+        resolution: 'applied'
+      });
+    });
+  });
+
+  const items = [...poItems, ...qtyItems].sort((a, b) => new Date(b.ts || 0) - new Date(a.ts || 0));
+  if (!items.length) return `<span style="color:var(--muted)">${L('변경 이력 없음','No change history')}</span>`;
+
+  const fmtDt = s => (s || '').slice(5, 16).replace('T', ' '); // MM-DD HH:mm
+  const colorTag = c => c ? `<span class="bdg bdg-cs" style="font-size:10px">${c}</span> ` : '';
+
+  const rowHtml = it => {
+    if (it.pending) {
+      const actionsHtml = canAct ? `
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn btn-p btn-sm" style="width:auto" onclick="applyPoChangeLog('${it.logId}','${it.logOrderId}','${it.changedField}','${it.newVal}')">${L('반영','Apply')}</button>
+          <button class="btn btn-s btn-sm" style="width:auto" onclick="ignorePoChangeLog('${it.logId}','${it.logOrderId}')">${L('무시','Ignore')}</button>
+        </div>` : '';
+      return `
+      <div style="border:1px solid var(--bdr);border-radius:8px;padding:10px 12px">
+        <div style="font-weight:600;font-size:13px">${colorTag(it.colorCode)}${it.fieldLabel}</div>
+        <div style="font-size:13px;color:var(--muted);margin:4px 0">${fmtHistVal(it.oldVal)} → <strong style="color:var(--txt)">${fmtHistVal(it.newVal)}</strong></div>
+        <div style="font-size:11px;color:var(--muted)">${fmtDt(it.ts)}</div>
+        ${actionsHtml}
+      </div>`;
+    }
+    const statusLabel = it.resolution === 'ignored' ? L('무시됨','Ignored') : L('반영됨','Applied');
+    return `<div style="padding:4px 0;border-bottom:1px dashed var(--bdr);color:var(--muted);font-size:12px">${colorTag(it.colorCode)}${it.fieldLabel} · ${fmtHistVal(it.oldVal)} → ${fmtHistVal(it.newVal)} · ${statusLabel} · ${fmtDt(it.resolvedAt)}</div>`;
+  };
+
+  const pendingCount = poItems.filter(l => l.pending).length;
+  const applyAllBtn = (canAct && pendingCount > 1)
+    ? `<button class="btn btn-p btn-sm" style="width:auto;margin-bottom:8px" onclick="applyAllPoChangeLogs('${orderId}')">${L(`전체 반영 (${pendingCount}건)`,`Apply All (${pendingCount})`)}</button>`
+    : '';
+  const noteHtml = (canAct && pendingCount) ? `<div style="font-size:10px;color:var(--muted);margin-bottom:8px">${L('※ 무시해도 다음 가져오기에서 값이 계속 다르면 다시 감지될 수 있습니다','※ Even if ignored, this may be detected again on the next import if the value still differs')}</div>` : '';
+
+  return `${applyAllBtn}${noteHtml}<div style="display:flex;flex-direction:column;gap:6px">${items.map(rowHtml).join('')}</div>`;
+}
 // 현재 열려 있는 모달(오더 상세 모달 or PO 변경 모달)을 감지해 그 자리에서 새로고침한다.
 function reopenPoChangeUi(orderId) {
   if (document.getElementById('vendor-modal')?.classList.contains('on')) openVendorModal(orderId);
@@ -2396,7 +2475,7 @@ async function applyPoChangeLog(logId, orderId, field, newValue) {
   try {
     const castValue = (field === 'order_qty') ? (parseInt(newValue)||0) : parseFloat(newValue);
     await sb(`orders?id=eq.${orderId}`, 'PATCH', { [field]: castValue, updated_at: nowKstIso() });
-    await sb(`po_change_logs?id=eq.${logId}`, 'PATCH', { confirmed: true, confirmed_at: nowKstIso() });
+    await sb(`po_change_logs?id=eq.${logId}`, 'PATCH', { confirmed: true, confirmed_at: nowKstIso(), resolution: 'applied' });
     await loadAll();
     reopenPoChangeUi(orderId);
   } catch (e) { alert(e.message); }
@@ -2404,7 +2483,7 @@ async function applyPoChangeLog(logId, orderId, field, newValue) {
 
 async function ignorePoChangeLog(logId, orderId) {
   try {
-    await sb(`po_change_logs?id=eq.${logId}`, 'PATCH', { confirmed: true, confirmed_at: nowKstIso() });
+    await sb(`po_change_logs?id=eq.${logId}`, 'PATCH', { confirmed: true, confirmed_at: nowKstIso(), resolution: 'ignored' });
     await loadAll();
     reopenPoChangeUi(orderId);
   } catch (e) { alert(e.message); }
@@ -2416,7 +2495,7 @@ async function applyAllPoChangeLogs(orderId) {
     for (const l of pending) {
       const castValue = (l.changed_field === 'order_qty') ? (parseInt(l.new_value)||0) : parseFloat(l.new_value);
       await sb(`orders?id=eq.${l.order_id}`, 'PATCH', { [l.changed_field]: castValue, updated_at: nowKstIso() });
-      await sb(`po_change_logs?id=eq.${l.id}`, 'PATCH', { confirmed: true, confirmed_at: nowKstIso() });
+      await sb(`po_change_logs?id=eq.${l.id}`, 'PATCH', { confirmed: true, confirmed_at: nowKstIso(), resolution: 'applied' });
     }
     await loadAll();
     reopenPoChangeUi(orderId);
@@ -2838,18 +2917,15 @@ function openVendorModal(orderId) {
   const group = getOrderGroup(orderId);
   const groupTotalQty = group.reduce((s,x)=>s+(x.order_qty||0),0);
 
-  // AX PO 변경 이력: 컬러 행 어디에 로그가 찍혔든 그룹 전체를 조회해서 노출(모든 역할 조회 가능, 반영/무시는 마스터/MD만)
+  // 변경 이력(AX PO 변경 이력 + 수량 변경 이력)을 하나의 타임라인으로 통합해 모달 하단에 노출
+  // (모든 역할 조회 가능, 반영/무시는 마스터/MD만; 처리된 이력도 남겨서 언제 뭐가 바뀌었는지 추적 가능)
   const poChangeSectionEl = document.getElementById('vm-po-change-section');
-  if (group.some(x => x.source === 'ax')) {
-    const canActOnPoChange = me.role === 'master' || me.role === 'md';
-    poChangeSectionEl.innerHTML = `
-      <details style="margin-bottom:14px" ${getPendingPoChangeLogs(orderId).length ? 'open' : ''}>
-        <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.05em">${L('📋 AX PO 변경 이력','📋 AX PO Change History')}</summary>
-        <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-top:8px;font-size:12px">${renderPoChangeHistoryHtml(orderId, canActOnPoChange)}</div>
-      </details>`;
-  } else {
-    poChangeSectionEl.innerHTML = '';
-  }
+  const canActOnPoChange = me.role === 'master' || me.role === 'md';
+  poChangeSectionEl.innerHTML = `
+    <details style="margin-bottom:14px" ${getPendingPoChangeLogs(orderId).length ? 'open' : ''}>
+      <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.05em">${L('📜 변경 이력 보기','📜 View Change History')}</summary>
+      <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-top:8px;font-size:12px">${renderMergedChangeHistoryHtml(orderId, canActOnPoChange)}</div>
+    </details>`;
   const colorTableHtml = group.length > 1 ? `
     <div style="margin-top: 8px; border-top: 1px dashed var(--bdr); padding-top: 8px;">
       <div style="font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px;">${L('컬러별 수량','Qty by Color')} (${group.length})</div>
@@ -2980,16 +3056,6 @@ function openVendorModal(orderId) {
       ? displayNotes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       : `<span style="color:var(--muted)">${L('메모 없음','No notes')}</span>`;
 
-    const qtyHistory = Array.isArray(o.quantity_history) ? o.quantity_history : [];
-    const qtyHistoryHtml = qtyHistory.length
-      ? qtyHistory.slice().reverse().map(h => `<div style="padding:4px 0;border-bottom:1px dashed var(--bdr)">${(h.changed_at||'').slice(0,10)} · ${Number(h.before).toLocaleString()} → ${Number(h.after).toLocaleString()}${L('장','pcs')}</div>`).join('')
-      : `<span style="color:var(--muted)">${L('변경 이력 없음','No change history')}</span>`;
-    const qtyHistorySection = me.role === 'master' ? `
-      <details style="margin-bottom:14px">
-        <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.05em">${L('📜 수량 변경 이력 보기','📜 View Quantity Change History')}</summary>
-        <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-top:8px;font-size:12px">${qtyHistoryHtml}</div>
-      </details>` : '';
-
     readonlyView.innerHTML = `
       <div class="modal-section-title">${L('🏭 공장 / 라인','🏭 Factory / Line')}</div>
       <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px">
@@ -3001,7 +3067,6 @@ function openVendorModal(orderId) {
       <div style="margin-bottom:14px">${stageHtml}</div>
       <div class="modal-section-title">${L('📝 벤더 메모','📝 Vendor Notes')}</div>
       <div style="background:var(--bg);border-radius:8px;padding:12px 14px;font-size:13px;white-space:pre-wrap;min-height:50px;margin-bottom:14px">${notesHtml}</div>
-      ${qtyHistorySection}
     `;
   }
 
