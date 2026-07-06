@@ -304,6 +304,28 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .sd-tl-comment{font-size:12px;color:var(--txt);margin-top:5px;background:var(--bg);border-radius:6px;padding:6px 8px}
 .sd-tl-edit-btn{font-size:10px;padding:2px 7px;border:1px solid var(--bdr);border-radius:5px;background:transparent;color:var(--muted);cursor:pointer}
 .sd-tl-edit-btn:hover{color:var(--ac);border-color:var(--ac)}
+/* ── PO 매칭 관리 ── */
+.pm-card{background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:22px 24px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.pm-hdr{cursor:pointer;display:flex;flex-direction:column;gap:14px}
+.pm-hdr-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pm-vendor-name{font-size:20px;font-weight:800;color:var(--txt)}
+.pm-axcode{background:var(--purplel);color:var(--purple);font-size:13px;font-weight:700;padding:5px 14px;border-radius:20px;font-family:'DM Mono',monospace}
+.pm-stats-row{display:flex;align-items:center;gap:32px;flex-wrap:wrap}
+.pm-stat-val{font-size:26px;font-weight:800;color:var(--ac);line-height:1}
+.pm-stat-lbl{font-size:12px;color:var(--muted);margin-top:4px;font-weight:600}
+.pm-toggle-ind{margin-left:auto;font-size:13px;font-weight:700;color:var(--ac);white-space:nowrap}
+.pm-detail{margin-top:18px;border-top:1px dashed var(--bdr);padding-top:18px}
+.pm-mini-tbl{min-width:640px}
+.pm-match-row{display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.pm-vendor-select{padding:14px 16px;font-size:15px;flex:1;min-width:220px;max-width:340px}
+.pm-match-btn{padding:14px 28px!important;font-size:15px!important;font-weight:700;width:auto!important;min-height:48px}
+@media(max-width:992px){
+  .pm-card{padding:18px}
+  .pm-vendor-name{font-size:18px}
+  .pm-stats-row{gap:20px}
+  .pm-stat-val{font-size:22px}
+  .pm-vendor-select{max-width:100%}
+}
 </style>
 </head>
 <body class="theme-master">
@@ -1024,6 +1046,7 @@ let parsedSampleUploadRows = []; // 샘플 관리 대량 엑셀 홀더
 let sampleUploadRowErrors = [];
 let selectedOrderIds = new Set();
 let pendingBulkAction = null; // 'cancel' | 'delete'
+let expandedPoMatchCodes = new Set(); // PO 매칭 관리: 펼쳐진 벤더 카드(AX 벤더코드) 목록
 let selectedArrivalKeys = new Set(); // 선택된 입고일정 인보이스 그룹 키
 let arrivalGroupIdMap = new Map(); // 인보이스 그룹 키 -> 해당 그룹의 row id 목록
 
@@ -1647,18 +1670,24 @@ function renderDashboard() {
   const titles = { master: L('전체 오더 현황','All Orders'), vendor: L('내 오더 현황','My Orders'), cs: L('전체 오더 현황','All Orders'), md: L('전체 오더 현황','All Orders') };
   document.getElementById('dash-title').textContent = titles[me.role] || L('대시보드','Dashboard');
   
+  // PO+스타일 단위로 컬러 행을 묶어 집계 — AX는 컬러별로 별도 행이므로 그대로 세면 같은 스타일이 컬러 수만큼 중복 집계된다
+  const groups = buildOrderGroups(list);
   let tOrd=0,tPrd=0,tShp=0,delayed=0,defectCnt=0;
   const t = today();
-  for (const o of list) {
-    tOrd += o.order_qty||0; tPrd += o.produced_qty||0; tShp += o.shipped_qty||0;
-    if (o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty) delayed++;
-    if ((o.defect_qty||0) > 0) defectCnt++;
+  for (const g of groups) {
+    const gOrd = g.reduce((s,x)=>s+(x.order_qty||0),0);
+    const gPrd = g.reduce((s,x)=>s+(x.produced_qty||0),0);
+    const gShp = g.reduce((s,x)=>s+(x.shipped_qty||0),0);
+    tOrd += gOrd; tPrd += gPrd; tShp += gShp;
+    const rep = g[0];
+    if (rep.planned_ship_date && rep.planned_ship_date<t && gShp<gOrd) delayed++;
+    if (g.some(x=>(x.defect_qty||0)>0)) defectCnt++;
   }
   const ppct = tOrd?Math.round(tPrd/tOrd*100):0;
   const spct = tOrd?Math.round(tShp/tOrd*100):0;
   const U = { cases: L('건','cases'), pcs: L('장','pcs') };
   document.getElementById('sum-grid').innerHTML = `
-    <div class="sum-card"><div class="sum-lbl">${L('전체 스타일','Total Styles')}</div><div class="sum-val">${list.length}</div><div class="sum-sub">${U.cases}</div></div>
+    <div class="sum-card"><div class="sum-lbl">${L('전체 스타일','Total Styles')}</div><div class="sum-val">${groups.length}</div><div class="sum-sub">${U.cases}</div></div>
     <div class="sum-card"><div class="sum-lbl">${L('총 오더','Total Order')}</div><div class="sum-val">${tOrd.toLocaleString()}</div><div class="sum-sub">${U.pcs}</div></div>
     <div class="sum-card"><div class="sum-lbl">${L('생산 완료','Production')}</div><div class="sum-val">${ppct}%</div><div class="sum-sub">${tPrd.toLocaleString()}${U.pcs}</div></div>
     <div class="sum-card"><div class="sum-lbl">${L('선적 완료','Shipped')}</div><div class="sum-val">${spct}%</div><div class="sum-sub">${tShp.toLocaleString()}${U.pcs}</div></div>
@@ -1701,34 +1730,34 @@ function renderDashboard() {
       <th></th>
     </tr></thead>
     <tbody>
-    ${list.map(o=>{
+    ${groups.map(group=>{
+      const o = group[0]; // 대표 행(스타일/일정 등 공통 정보) — 수량/진행 등은 아래에서 컬러 행 전체를 합산
       const v = allUsers.find(u=>u.id===o.vendor_id);
       const cancelled = o.status === 'cancelled';
-      const late = !cancelled && o.planned_ship_date && o.planned_ship_date<t && (o.shipped_qty||0)<o.order_qty;
-      const pct = o.order_qty?Math.round((o.produced_qty||0)/o.order_qty*100):0;
-      const fail = (o.defect_qty||0) > 0 ? o.defect_qty : (o.vendor_fail_qty||0);
-      const def = o.order_qty && fail ? ((fail/o.order_qty)*100).toFixed(1) : '0.0';
+      const totalQty = group.reduce((s,x)=>s+(x.order_qty||0),0);
+      const totalShipped = group.reduce((s,x)=>s+(x.shipped_qty||0),0);
+      const late = !cancelled && o.planned_ship_date && o.planned_ship_date<t && totalShipped<totalQty;
+      const fail = group.reduce((s,x)=>s+((x.defect_qty||0)>0 ? (x.defect_qty||0) : (x.vendor_fail_qty||0)), 0);
+      const hasDefect = group.some(x=>(x.defect_qty||0)>0);
+      const def = totalQty && fail ? ((fail/totalQty)*100).toFixed(1) : '0.0';
       const STAGES = ['cut','artwork','sew','finish'];
-      const stageDone = STAGES.map(s=>!!o[s+'_done']);
-      const stageCnt = stageDone.filter(Boolean).length;
-      const stagePct = stageCnt * 25;
-      const stageQty = Math.round((o.order_qty||0) * stageCnt / 4);
+      const stageDone = STAGES.map(s=>group.every(x=>!!x[s+'_done'])); // 컬러 전원 완료해야 해당 단계 완료로 표시
       const stageSegs = STAGES.map((s,i)=>`<div class="stage-progbar-seg ${stageDone[i]?'seg-'+s:''}"></div>`).join('');
-      const hasShippedQty = (o.shipped_qty||0) > 0;
-      const varInfo = hasShippedQty ? fimVarianceLabel(o.shipped_qty, o.order_qty) : { text: '-', color: 'var(--muted)' };
+      const hasShippedQty = totalShipped > 0;
+      const varInfo = hasShippedQty ? fimVarianceLabel(totalShipped, totalQty) : { text: '-', color: 'var(--muted)' };
+      const shipped = group.every(isOrderShipped);
+      const shipRequested = group.every(isOrderShipRequested);
 
       let actBtn = '';
       if (me.role === 'master' || me.role === 'md' || me.role === 'cs') {
         actBtn = `<button class="btn btn-s btn-sm" onclick="openVendorModal('${o.id}')">${L('상세 보기','Details')}</button> `;
-        if (me.role !== 'md' && isInShippedTab(o)) {
+        if (me.role !== 'md' && (shipped || shipRequested)) {
           actBtn += `<button class="btn btn-purple btn-sm" onclick="openDefectModal('${o.id}')">${L('불량 추가','Add Defect')}</button>`;
         }
         if (me.role === 'master' && o.source !== 'ax') {
           actBtn += ` <button class="btn btn-sm" style="background:var(--ac);color:#fff" onclick="openOrderEditModal('${o.id}')">${L('수정','Edit')}</button>`;
         }
       }
-      const shipped = isOrderShipped(o);
-      const shipRequested = isOrderShipRequested(o);
       const statusBadge = cancelled
         ? `<span class="bdg bdg-cancelled">${L('취소됨','Cancelled')}</span>`
         : shipped
@@ -1742,18 +1771,26 @@ function renderDashboard() {
         : o.is_urgent
           ? `<span class="bdg bdg-urgent" style="font-size:9px;padding:2px 5px">${L('긴급','URGENT')}</span>`
           : '';
-      const hasUnconfirmedChange = allPoChangeLogs.some(l => l.order_id === o.id && !l.confirmed);
+      const hasUnconfirmedChange = allPoChangeLogs.some(l => group.some(x=>x.id===l.order_id) && !l.confirmed);
       const changedBadge = hasUnconfirmedChange ? `<span class="bdg bdg-changed" style="font-size:9px;padding:2px 5px" onclick="openPoChangeModal('${o.id}')">${L('변경됨','Changed')}</span>` : '';
+      // 컬러가 여러 개인 그룹(AX)만 접이식 컬러별 수량 내역 노출
+      const colorBreakdown = group.length > 1 ? `
+        <details style="margin-top:4px;font-family:'Noto Sans KR',sans-serif">
+          <summary style="cursor:pointer;font-size:11px;color:var(--muted)">${L('컬러별 내역','By color')} (${group.length})</summary>
+          <div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;min-width:170px">
+            ${group.map(x=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 6px;background:var(--bg);border-radius:5px;font-size:11px"><span>${x.ax_color_code||'-'}</span><span>${L('발주','Ord')} ${Number(x.order_qty||0).toLocaleString()} · ${L('선적','Shp')} ${Number(x.shipped_qty||0).toLocaleString()}</span></div>`).join('')}
+          </div>
+        </details>` : '';
       return `<tr${rowBg}>
         ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" ${o.source==='ax'?'disabled title="AX 연동 PO는 삭제/취소할 수 없습니다"':''} style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
         <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
-        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${priorityBadge?` ${priorityBadge}`:''}${changedBadge?` ${changedBadge}`:''}</td>
+        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${priorityBadge?` ${priorityBadge}`:''}${changedBadge?` ${changedBadge}`:''}${colorBreakdown}</td>
         <td data-label="${L('스타일명','Style Name')}">${o.style_name}</td>
-        <td data-label="${L('오더','Order')}">${Number(o.order_qty).toLocaleString()}</td>
+        <td data-label="${L('오더','Order')}">${Number(totalQty).toLocaleString()}</td>
         <td data-label="${L('진행율','Progress')}"><div class="stage-progbar">${stageSegs}</div></td>
-        <td data-label="${L('선적','Shipped')}">${Number(o.shipped_qty||0).toLocaleString()}</td>
+        <td data-label="${L('선적','Shipped')}">${Number(totalShipped).toLocaleString()}</td>
         <td data-label="${L('차이율','Variance')}" style="color:${varInfo.color};font-weight:${hasShippedQty?'600':''}">${varInfo.text}</td>
-        <td data-label="${L('불량률','Defect')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${(o.defect_qty||0)>0?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
+        <td data-label="${L('불량률','Defect')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${hasDefect?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
         <td data-label="${L('선적예정','Target ETD')}" style="font-size:12px">${(()=>{const d=calcDday(o.planned_ship_date);const dday=d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;return `${(o.planned_ship_date||'-').slice(0,10)}${dday}`;})()}</td>
         <td data-label="${L('상태','Status')}">${statusBadge}</td>
         <td data-label="${L('액션','Action')}">${actBtn}</td>
@@ -2164,6 +2201,11 @@ async function handleAxImportClick() {
 }
 
 // ── PO 매칭 관리 (마스터/MD) ──
+function togglePoMatchCard(code) {
+  if (expandedPoMatchCodes.has(code)) expandedPoMatchCodes.delete(code);
+  else expandedPoMatchCodes.add(code);
+  renderPoMatch();
+}
 function renderPoMatch() {
   const unmatched = allOrders.filter(o => o.source === 'ax' && o.match_status === 'unmatched');
   const wrap = document.getElementById('po-match-tbl');
@@ -2178,18 +2220,52 @@ function renderPoMatch() {
   wrap.innerHTML = Object.entries(groups).map(([code, g]) => {
     const totalQty = g.orders.reduce((s,o)=>s+(o.order_qty||0),0);
     const selId = `pm-sel-${code.replace(/[^a-zA-Z0-9]/g,'_')}`;
-    return `<div class="pend-card">
-      <div class="pend-info">
-        <div class="pend-name"><strong>${g.vendorName || '-'}</strong> <span class="bdg bdg-cs" style="margin-left:6px">${code}</span></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">${L('미매칭','Unmatched')} ${g.orders.length}${L('건','cases')} · ${L('총 수량','Total Qty')} ${totalQty.toLocaleString()}${L('장','pcs')}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">${g.orders.map(o=>o.style_no).join(', ')}</div>
+    const expanded = expandedPoMatchCodes.has(code);
+    // PO번호+스타일번호 단위로 컬러 행을 묶어 표로 정리 (같은 스타일이 컬러 수만큼 중복 나열되지 않도록)
+    const styleMap = new Map();
+    g.orders.forEach(o => {
+      const sk = `${o.ax_po_number || '-'}__${o.style_no}`;
+      if (!styleMap.has(sk)) styleMap.set(sk, { po: o.ax_po_number || '-', styleNo: o.style_no, styleName: o.style_name, delivery: o.planned_ship_date, qty: 0, colors: 0 });
+      const r = styleMap.get(sk);
+      r.qty += (o.order_qty || 0);
+      r.colors += 1;
+    });
+    const styleRows = [...styleMap.values()];
+    return `<div class="pm-card">
+      <div class="pm-hdr" onclick="togglePoMatchCard('${code}')">
+        <div class="pm-hdr-top">
+          <div class="pm-vendor-name">${g.vendorName || '-'}</div>
+          <span class="pm-axcode">${code}</span>
+        </div>
+        <div class="pm-stats-row">
+          <div class="pm-stat"><div class="pm-stat-val">${g.orders.length}</div><div class="pm-stat-lbl">${L('미매칭 건수','Unmatched')}</div></div>
+          <div class="pm-stat"><div class="pm-stat-val">${totalQty.toLocaleString()}</div><div class="pm-stat-lbl">${L('총 수량(장)','Total Qty')}</div></div>
+          <div class="pm-toggle-ind">${expanded ? '▲ '+L('접기','Collapse') : '▼ '+L('펼치기','Expand')}</div>
+        </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <select id="${selId}" class="fsel" style="max-width:220px">
-          <option value="">${L('벤더 선택','Select Vendor')}</option>
-          ${vendors.map(v=>`<option value="${v.id}">${v.company_name}${v.vendor_code?` [${v.vendor_code}]`:''}</option>`).join('')}
-        </select>
-        <button class="btn btn-p btn-sm" style="width:auto" onclick="matchAxVendor('${code}', document.getElementById('${selId}').value)">${L('매칭','Match')}</button>
+      <div class="pm-detail" style="display:${expanded ? 'block' : 'none'}">
+        <div class="tbl-wrap"><table class="pm-mini-tbl">
+          <thead><tr>
+            <th>${L('PO번호','PO No.')}</th><th>${L('스타일번호','Style No.')}</th><th>${L('스타일명','Style Name')}</th><th>${L('컬러 수','Colors')}</th><th>${L('합계 수량','Total Qty')}</th><th>${L('납기','Delivery')}</th>
+          </tr></thead>
+          <tbody>
+            ${styleRows.map(r=>`<tr>
+              <td style="font-family:'DM Mono',monospace;font-size:12px" data-label="${L('PO번호','PO No.')}">${r.po}</td>
+              <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ac);font-weight:700" data-label="${L('스타일번호','Style No.')}">${r.styleNo}</td>
+              <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-label="${L('스타일명','Style Name')}" title="${(r.styleName||'').replace(/"/g,'&quot;')}">${r.styleName || '-'}</td>
+              <td data-label="${L('컬러 수','Colors')}">${r.colors}${L('컬러','colors')}</td>
+              <td style="font-weight:700" data-label="${L('합계 수량','Total Qty')}">${r.qty.toLocaleString()}${L('장','pcs')}</td>
+              <td data-label="${L('납기','Delivery')}">${r.delivery ? r.delivery.slice(5,10) : '-'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table></div>
+        <div class="pm-match-row">
+          <select id="${selId}" class="fsel pm-vendor-select" onclick="event.stopPropagation()">
+            <option value="">${L('벤더 선택','Select Vendor')}</option>
+            ${vendors.map(v=>`<option value="${v.id}">${v.company_name}${v.vendor_code?` [${v.vendor_code}]`:''}</option>`).join('')}
+          </select>
+          <button class="btn btn-p pm-match-btn" onclick="event.stopPropagation();matchAxVendor('${code}', document.getElementById('${selId}').value)">${L('매칭','Match')}</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2215,20 +2291,28 @@ async function matchAxVendor(axVendorCode, vendorUserId) {
 }
 
 // ── PO 변경 감지 모달 (마스터/MD) ──
+// AX는 컬러별로 별도 행(order)이라 변경 로그도 order_id(색상)별로 쌓인다.
+// 그룹(PO+스타일) 전체를 뒤져서 어느 컬러에서 변경이 감지됐든 모두 보여준다.
 function openPoChangeModal(orderId) {
   activeOrderId = orderId;
   const o = allOrders.find(x => x.id === orderId);
   if (!o) return;
-  const logs = allPoChangeLogs.filter(l => l.order_id === orderId && !l.confirmed);
+  const group = getOrderGroup(orderId);
+  const groupIds = new Set(group.map(x => x.id));
+  const logs = allPoChangeLogs.filter(l => groupIds.has(l.order_id) && !l.confirmed);
   document.getElementById('pcm-sub').textContent = `${o.style_no} · ${o.style_name}`;
   const fieldLabel = { order_qty: L('발주수량','Order Qty'), unit_price: L('단가','Unit Price') };
-  document.getElementById('pcm-list').innerHTML = logs.length ? logs.map(l => `
+  document.getElementById('pcm-list').innerHTML = logs.length ? logs.map(l => {
+    const rowOrder = group.find(x => x.id === l.order_id);
+    const colorTag = rowOrder && rowOrder.ax_color_code ? ` <span class="bdg bdg-cs" style="font-size:10px">${rowOrder.ax_color_code}</span>` : '';
+    return `
     <div style="border:1px solid var(--bdr);border-radius:8px;padding:10px 12px">
-      <div style="font-weight:600;font-size:13px">${fieldLabel[l.changed_field] || l.changed_field}</div>
+      <div style="font-weight:600;font-size:13px">${fieldLabel[l.changed_field] || l.changed_field}${colorTag}</div>
       <div style="font-size:13px;color:var(--muted);margin:4px 0">${l.old_value} → <strong style="color:var(--txt)">${l.new_value}</strong></div>
       <div style="font-size:11px;color:var(--muted)">${(l.detected_at||'').slice(0,16).replace('T',' ')}</div>
-      <button class="btn btn-p btn-sm" style="width:auto;margin-top:8px" onclick="applyPoChangeLog('${l.id}','${orderId}','${l.changed_field}','${l.new_value}')">${L('반영','Apply')}</button>
-    </div>`).join('') : `<div class="empty"><div class="empty-t">${L('반영 대기 중인 변경사항이 없습니다','No pending changes')}</div></div>`;
+      <button class="btn btn-p btn-sm" style="width:auto;margin-top:8px" onclick="applyPoChangeLog('${l.id}','${l.order_id}','${l.changed_field}','${l.new_value}')">${L('반영','Apply')}</button>
+    </div>`;
+  }).join('') : `<div class="empty"><div class="empty-t">${L('반영 대기 중인 변경사항이 없습니다','No pending changes')}</div></div>`;
   document.getElementById('po-change-modal').classList.add('on');
 }
 
