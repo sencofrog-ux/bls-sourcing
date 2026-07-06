@@ -201,6 +201,11 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:14px}
 .card-hdr{padding:14px 18px;border-bottom:1px solid var(--bdr);font-size:14px;font-weight:600}
 .card-body{padding:16px 18px}
+.ax-csv-dropzone{border:2px dashed var(--bdr);border-radius:var(--r);padding:28px 16px;text-align:center;cursor:pointer;font-size:13px;color:var(--muted);transition:border-color .15s,background .15s}
+.ax-csv-dropzone:hover,.ax-csv-dropzone.drag-over{border-color:var(--ac);background:var(--acl)}
+.ax-csv-progress-bar-wrap{background:var(--bg);border:1px solid var(--bdr);border-radius:99px;height:10px;overflow:hidden}
+.ax-csv-progress-bar{height:100%;width:0%;background:var(--ac);transition:width .2s}
+.ax-csv-error-list{max-height:180px;overflow-y:auto;background:var(--redl);border:1px solid #f0c0bb;border-radius:8px;padding:8px 10px;font-size:11px;font-family:'DM Mono',monospace;color:var(--red);line-height:1.5}
 .factory-card{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px;margin-bottom:10px}
 .factory-name{font-size:14px;font-weight:600;margin-bottom:6px}
 .factory-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:2px}
@@ -560,6 +565,37 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
               <textarea id="ax-import-json" style="min-height:220px;font-family:'DM Mono',monospace;font-size:12px" placeholder='[{"po_number":"PO-2026-0001","vendor_code":"AXV-0012","vendor_name":"닝보진룽","style_no":"WJ-2025-001","style_name":"WOOL BLAZER","color_code":"BLACK","qty":600,"unit_price":24.5,"currency":"USD","delivery_date":"2025-07-30","brand":"BLS","season":"2026SS"}]'></textarea>
             </div>
             <button class="btn btn-p" id="ax-import-btn" data-ko="가져오기" data-en="Import">가져오기</button>
+          </div></div>
+
+          <div class="card" style="max-width:680px"><div class="card-body">
+            <div class="fl" style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:10px" data-ko="CSV 파일 업로드 (대량 등록용)" data-en="CSV File Upload (Bulk Import)">CSV 파일 업로드 (대량 등록용)</div>
+            <div class="alert alert-e" id="ax-csv-alert"></div>
+            <div class="alert alert-s" id="ax-csv-result"></div>
+
+            <div class="ax-csv-dropzone" id="ax-csv-dropzone">
+              <div data-ko="CSV 파일을 여기로 드래그하거나 클릭해서 선택하세요" data-en="Drag & drop a CSV file here, or click to select">CSV 파일을 여기로 드래그하거나 클릭해서 선택하세요</div>
+              <div style="font-size:11px;margin-top:6px;word-break:break-all" data-ko="컬럼: po_number, vendor_code, vendor_name, style_no, style_name, color_code, qty, unit_price, currency, delivery_date, brand, season (헤더 포함, UTF-8)" data-en="Columns: po_number, vendor_code, vendor_name, style_no, style_name, color_code, qty, unit_price, currency, delivery_date, brand, season (with header, UTF-8)">컬럼: po_number, vendor_code, vendor_name, style_no, style_name, color_code, qty, unit_price, currency, delivery_date, brand, season (헤더 포함, UTF-8)</div>
+              <input type="file" id="ax-csv-file" accept=".csv,text/csv" style="display:none">
+            </div>
+
+            <div id="ax-csv-preview-zone" style="display:none;margin-top:16px;border-top:1px solid var(--bdr);padding-top:14px">
+              <div id="ax-csv-preview-summary" style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:6px"></div>
+              <div id="ax-csv-error-wrap" style="display:none;margin-bottom:10px" class="ax-csv-error-list"></div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-p" id="ax-csv-run-btn" style="width:auto" data-ko="가져오기 실행" data-en="Run Import">가져오기 실행</button>
+                <button class="btn btn-s" id="ax-csv-cancel-btn" style="width:auto" data-ko="취소" data-en="Cancel">취소</button>
+              </div>
+            </div>
+
+            <div id="ax-csv-progress-zone" style="display:none;margin-top:16px;border-top:1px solid var(--bdr);padding-top:14px">
+              <div class="ax-csv-progress-bar-wrap"><div class="ax-csv-progress-bar" id="ax-csv-progress-bar"></div></div>
+              <div id="ax-csv-progress-text" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
+            </div>
+
+            <div id="ax-csv-error-detail-zone" style="display:none;margin-top:16px;border-top:1px solid var(--bdr);padding-top:14px">
+              <div style="font-size:12px;font-weight:600;color:var(--txt);margin-bottom:6px" data-ko="오류 상세" data-en="Error Detail">오류 상세</div>
+              <div class="ax-csv-error-list" id="ax-csv-error-detail-list"></div>
+            </div>
           </div></div>
         </div>
 
@@ -1448,6 +1484,7 @@ function bindAppEvents() {
   });
   document.getElementById('po-change-modal').addEventListener('click', e=>{ if(e.target.id==='po-change-modal') closeModal('pcm'); });
   document.getElementById('ax-import-btn')?.addEventListener('click', handleAxImportClick);
+  initAxCsvUpload();
   document.getElementById('vendor-modal').addEventListener('click', e=>{ if(e.target.id==='vendor-modal') closeModal('vm'); });
   document.getElementById('defect-modal').addEventListener('click', e=>{ if(e.target.id==='defect-modal') closeModal('defm'); });
   document.getElementById('factory-modal').addEventListener('click', e=>{ if(e.target.id==='factory-modal') closeModal('fm'); });
@@ -2208,6 +2245,184 @@ async function handleAxImportClick() {
     showAlert('ax-import-alert', e.message);
   } finally {
     btn.disabled = false; btn.textContent = L('가져오기','Import');
+  }
+}
+
+// ── AX PO CSV 업로드 (대량 등록용) ──
+// CSV 파싱만 새로 만들고, 신규/변경감지/스킵 분류 로직은 importAxPo()를 배치로 나눠 그대로 재사용한다.
+const AX_CSV_REQUIRED_COLS = ['po_number','vendor_code','vendor_name','style_no','style_name','color_code','qty','unit_price','currency','delivery_date','brand','season'];
+const AX_CSV_BATCH_SIZE = 100;
+let axCsvParsedRecords = null;
+
+function initAxCsvUpload() {
+  const dropzone = document.getElementById('ax-csv-dropzone');
+  const fileInput = document.getElementById('ax-csv-file');
+  if (!dropzone || !fileInput) return;
+  dropzone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) handleAxCsvFile(file);
+    e.target.value = '';
+  });
+  ['dragover','dragenter'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag-over'); }));
+  ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag-over'); }));
+  dropzone.addEventListener('drop', e => {
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleAxCsvFile(file);
+  });
+  document.getElementById('ax-csv-run-btn').addEventListener('click', runAxCsvImport);
+  document.getElementById('ax-csv-cancel-btn').addEventListener('click', resetAxCsvUpload);
+}
+
+function resetAxCsvUpload() {
+  axCsvParsedRecords = null;
+  document.getElementById('ax-csv-preview-zone').style.display = 'none';
+  document.getElementById('ax-csv-progress-zone').style.display = 'none';
+  document.getElementById('ax-csv-error-detail-zone').style.display = 'none';
+  document.getElementById('ax-csv-alert').classList.remove('on');
+  document.getElementById('ax-csv-result').classList.remove('on');
+}
+
+// 쉼표/줄바꿈이 포함된 큰따옴표 필드도 처리하는 최소 CSV 파서 (숫자 자동변환 없이 원문 문자열 그대로 보존 → po_number 등의 앞자리 0 손실 방지)
+function parseAxCsvText(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') { if (text[i+1] === '"') { field += '"'; i++; } else inQuotes = false; }
+      else field += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\r') { /* skip: \n에서 행 종료 처리 */ }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else field += c;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => !(r.length === 1 && r[0].trim() === ''));
+}
+
+function handleAxCsvFile(file) {
+  resetAxCsvUpload();
+  if (!/\.csv$/i.test(file.name)) {
+    showAlert('ax-csv-alert', L('CSV 파일만 업로드할 수 있습니다','Only CSV files are allowed'));
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const rows = parseAxCsvText(String(evt.target.result || ''));
+      if (rows.length < 2) throw new Error(L('CSV에 데이터가 없습니다','CSV has no data rows'));
+      const header = rows[0].map(h => h.trim());
+      const colIdx = {};
+      header.forEach((h,i) => { colIdx[h] = i; });
+      const missing = AX_CSV_REQUIRED_COLS.filter(c => colIdx[c] === undefined);
+      if (missing.length) throw new Error(L(`필수 컬럼 누락: ${missing.join(', ')}`,`Missing required columns: ${missing.join(', ')}`));
+
+      const records = [];
+      const rowErrors = [];
+      for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i];
+        if (!cells || cells.every(c => c.trim() === '')) continue;
+        const rowNum = i + 1;
+        const get = name => (cells[colIdx[name]] ?? '').trim();
+        const po_number = get('po_number');
+        const style_no = get('style_no');
+        if (!po_number || !style_no) { rowErrors.push(`${rowNum}${L('행','row')}: ${L('po_number/style_no 누락','missing po_number/style_no')}`); continue; }
+        const qty = Number(get('qty'));
+        const unit_price = Number(get('unit_price'));
+        if (!Number.isFinite(qty)) { rowErrors.push(`${rowNum}${L('행','row')}: ${L('qty가 숫자가 아님','qty is not a number')} (${get('qty')})`); continue; }
+        if (!Number.isFinite(unit_price)) { rowErrors.push(`${rowNum}${L('행','row')}: ${L('unit_price가 숫자가 아님','unit_price is not a number')} (${get('unit_price')})`); continue; }
+        records.push({
+          po_number, style_no,
+          vendor_code: get('vendor_code'),
+          vendor_name: get('vendor_name'),
+          style_name: get('style_name'),
+          color_code: get('color_code'),
+          qty, unit_price,
+          currency: get('currency') || 'USD',
+          delivery_date: get('delivery_date'),
+          brand: get('brand'),
+          season: get('season')
+        });
+      }
+
+      if (!records.length) throw new Error(L('유효한 데이터 행이 없습니다','No valid data rows'));
+
+      axCsvParsedRecords = records;
+      const vendorCount = new Set(records.map(r => r.vendor_code).filter(Boolean)).size;
+      document.getElementById('ax-csv-preview-summary').textContent =
+        L(`총 ${records.length}라인 · 벤더 ${vendorCount}곳`, `${records.length} lines · ${vendorCount} vendors`);
+      const errWrap = document.getElementById('ax-csv-error-wrap');
+      if (rowErrors.length) {
+        errWrap.style.display = 'block';
+        errWrap.innerHTML = L(`⚠️ 파싱 스킵 ${rowErrors.length}건<br>`,`⚠️ Skipped ${rowErrors.length} rows<br>`) + rowErrors.slice(0,50).join('<br>');
+      } else {
+        errWrap.style.display = 'none';
+        errWrap.innerHTML = '';
+      }
+      document.getElementById('ax-csv-preview-zone').style.display = 'block';
+    } catch (e) {
+      showAlert('ax-csv-alert', L('CSV 파싱 오류: ','CSV parse error: ') + e.message);
+    }
+  };
+  reader.onerror = () => showAlert('ax-csv-alert', L('파일을 읽을 수 없습니다','Failed to read file'));
+  reader.readAsText(file, 'UTF-8');
+}
+
+// 1,461라인 같은 대량 데이터도 브라우저가 멈추지 않도록 importAxPo()를 배치(100라인)로 나눠 순차 호출하고 진행률을 표시한다.
+async function runAxCsvImport() {
+  if (!axCsvParsedRecords || !axCsvParsedRecords.length) return;
+  const records = axCsvParsedRecords;
+  const runBtn = document.getElementById('ax-csv-run-btn');
+  const cancelBtn = document.getElementById('ax-csv-cancel-btn');
+  runBtn.disabled = true; cancelBtn.disabled = true;
+  document.getElementById('ax-csv-progress-zone').style.display = 'block';
+  document.getElementById('ax-csv-error-detail-zone').style.display = 'none';
+  document.getElementById('ax-csv-result').classList.remove('on');
+  document.getElementById('ax-csv-alert').classList.remove('on');
+
+  const bar = document.getElementById('ax-csv-progress-bar');
+  const text = document.getElementById('ax-csv-progress-text');
+  const total = records.length;
+  const totalBatches = Math.ceil(total / AX_CSV_BATCH_SIZE);
+  const agg = { created: 0, changeLogged: 0, skipped: 0, errors: [] };
+
+  try {
+    for (let b = 0; b < totalBatches; b++) {
+      const chunk = records.slice(b * AX_CSV_BATCH_SIZE, (b+1) * AX_CSV_BATCH_SIZE);
+      const r = await importAxPo(chunk);
+      agg.created += r.created;
+      agg.changeLogged += r.changeLogged;
+      agg.skipped += r.skipped;
+      agg.errors.push(...r.errors);
+
+      const done = Math.min((b+1) * AX_CSV_BATCH_SIZE, total);
+      const pct = Math.round(done / total * 100);
+      bar.style.width = pct + '%';
+      text.textContent = L(`처리 중... ${done}/${total}라인 (배치 ${b+1}/${totalBatches})`, `Processing... ${done}/${total} lines (batch ${b+1}/${totalBatches})`);
+    }
+
+    document.getElementById('ax-csv-progress-zone').style.display = 'none';
+    document.getElementById('ax-csv-preview-zone').style.display = 'none';
+    showAlert('ax-csv-result', L(`✓ 신규 ${agg.created}건 · 변경감지 ${agg.changeLogged}건 · 동일(스킵) ${agg.skipped}건 · 오류 ${agg.errors.length}건`,`✓ New ${agg.created} · Changed ${agg.changeLogged} · Skipped ${agg.skipped} · Errors ${agg.errors.length}`), 's');
+
+    if (agg.errors.length) {
+      const detailZone = document.getElementById('ax-csv-error-detail-zone');
+      const detailList = document.getElementById('ax-csv-error-detail-list');
+      detailList.innerHTML = agg.errors.slice(0, 200).map(e =>
+        `${e.rec?.po_number || '-'} / ${e.rec?.style_no || '-'} / ${e.rec?.color_code || '-'}: ${String(e.message||'').replace(/</g,'&lt;')}`
+      ).join('<br>');
+      detailZone.style.display = 'block';
+      console.error('AX CSV import errors:', agg.errors);
+    }
+
+    axCsvParsedRecords = null;
+  } catch (e) {
+    showAlert('ax-csv-alert', e.message);
+  } finally {
+    runBtn.disabled = false; cancelBtn.disabled = false;
   }
 }
 
