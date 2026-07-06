@@ -1641,8 +1641,6 @@ function getVisibleOrders() {
   const statusFilter = getDashStatusFilter();
   if (sid) list = list.filter(o=>o.season_id===sid);
   if (vid) list = list.filter(o=>o.vendor_id===vid);
-  if (statusFilter === 'active') list = list.filter(o=>!isInShippedTab(o));
-  else if (statusFilter === 'shipped') list = list.filter(o=>isInShippedTab(o));
   if (q) {
     const terms = q.split(/\s+/).filter(Boolean);
     list = list.filter(o => {
@@ -1650,6 +1648,16 @@ function getVisibleOrders() {
       return terms.every(t => combined.includes(t));
     });
   }
+  // 진행중/선적완료 탭 분류는 PO+스타일 그룹 전체 기준으로 판단한다(컬러 행 단위 X).
+  // 컬러별로 선적 상태가 갈리면(예: 일부 컬러만 먼저 선적) 그룹이 탭 사이에서 쪼개져
+  // 같은 스타일이 두 개의 카드로 중복 표시되고, 각 카드의 수량 합계도 컬러 일부만 집계되어 어긋난다.
+  const statusGroups = statusFilter === 'all'
+    ? buildOrderGroups(list)
+    : buildOrderGroups(list).filter(g => {
+        const allShipped = g.every(isInShippedTab);
+        return statusFilter === 'shipped' ? allShipped : !allShipped;
+      });
+  list = statusGroups.flat();
   // 1) 선적완료 건은 하단으로 고정 2) 그 안에서 긴급건 최상단, 리오더건 그 다음 고정 3) target ETD 오름차순
   list.sort((a,b)=>{
     const aShipped = isInShippedTab(a), bShipped = isInShippedTab(b);
@@ -1965,7 +1973,9 @@ function renderVmStageSection(o) {
   const done = STAGES.map(s=>!!o[s+'_done']);
   const cnt = done.filter(Boolean).length;
   const pct = cnt * 25;
-  const qty = Math.round((o.order_qty||0) * cnt / 4);
+  // 같은 PO+스타일의 컬러 행 전체를 합산한 수량 기준으로 진행 수량을 계산(컬러 1개 행 기준 계산 방지)
+  const groupTotalQty = getOrderGroup(o.id).reduce((s,x)=>s+(x.order_qty||0),0);
+  const qty = Math.round(groupTotalQty * cnt / 4);
   const canToggle = me.role === 'vendor' || me.role === 'master';
   el.innerHTML = `
     <div class="stage-grid">
@@ -2246,16 +2256,17 @@ function renderPoMatch() {
       <div class="pm-detail" style="display:${expanded ? 'block' : 'none'}">
         <div class="tbl-wrap"><table class="pm-mini-tbl">
           <thead><tr>
-            <th>${L('PO번호','PO No.')}</th><th>${L('스타일번호','Style No.')}</th><th>${L('스타일명','Style Name')}</th><th>${L('컬러 수','Colors')}</th><th>${L('합계 수량','Total Qty')}</th><th>${L('납기','Delivery')}</th>
+            <th>${L('PO번호','PO No.')}</th><th>${L('스타일번호','Style No.')}</th><th>${L('스타일명','Style Name')}</th><th>${L('컬러 수','Colors')}</th><th>${L('합계 수량','Total Qty')}</th><th>${L('납기','Delivery')}</th><th>${L('매칭','Match')}</th>
           </tr></thead>
           <tbody>
-            ${styleRows.map(r=>`<tr>
+            ${styleRows.map(r=>`<tr data-po="${(r.po||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-style="${(r.styleNo||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">
               <td style="font-family:'DM Mono',monospace;font-size:12px" data-label="${L('PO번호','PO No.')}">${r.po}</td>
               <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ac);font-weight:700" data-label="${L('스타일번호','Style No.')}">${r.styleNo}</td>
               <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-label="${L('스타일명','Style Name')}" title="${(r.styleName||'').replace(/"/g,'&quot;')}">${r.styleName || '-'}</td>
               <td data-label="${L('컬러 수','Colors')}">${r.colors}${L('컬러','colors')}</td>
               <td style="font-weight:700" data-label="${L('합계 수량','Total Qty')}">${r.qty.toLocaleString()}${L('장','pcs')}</td>
               <td data-label="${L('납기','Delivery')}">${r.delivery ? r.delivery.slice(5,10) : '-'}</td>
+              <td data-label="${L('매칭','Match')}"><button class="btn btn-s btn-sm" onclick="event.stopPropagation();matchAxStyleFromRow(this,'${code}','${selId}')">${L('매칭','Match')}</button></td>
             </tr>`).join('')}
           </tbody>
         </table></div>
@@ -2264,7 +2275,7 @@ function renderPoMatch() {
             <option value="">${L('벤더 선택','Select Vendor')}</option>
             ${vendors.map(v=>`<option value="${v.id}">${v.company_name}${v.vendor_code?` [${v.vendor_code}]`:''}</option>`).join('')}
           </select>
-          <button class="btn btn-p pm-match-btn" onclick="event.stopPropagation();matchAxVendor('${code}', document.getElementById('${selId}').value)">${L('매칭','Match')}</button>
+          <button class="btn btn-p pm-match-btn" onclick="event.stopPropagation();matchAxVendor('${code}', document.getElementById('${selId}').value)">${L('전체 일괄 매칭','Match All')}</button>
         </div>
       </div>
     </div>`;
@@ -2281,6 +2292,36 @@ async function matchAxVendor(axVendorCode, vendorUserId) {
       await sb('vendor_mappings', 'POST', { ax_vendor_code: axVendorCode, vendor_user_id: vendorUserId });
     }
     const ids = allOrders.filter(o => o.ax_vendor_code === axVendorCode && o.match_status === 'unmatched').map(o => o.id);
+    if (ids.length) {
+      await sb(`orders?id=in.(${ids.join(',')})`, 'PATCH', { vendor_id: vendorUserId, match_status: 'matched' });
+    }
+    await loadAll();
+    renderPoMatch();
+    alert(L('매칭이 완료되었습니다','Matching completed'));
+  } catch (e) { alert(e.message); }
+}
+
+// ── 스타일(행) 단위 개별 매칭: 벤더 카드 전체가 아니라 PO+스타일 한 건만 매칭 처리 ──
+function matchAxStyleFromRow(btnEl, axVendorCode, selId) {
+  const tr = btnEl.closest('tr');
+  const poNumber = tr?.dataset.po || '-';
+  const styleNo = tr?.dataset.style || '';
+  const vendorUserId = document.getElementById(selId).value;
+  matchAxStyle(axVendorCode, poNumber, styleNo, vendorUserId);
+}
+async function matchAxStyle(axVendorCode, poNumber, styleNo, vendorUserId) {
+  if (!vendorUserId) { alert(L('벤더를 선택해주세요','Please select a vendor')); return; }
+  try {
+    // 개별 매칭도 벤더코드 매핑을 기록해 이후 같은 AX 벤더코드로 들어오는 PO가 자동 매칭되도록 한다
+    const existingMapping = allVendorMappings.find(m => m.ax_vendor_code === axVendorCode);
+    if (existingMapping) {
+      await sb(`vendor_mappings?id=eq.${existingMapping.id}`, 'PATCH', { vendor_user_id: vendorUserId });
+    } else {
+      await sb('vendor_mappings', 'POST', { ax_vendor_code: axVendorCode, vendor_user_id: vendorUserId });
+    }
+    const ids = allOrders
+      .filter(o => o.ax_vendor_code === axVendorCode && o.match_status === 'unmatched' && (o.ax_po_number || '-') === poNumber && o.style_no === styleNo)
+      .map(o => o.id);
     if (ids.length) {
       await sb(`orders?id=in.(${ids.join(',')})`, 'PATCH', { vendor_id: vendorUserId, match_status: 'matched' });
     }
@@ -2737,12 +2778,22 @@ function openVendorModal(orderId) {
   activeOrderId = orderId;
   const o = allOrders.find(x=>x.id===orderId);
   if (!o) return;
-  
+  // 같은 PO+스타일의 컬러 행 전체를 묶어 합산 수량 기준으로 표시(컬러 1개 행만 보이는 버그 방지)
+  const group = getOrderGroup(orderId);
+  const groupTotalQty = group.reduce((s,x)=>s+(x.order_qty||0),0);
+  const colorTableHtml = group.length > 1 ? `
+    <div style="margin-top: 8px; border-top: 1px dashed var(--bdr); padding-top: 8px;">
+      <div style="font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px;">${L('컬러별 수량','Qty by Color')} (${group.length})</div>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <tbody>${group.map(x=>`<tr><td style="padding:3px 6px 3px 0;font-family:'DM Mono',monospace">${x.ax_color_code||'-'}</td><td style="padding:3px 0;text-align:right;font-weight:600">${Number(x.order_qty||0).toLocaleString()}${L('장','pcs')}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>` : '';
+
   document.getElementById('vm-title').textContent = o.style_name;
   const ddayVal = calcDday(o.planned_ship_date);
   const ddayBadge = ddayVal === null ? '' : ` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`;
-  document.getElementById('vm-sub').innerHTML = `${o.style_no} · ${L('오더','Order')} ${Number(o.order_qty).toLocaleString()}${L('장','pcs')}${ddayBadge}`;
-  
+  document.getElementById('vm-sub').innerHTML = `${o.style_no} · ${L('오더','Order')} ${Number(groupTotalQty).toLocaleString()}${L('장','pcs')}${ddayBadge}`;
+
   // 🌟 notes 기저에서 발주 정보 역직렬화(복원) 🌟
   const po = parsePoNotes(o.notes);
   const v = allUsers.find(u=>u.id===o.vendor_id);
@@ -2757,12 +2808,13 @@ function openVendorModal(orderId) {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color:var(--txt);">
             <div><strong>${L('PO 발송일','PO Send Date')}:</strong> ${o.po_send||'-'}</div>
             <div><strong>${L('스타일 번호','Style No.')}:</strong> ${o.style_no||'-'}</div>
-            <div><strong>Order Q'ty:</strong> ${Number(o.order_qty||0).toLocaleString()}</div>
+            <div><strong>Order Q'ty:</strong> ${Number(groupTotalQty).toLocaleString()}</div>
             <div><strong>Target ETD:</strong> ${(o.planned_ship_date||'-')}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
             <div><strong>Supplier:</strong> ${v?.company_name||'-'}</div>
             <div><strong>FOB Price:</strong> ${fmtPrice(o.unit_price, o.currency)}</div>
           </div>
           <div style="margin-top: 6px; font-size: 13px; border-top: 1px dashed var(--bdr); padding-top: 6px; color:#333;"><strong>Description:</strong> ${o.style_name||'-'}</div>
+          ${colorTableHtml}
         </div>`;
     } else {
       // 🏭 벤더용 버전: 가격/공급원 제외 5가지 정보만 노출 🏭
@@ -2771,10 +2823,11 @@ function openVendorModal(orderId) {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; color:var(--txt);">
             <div><strong>${L('PO 발송일','PO Send Date')}:</strong> ${o.po_send||'-'}</div>
             <div><strong>${L('스타일 번호','Style No.')}:</strong> ${o.style_no||'-'}</div>
-            <div><strong>Order Q'ty:</strong> ${Number(o.order_qty||0).toLocaleString()}</div>
+            <div><strong>Order Q'ty:</strong> ${Number(groupTotalQty).toLocaleString()}</div>
             <div><strong>Target ETD:</strong> ${(o.planned_ship_date||'-')}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
           </div>
           <div style="border-top: 1px dashed #eee; padding-top: 4px; margin-top: 4px; color:#555;"><strong>Description:</strong> ${o.style_name||'-'}</div>
+          ${colorTableHtml}
         </div>`;
     }
   } else {
