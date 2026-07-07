@@ -309,29 +309,19 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .sd-tl-comment{font-size:12px;color:var(--txt);margin-top:5px;background:var(--bg);border-radius:6px;padding:6px 8px}
 .sd-tl-edit-btn{font-size:10px;padding:2px 7px;border:1px solid var(--bdr);border-radius:5px;background:transparent;color:var(--muted);cursor:pointer}
 .sd-tl-edit-btn:hover{color:var(--ac);border-color:var(--ac)}
-/* ── PO 매칭 관리 ── */
-.pm-card{background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:22px 24px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.03)}
-.pm-hdr{cursor:pointer;display:flex;flex-direction:column;gap:14px}
-.pm-hdr-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.pm-vendor-name{font-size:20px;font-weight:800;color:var(--txt)}
-.pm-axcode{background:var(--purplel);color:var(--purple);font-size:13px;font-weight:700;padding:5px 14px;border-radius:20px;font-family:'DM Mono',monospace}
-.pm-stats-row{display:flex;align-items:center;gap:32px;flex-wrap:wrap}
-.pm-stat-val{font-size:26px;font-weight:800;color:var(--ac);line-height:1}
-.pm-stat-lbl{font-size:12px;color:var(--muted);margin-top:4px;font-weight:600}
-.pm-toggle-ind{margin-left:auto;font-size:13px;font-weight:700;color:var(--ac);white-space:nowrap}
-.pm-detail{margin-top:18px;border-top:1px dashed var(--bdr);padding-top:18px}
-.pm-mini-tbl{min-width:640px}
-.pm-match-row{display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap}
-.pm-vendor-select{padding:14px 16px;font-size:15px;flex:1;min-width:220px;max-width:340px}
-.pm-match-btn{padding:14px 28px!important;font-size:15px!important;font-weight:700;width:auto!important;min-height:48px}
+/* ── PO 매칭 관리 (평면 테이블) ── */
 .pm-row-axvendor{font-size:10px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
-.pm-rec-hint{font-size:12px;color:var(--ac);font-weight:600;white-space:nowrap}
+.pm-rec-hint{font-size:11px;color:var(--ac);font-weight:600;white-space:nowrap}
+.pm-pagination{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:4px;flex-wrap:wrap}
+.pm-pagination .btn-sm{width:auto}
+.pm-page-info{font-size:12px;color:var(--muted);white-space:nowrap}
+.pm-vendor-list{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;margin-top:4px}
+.pm-vendor-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--bdr);border-radius:10px;cursor:pointer}
+.pm-vendor-item:hover{background:var(--bg)}
+.pm-vendor-item.sel{border-color:var(--ac);background:var(--acl)}
+.pm-vendor-item input[type=radio]{width:16px;height:16px;accent-color:var(--ac);cursor:pointer;flex-shrink:0;pointer-events:none}
 @media(max-width:992px){
-  .pm-card{padding:18px}
-  .pm-vendor-name{font-size:18px}
-  .pm-stats-row{gap:20px}
-  .pm-stat-val{font-size:22px}
-  .pm-vendor-select{max-width:100%}
+  .pm-page-info{width:100%;text-align:center;order:3}
 }
 </style>
 </head>
@@ -553,8 +543,17 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
         </div>
 
         <div class="sec" id="sec-po-match">
-          <div class="sec-hdr"><div><div class="sec-title" data-ko="PO 매칭 관리" data-en="PO Matching">PO 매칭 관리</div><div class="sec-sub" data-ko="AX에서 넘어온 PO를 벤더 계정과 연결하세요. 과거 매칭 이력이 있으면 추천 벤더가 미리 선택되어 있으니 확인 후 다르면 변경하세요." data-en="Link AX POs to vendor accounts. If there's a past match, a suggested vendor is pre-selected — review and change it if needed.">AX에서 넘어온 PO를 벤더 계정과 연결하세요. 과거 매칭 이력이 있으면 추천 벤더가 미리 선택되어 있으니 확인 후 다르면 변경하세요.</div></div></div>
+          <div class="sec-hdr"><div><div class="sec-title" data-ko="PO 매칭 관리" data-en="PO Matching">PO 매칭 관리</div><div class="sec-sub" data-ko="AX에서 넘어온 PO를 벤더 계정과 연결하세요. 과거 매칭 이력이 있으면 추천 배지가 표시됩니다." data-en="Link AX POs to vendor accounts. A suggested badge is shown if there's a past match.">AX에서 넘어온 PO를 벤더 계정과 연결하세요. 과거 매칭 이력이 있으면 추천 배지가 표시됩니다.</div></div></div>
+          <div class="filter-row">
+            <input class="fsearch" type="text" id="pm-search" data-ko-ph="스타일번호/스타일명/PO번호 검색" data-en-ph="Search style no./name/PO no." placeholder="스타일번호/스타일명/PO번호 검색">
+            <select class="fsel" id="pm-vendor-filter"><option value="" data-ko="전체 AX벤더" data-en="All AX Vendors">전체 AX벤더</option></select>
+          </div>
+          <div class="bulk-bar" id="pm-bulk-bar">
+            <span class="bulk-cnt" id="pm-bulk-cnt-label">0건 선택됨</span>
+            <button class="btn btn-p btn-sm" onclick="openPoMatchModal('bulk')" data-ko="선택 일괄 매칭" data-en="Match Selected">선택 일괄 매칭</button>
+          </div>
           <div id="po-match-tbl"></div>
+          <div class="pm-pagination" id="po-match-pagination"></div>
         </div>
 
         <div class="sec" id="sec-ax-import">
@@ -888,7 +887,7 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
       </div>
       <div class="row2">
         <div class="fg"><label class="fl" data-ko="FOB 단가" data-en="FOB Unit Price">FOB 단가</label><input type="number" id="oe-fob" step="0.01" placeholder="12.50"></div>
-        <div class="fg"><label class="fl" data-ko="Target ETD *" data-en="Target ETD *">Target ETD *</label><input type="date" id="oe-etd"></div>
+        <div class="fg"><label class="fl" data-ko="납기(조정) *" data-en="Adjusted ETD *">납기(조정) *</label><input type="date" id="oe-etd"></div>
       </div>
       <div class="fg"><label class="fl" data-ko="PO SEND" data-en="PO SEND">PO SEND</label><input type="date" id="oe-po-send"></div>
       <div id="oe-actualqty-wrap" style="display:none">
@@ -926,6 +925,24 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
     </div>
     <div class="mfooter">
       <button class="btn btn-s btn-sm" id="pcm-cancel" data-ko="닫기" data-en="Close">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="po-match-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="mhdr">
+      <div><div class="mhdr-t" data-ko="벤더 매칭" data-en="Match Vendor">벤더 매칭</div><div class="mhdr-s" id="pmm-sub"></div></div>
+      <button class="mclose" id="pmm-close">×</button>
+    </div>
+    <div class="mbody">
+      <div class="alert alert-e" id="pmm-alert"></div>
+      <input class="fsearch" type="text" id="pmm-vendor-search" style="max-width:100%;margin-bottom:10px;width:100%" data-ko-ph="벤더 검색" data-en-ph="Search vendor" placeholder="벤더 검색">
+      <div class="pm-vendor-list" id="pmm-vendor-list"></div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="pmm-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-p btn-sm" id="pmm-save" data-ko="저장" data-en="Save">저장</button>
     </div>
   </div>
 </div>
@@ -1086,7 +1103,11 @@ let parsedSampleUploadRows = []; // 샘플 관리 대량 엑셀 홀더
 let sampleUploadRowErrors = [];
 let selectedOrderIds = new Set();
 let pendingBulkAction = null; // 'cancel' | 'delete'
-let expandedPoMatchCodes = new Set(); // PO 매칭 관리: 펼쳐진 벤더 카드(AX 벤더코드) 목록
+// PO 매칭 관리(평면 테이블): 현재 페이지/선택 행(PO+스타일 키)/매칭 팝업 컨텍스트
+let poMatchPage = 1;
+const PO_MATCH_PAGE_SIZE = 40;
+let selectedPoMatchKeys = new Set();
+let poMatchModalCtx = null;
 let selectedArrivalKeys = new Set(); // 선택된 입고일정 인보이스 그룹 키
 let arrivalGroupIdMap = new Map(); // 인보이스 그룹 키 -> 해당 그룹의 row id 목록
 
@@ -1145,6 +1166,8 @@ async function sb(path, method='GET', body=null) {
 function showPg(id) { document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on')); document.getElementById(id).classList.add('on'); }
 function showAlert(id, msg, type='e') { const el=document.getElementById(id); if(!el)return; el.textContent=msg; el.className='alert on alert-'+type; if(type!=='s')setTimeout(()=>el.classList.remove('on'),5000); }
 function today() { return new Date().toISOString().slice(0,10); }
+// 화면에 표시할 납기: adjusted_date(마스터 조정값)가 있으면 우선, 없으면 planned_ship_date(AX 원본/수기 등록값)로 대체
+function dispDate(o) { return (o && (o.adjusted_date || o.planned_ship_date)) || null; }
 function isMobileCal() { return window.matchMedia('(max-width:992px)').matches; }
 function addDaysToDateStr(dateStr, n) { const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 function getWeekRange(dateStr) {
@@ -1477,6 +1500,13 @@ function bindAppEvents() {
   document.getElementById('fac-season-filter')?.addEventListener('change', renderFactoryAll);
   document.getElementById('mem-filter').addEventListener('change', renderMembers);
   document.getElementById('mem-search').addEventListener('input', renderMembers);
+  document.getElementById('pm-search')?.addEventListener('input', ()=>{ poMatchPage = 1; renderPoMatch(); });
+  document.getElementById('pm-vendor-filter')?.addEventListener('change', ()=>{ poMatchPage = 1; renderPoMatch(); });
+  document.getElementById('pmm-vendor-search')?.addEventListener('input', e=>renderPoMatchModalVendorList(e.target.value));
+  document.getElementById('pmm-close')?.addEventListener('click', ()=>document.getElementById('po-match-modal').classList.remove('on'));
+  document.getElementById('pmm-cancel')?.addEventListener('click', ()=>document.getElementById('po-match-modal').classList.remove('on'));
+  document.getElementById('pmm-save')?.addEventListener('click', savePoMatch);
+  document.getElementById('po-match-modal')?.addEventListener('click', e=>{ if(e.target.id==='po-match-modal') document.getElementById('po-match-modal').classList.remove('on'); });
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
@@ -1705,7 +1735,7 @@ function getVisibleOrders() {
     if (aShipped !== bShipped) return aShipped ? 1 : -1;
     const aTier = orderPriorityTier(a), bTier = orderPriorityTier(b);
     if (aTier !== bTier) return aTier - bTier;
-    return (a.planned_ship_date||'9999-99-99').localeCompare(b.planned_ship_date||'9999-99-99');
+    return (dispDate(a)||'9999-99-99').localeCompare(dispDate(b)||'9999-99-99');
   });
   return list;
 }
@@ -1729,7 +1759,8 @@ function renderDashboard() {
     const gShp = g.reduce((s,x)=>s+(x.shipped_qty||0),0);
     tOrd += gOrd; tPrd += gPrd; tShp += gShp;
     const rep = g[0];
-    if (rep.planned_ship_date && rep.planned_ship_date<t && gShp<gOrd) delayed++;
+    const repDate = dispDate(rep);
+    if (repDate && repDate<t && gShp<gOrd) delayed++;
     if (g.some(x=>(x.defect_qty||0)>0)) defectCnt++;
   }
   const ppct = tOrd?Math.round(tPrd/tOrd*100):0;
@@ -1785,7 +1816,8 @@ function renderDashboard() {
       const cancelled = o.status === 'cancelled';
       const totalQty = group.reduce((s,x)=>s+(x.order_qty||0),0);
       const totalShipped = group.reduce((s,x)=>s+(x.shipped_qty||0),0);
-      const late = !cancelled && o.planned_ship_date && o.planned_ship_date<t && totalShipped<totalQty;
+      const oDate = dispDate(o);
+      const late = !cancelled && oDate && oDate<t && totalShipped<totalQty;
       const fail = group.reduce((s,x)=>s+((x.defect_qty||0)>0 ? (x.defect_qty||0) : (x.vendor_fail_qty||0)), 0);
       const hasDefect = group.some(x=>(x.defect_qty||0)>0);
       const def = totalQty && fail ? ((fail/totalQty)*100).toFixed(1) : '0.0';
@@ -1803,7 +1835,8 @@ function renderDashboard() {
         if (me.role !== 'md' && (shipped || shipRequested)) {
           actBtn += `<button class="btn btn-purple btn-sm" onclick="openDefectModal('${o.id}')">${L('불량 추가','Add Defect')}</button>`;
         }
-        if (me.role === 'master' && o.source !== 'ax') {
+        if (me.role === 'master' || me.role === 'md') {
+          // AX 연동 PO는 openOrderEditModal 내부에서 납기(조정) 필드만 편집 가능하도록 제한된다(스타일/수량/벤더 등은 AX 원본 유지)
           actBtn += ` <button class="btn btn-sm" style="background:var(--ac);color:#fff" onclick="openOrderEditModal('${o.id}')">${L('수정','Edit')}</button>`;
         }
       }
@@ -1839,7 +1872,7 @@ function renderDashboard() {
         <td data-label="${L('선적','Shipped')}">${Number(totalShipped).toLocaleString()}</td>
         <td data-label="${L('차이율','Variance')}" style="color:${varInfo.color};font-weight:${hasShippedQty?'600':''}">${varInfo.text}</td>
         <td data-label="${L('불량률','Defect')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${hasDefect?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
-        <td data-label="${L('선적예정','Target ETD')}" style="font-size:12px">${(()=>{const d=calcDday(o.planned_ship_date);const dday=d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;return `${(o.planned_ship_date||'-').slice(0,10)}${dday}`;})()}</td>
+        <td data-label="${L('선적예정','Target ETD')}" style="font-size:12px">${(()=>{const dt=dispDate(o);const d=calcDday(dt);const dday=d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;return `${(dt||'-').slice(0,10)}${dday}`;})()}</td>
         <td data-label="${L('상태','Status')}">${statusBadge}</td>
         <td data-label="${L('액션','Action')}">${actBtn}</td>
       </tr>`;
@@ -1884,7 +1917,8 @@ function renderVendorOrderCards(list) {
     const done = STAGES.map(s=>group.every(x=>!!x[s+'_done'])); // 컬러 전원 완료해야 해당 단계 완료로 표시
     const cnt  = done.filter(Boolean).length;
     const pct  = Math.round(cnt / 4 * 100);
-    const late = o.planned_ship_date && o.planned_ship_date<t && totalShipped<totalQty;
+    const oDate = dispDate(o);
+    const late = oDate && oDate<t && totalShipped<totalQty;
     const shipped = group.every(isOrderShipped);
     const shipRequested = group.every(isOrderShipRequested);
     const canRequestShip = cnt === STAGES.length && group.every(x=>x.status !== 'shipping_requested' && x.status !== 'shipped' && x.status !== 'cancelled');
@@ -1920,7 +1954,7 @@ function renderVendorOrderCards(list) {
             ${shipRequested?`<span class="bdg bdg-cs">${L('선적요청됨','Ship Requested')}</span>`:''}
           </div>
           <div style="font-size:15px;font-weight:700">${o.style_name}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px">${qtyLabel} · ${(o.planned_ship_date||'-').slice(0,10)}${(()=>{const d=calcDday(o.planned_ship_date);return d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;})()}${late?` <span style="color:var(--red);font-weight:600">⚠ ${L('지연','Delayed')}</span>`:''}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${qtyLabel} · ${(oDate||'-').slice(0,10)}${(()=>{const d=calcDday(oDate);return d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;})()}${late?` <span style="color:var(--red);font-weight:600">⚠ ${L('지연','Delayed')}</span>`:''}</div>
           ${colorBreakdown}
         </div>
         <div style="text-align:right;flex-shrink:0">
@@ -2198,6 +2232,7 @@ async function importAxPo(records) {
           unit_price: rec.unit_price,
           currency: rec.currency || 'USD',
           planned_ship_date: rec.delivery_date,
+          adjusted_date: rec.delivery_date,
           shipped_qty: 0,
           is_urgent: false,
           is_reorder: false,
@@ -2217,6 +2252,9 @@ async function importAxPo(records) {
           logs.push({ order_id: existing.id, changed_field: 'order_qty', old_value: String(existing.order_qty), new_value: String(rec.qty) });
         if (Number(existing.unit_price) !== Number(rec.unit_price))
           logs.push({ order_id: existing.id, changed_field: 'unit_price', old_value: String(existing.unit_price), new_value: String(rec.unit_price) });
+        // 납기(AX 원본)만 비교. adjusted_date(마스터 조정값)는 재연동으로 자동 변경되지 않음 — [반영] 시에만 갱신됨
+        if ((existing.planned_ship_date || '') !== (rec.delivery_date || ''))
+          logs.push({ order_id: existing.id, changed_field: 'planned_ship_date', old_value: existing.planned_ship_date || '', new_value: rec.delivery_date || '' });
         if (!logs.length) { result.skipped++; continue; }
         await sb('po_change_logs', 'POST', logs);
         result.changeLogged++;
@@ -2429,132 +2467,243 @@ async function runAxCsvImport() {
   }
 }
 
-// ── PO 매칭 관리 (마스터/MD) ──
-function togglePoMatchCard(code) {
-  if (expandedPoMatchCodes.has(code)) expandedPoMatchCodes.delete(code);
-  else expandedPoMatchCodes.add(code);
-  renderPoMatch();
-}
-function renderPoMatch() {
+// ── PO 매칭 관리 (마스터/MD): 벤더 그룹 카드 없이 PO+스타일 단위 평면 테이블 ──
+// PO번호+스타일번호 단위로 컬러 행을 묶어 한 행으로 표시 (같은 스타일이 컬러 수만큼 중복 나열되지 않도록)
+function buildPoMatchRows() {
   const unmatched = allOrders.filter(o => o.source === 'ax' && o.match_status === 'unmatched');
-  const wrap = document.getElementById('po-match-tbl');
-  if (!unmatched.length) { wrap.innerHTML = `<div class="empty"><div class="empty-t">${L('미매칭 PO가 없습니다','No unmatched POs')}</div></div>`; return; }
-  const groups = {};
+  const styleMap = new Map();
   unmatched.forEach(o => {
-    const key = o.ax_vendor_code || '(unknown)';
-    if (!groups[key]) groups[key] = { vendorName: o.ax_vendor_name, orders: [] };
-    groups[key].orders.push(o);
+    const sk = `${o.ax_po_number || '-'}__${o.style_no}`;
+    if (!styleMap.has(sk)) styleMap.set(sk, { po: o.ax_po_number || '-', styleNo: o.style_no, styleName: o.style_name, delivery: dispDate(o), qty: 0, colors: 0, axVendorCode: o.ax_vendor_code, axVendorName: o.ax_vendor_name });
+    const r = styleMap.get(sk);
+    r.qty += (o.order_qty || 0);
+    r.colors += 1;
   });
-  const vendors = allUsers.filter(u => u.role === 'vendor' && u.status === 'active');
-  wrap.innerHTML = Object.entries(groups).map(([code, g]) => {
-    const totalQty = g.orders.reduce((s,o)=>s+(o.order_qty||0),0);
-    const selId = `pm-sel-${code.replace(/[^a-zA-Z0-9]/g,'_')}`;
-    const expanded = expandedPoMatchCodes.has(code);
-    // vendor_mappings에 남아있는 이 AX코드의 최근 매칭 계정을 "추천"으로만 사용 (강제 규칙 아님, 마스터가 자유롭게 변경 가능)
-    const recommendedMapping = allVendorMappings.find(m => m.ax_vendor_code === code);
-    const recommendedVendor = recommendedMapping ? vendors.find(v => v.id === recommendedMapping.vendor_user_id) : null;
-    // PO번호+스타일번호 단위로 컬러 행을 묶어 표로 정리 (같은 스타일이 컬러 수만큼 중복 나열되지 않도록)
-    const styleMap = new Map();
-    g.orders.forEach(o => {
-      const sk = `${o.ax_po_number || '-'}__${o.style_no}`;
-      if (!styleMap.has(sk)) styleMap.set(sk, { po: o.ax_po_number || '-', styleNo: o.style_no, styleName: o.style_name, delivery: o.planned_ship_date, qty: 0, colors: 0, axVendorCode: o.ax_vendor_code, axVendorName: o.ax_vendor_name });
-      const r = styleMap.get(sk);
-      r.qty += (o.order_qty || 0);
-      r.colors += 1;
+  return [...styleMap.values()];
+}
+function poMatchRowKey(po, styleNo) { return `${po}__${styleNo}`; }
+
+function renderPoMatchVendorFilterOptions(rows) {
+  const sel = document.getElementById('pm-vendor-filter');
+  if (!sel) return;
+  const cur = sel.value;
+  const codes = new Map();
+  rows.forEach(r => { if (r.axVendorCode && !codes.has(r.axVendorCode)) codes.set(r.axVendorCode, r.axVendorName); });
+  sel.innerHTML = `<option value="">${L('전체 AX벤더','All AX Vendors')}</option>` +
+    [...codes.entries()].map(([code,name])=>`<option value="${code}">${name||'-'} [${code}]</option>`).join('');
+  if (codes.has(cur)) sel.value = cur;
+}
+
+function renderPoMatch() {
+  const allRows = buildPoMatchRows();
+  renderPoMatchVendorFilterOptions(allRows);
+
+  const q = (document.getElementById('pm-search')?.value || '').trim().toLowerCase();
+  const vendorFilter = document.getElementById('pm-vendor-filter')?.value || '';
+
+  let rows = allRows;
+  if (vendorFilter) rows = rows.filter(r => r.axVendorCode === vendorFilter);
+  if (q) {
+    const terms = q.split(/\s+/).filter(Boolean);
+    rows = rows.filter(r => {
+      const combined = `${r.styleNo||''} ${r.styleName||''} ${r.po||''}`.toLowerCase();
+      return terms.every(t => combined.includes(t));
     });
-    const styleRows = [...styleMap.values()];
-    return `<div class="pm-card">
-      <div class="pm-hdr" onclick="togglePoMatchCard('${code}')">
-        <div class="pm-hdr-top">
-          <div class="pm-vendor-name">${g.vendorName || '-'}</div>
-          <span class="pm-axcode">${code}</span>
-        </div>
-        <div class="pm-stats-row">
-          <div class="pm-stat"><div class="pm-stat-val">${g.orders.length}</div><div class="pm-stat-lbl">${L('미매칭 건수','Unmatched')}</div></div>
-          <div class="pm-stat"><div class="pm-stat-val">${totalQty.toLocaleString()}</div><div class="pm-stat-lbl">${L('총 수량(장)','Total Qty')}</div></div>
-          <div class="pm-toggle-ind">${expanded ? '▲ '+L('접기','Collapse') : '▼ '+L('펼치기','Expand')}</div>
-        </div>
+  }
+  rows.sort((a,b) => (a.delivery||'9999-99-99').localeCompare(b.delivery||'9999-99-99'));
+
+  // 매칭 완료/필터로 화면에서 사라진 행의 선택 상태는 정리
+  const visibleKeys = new Set(rows.map(r => poMatchRowKey(r.po, r.styleNo)));
+  [...selectedPoMatchKeys].forEach(k => { if (!visibleKeys.has(k)) selectedPoMatchKeys.delete(k); });
+
+  const wrap = document.getElementById('po-match-tbl');
+  if (!allRows.length) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-t">${L('미매칭 PO가 없습니다','No unmatched POs')}</div></div>`;
+    document.getElementById('po-match-pagination').innerHTML = '';
+    updatePoMatchBulkBar();
+    return;
+  }
+  if (!rows.length) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-t">${L('검색 결과가 없습니다','No matching results')}</div></div>`;
+    document.getElementById('po-match-pagination').innerHTML = '';
+    updatePoMatchBulkBar();
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PO_MATCH_PAGE_SIZE));
+  if (poMatchPage > totalPages) poMatchPage = totalPages;
+  const startIdx = (poMatchPage - 1) * PO_MATCH_PAGE_SIZE;
+  const pageRows = rows.slice(startIdx, startIdx + PO_MATCH_PAGE_SIZE);
+
+  wrap.innerHTML = `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th style="width:36px;text-align:center"><input type="checkbox" id="pm-chk-all" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="togglePoMatchSelectAll(this.checked)"></th>
+      <th>${L('PO번호','PO No.')}</th>
+      <th>${L('스타일번호','Style No.')}</th>
+      <th>${L('스타일명','Style Name')}</th>
+      <th>${L('컬러 수','Colors')}</th>
+      <th>${L('발주수량','Order Qty')}</th>
+      <th>${L('납기','Delivery')}</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+      ${pageRows.map(r => {
+        const key = poMatchRowKey(r.po, r.styleNo);
+        const checked = selectedPoMatchKeys.has(key) ? 'checked' : '';
+        const recommendedMapping = allVendorMappings.find(m => m.ax_vendor_code === r.axVendorCode);
+        const recommendedVendor = recommendedMapping ? allUsers.find(u => u.id === recommendedMapping.vendor_user_id && u.role === 'vendor' && u.status === 'active') : null;
+        const recBadge = recommendedVendor ? ` <span class="bdg bdg-ok" style="font-size:9px" title="${L('추천','Suggested')}: ${recommendedVendor.company_name}">⭐ ${L('추천','Suggested')}</span>` : '';
+        return `<tr data-po="${(r.po||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-style="${(r.styleNo||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-axcode="${(r.axVendorCode||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">
+          <td style="text-align:center"><input type="checkbox" class="pm-chk" data-key="${key}" ${checked} style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="togglePoMatchSelect('${key}',this.checked)"></td>
+          <td style="font-family:'DM Mono',monospace;font-size:12px" data-label="${L('PO번호','PO No.')}">${r.po}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ac);font-weight:700" data-label="${L('스타일번호','Style No.')}">
+            ${r.styleNo}
+            <div class="pm-row-axvendor">${(r.axVendorName||'-')} [${r.axVendorCode||'-'}]</div>
+          </td>
+          <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-label="${L('스타일명','Style Name')}" title="${(r.styleName||'').replace(/"/g,'&quot;')}">${r.styleName || '-'}</td>
+          <td data-label="${L('컬러 수','Colors')}">${r.colors}${L('컬러','colors')}</td>
+          <td style="font-weight:700" data-label="${L('발주수량','Order Qty')}">${r.qty.toLocaleString()}${L('장','pcs')}</td>
+          <td data-label="${L('납기','Delivery')}">${r.delivery ? r.delivery.slice(0,10) : '-'}${recBadge}</td>
+          <td data-label="${L('매칭','Match')}"><button class="btn btn-s btn-sm" onclick="openPoMatchModal('single', this)">${L('매칭','Match')}</button></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table></div>`;
+
+  renderPoMatchPagination(rows.length, totalPages);
+  updatePoMatchBulkBar();
+  const chkAll = document.getElementById('pm-chk-all');
+  if (chkAll) chkAll.checked = pageRows.length > 0 && pageRows.every(r => selectedPoMatchKeys.has(poMatchRowKey(r.po, r.styleNo)));
+}
+
+function renderPoMatchPagination(totalCount, totalPages) {
+  const el = document.getElementById('po-match-pagination');
+  if (!el) return;
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <button class="btn btn-s btn-sm" ${poMatchPage<=1?'disabled':''} onclick="changePoMatchPage(${poMatchPage-1})">‹ ${L('이전','Prev')}</button>
+    <span class="pm-page-info">${poMatchPage} / ${totalPages} (${L('총','Total')} ${totalCount}${L('건','cases')})</span>
+    <button class="btn btn-s btn-sm" ${poMatchPage>=totalPages?'disabled':''} onclick="changePoMatchPage(${poMatchPage+1})">${L('다음','Next')} ›</button>`;
+}
+function changePoMatchPage(p) { poMatchPage = p; renderPoMatch(); }
+
+function togglePoMatchSelect(key, checked) {
+  if (checked) selectedPoMatchKeys.add(key); else selectedPoMatchKeys.delete(key);
+  updatePoMatchBulkBar();
+  const chkAll = document.getElementById('pm-chk-all');
+  if (chkAll) { const boxes = [...document.querySelectorAll('.pm-chk')]; chkAll.checked = boxes.length>0 && boxes.every(cb=>cb.checked); }
+}
+function togglePoMatchSelectAll(checked) {
+  document.querySelectorAll('.pm-chk').forEach(cb => {
+    cb.checked = checked;
+    if (checked) selectedPoMatchKeys.add(cb.dataset.key); else selectedPoMatchKeys.delete(cb.dataset.key);
+  });
+  updatePoMatchBulkBar();
+}
+function updatePoMatchBulkBar() {
+  const bar = document.getElementById('pm-bulk-bar');
+  if (!bar) return;
+  const cnt = selectedPoMatchKeys.size;
+  document.getElementById('pm-bulk-cnt-label').textContent = `${cnt}${L('건','cases')} ${L('선택됨','selected')}`;
+  cnt > 0 ? bar.classList.add('on') : bar.classList.remove('on');
+}
+
+// ── 매칭 팝업(단일 행 / 선택 일괄 공용) ──
+function openPoMatchModal(mode, btnEl) {
+  const rows = buildPoMatchRows();
+  let targetRows;
+  if (mode === 'single') {
+    const tr = btnEl.closest('tr');
+    const po = tr?.dataset.po || '-';
+    const styleNo = tr?.dataset.style || '';
+    targetRows = rows.filter(r => r.po === po && r.styleNo === styleNo);
+  } else {
+    if (!selectedPoMatchKeys.size) { alert(L('매칭할 항목을 먼저 선택하세요','Please select rows to match first')); return; }
+    targetRows = rows.filter(r => selectedPoMatchKeys.has(poMatchRowKey(r.po, r.styleNo)));
+  }
+  if (!targetRows.length) return;
+
+  // 단일 매칭이거나, 일괄 선택 항목이 모두 같은 AX벤더코드면 추천 벤더를 미리 선택
+  const codes = [...new Set(targetRows.map(r => r.axVendorCode).filter(Boolean))];
+  let recommendedVendorId = '';
+  if (codes.length === 1) {
+    const mapping = allVendorMappings.find(m => m.ax_vendor_code === codes[0]);
+    if (mapping) recommendedVendorId = mapping.vendor_user_id;
+  }
+
+  poMatchModalCtx = { mode, rows: targetRows, selectedVendorId: recommendedVendorId || '' };
+
+  document.getElementById('pmm-sub').textContent = mode === 'single'
+    ? `${targetRows[0].po} · ${targetRows[0].styleNo}`
+    : L(`선택 ${targetRows.length}건 일괄 매칭`,`Bulk match ${targetRows.length} selected`);
+  document.getElementById('pmm-vendor-search').value = '';
+  document.getElementById('pmm-alert').classList.remove('on');
+  renderPoMatchModalVendorList('');
+  document.getElementById('po-match-modal').classList.add('on');
+}
+
+function renderPoMatchModalVendorList(q) {
+  const listEl = document.getElementById('pmm-vendor-list');
+  if (!poMatchModalCtx) return;
+  const vendors = allUsers.filter(u => u.role === 'vendor' && u.status === 'active');
+  const term = (q||'').trim().toLowerCase();
+  const filtered = term ? vendors.filter(v => `${v.company_name} ${v.vendor_code||''}`.toLowerCase().includes(term)) : vendors;
+
+  const codes = [...new Set(poMatchModalCtx.rows.map(r => r.axVendorCode).filter(Boolean))];
+  const recommendedVendorId = codes.length === 1 ? (allVendorMappings.find(m => m.ax_vendor_code === codes[0])?.vendor_user_id || '') : '';
+
+  if (!filtered.length) { listEl.innerHTML = `<div style="padding:10px;color:var(--muted);font-size:13px">${L('검색 결과가 없습니다','No results')}</div>`; return; }
+  listEl.innerHTML = filtered.map(v => {
+    const sel = poMatchModalCtx.selectedVendorId === v.id;
+    const isRec = recommendedVendorId === v.id;
+    return `<label class="pm-vendor-item ${sel?'sel':''}" onclick="selectPoMatchVendor('${v.id}')">
+      <input type="radio" name="pmm-vendor-radio" ${sel?'checked':''}>
+      <div>
+        <div style="font-weight:600;font-size:13px">${v.company_name}${v.vendor_code?` [${v.vendor_code}]`:''}</div>
+        ${isRec ? `<span class="pm-rec-hint">⭐ ${L('추천 (최근 매칭 기록)','Suggested (last match)')}</span>` : ''}
       </div>
-      <div class="pm-detail" style="display:${expanded ? 'block' : 'none'}">
-        <div class="tbl-wrap"><table class="pm-mini-tbl">
-          <thead><tr>
-            <th>${L('PO번호','PO No.')}</th><th>${L('스타일번호','Style No.')}</th><th>${L('스타일명','Style Name')}</th><th>${L('컬러 수','Colors')}</th><th>${L('합계 수량','Total Qty')}</th><th>${L('납기','Delivery')}</th><th>${L('매칭','Match')}</th>
-          </tr></thead>
-          <tbody>
-            ${styleRows.map(r=>`<tr data-po="${(r.po||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-style="${(r.styleNo||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">
-              <td style="font-family:'DM Mono',monospace;font-size:12px" data-label="${L('PO번호','PO No.')}">${r.po}</td>
-              <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ac);font-weight:700" data-label="${L('스타일번호','Style No.')}">
-                ${r.styleNo}
-                <div class="pm-row-axvendor">${(r.axVendorName||'-')} [${r.axVendorCode||code}]</div>
-              </td>
-              <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-label="${L('스타일명','Style Name')}" title="${(r.styleName||'').replace(/"/g,'&quot;')}">${r.styleName || '-'}</td>
-              <td data-label="${L('컬러 수','Colors')}">${r.colors}${L('컬러','colors')}</td>
-              <td style="font-weight:700" data-label="${L('합계 수량','Total Qty')}">${r.qty.toLocaleString()}${L('장','pcs')}</td>
-              <td data-label="${L('납기','Delivery')}">${r.delivery ? r.delivery.slice(5,10) : '-'}</td>
-              <td data-label="${L('매칭','Match')}"><button class="btn btn-s btn-sm" onclick="event.stopPropagation();matchAxStyleFromRow(this,'${code}','${selId}')">${L('매칭','Match')}</button></td>
-            </tr>`).join('')}
-          </tbody>
-        </table></div>
-        <div class="pm-match-row">
-          <select id="${selId}" class="fsel pm-vendor-select" onclick="event.stopPropagation()">
-            <option value="">${L('벤더 선택','Select Vendor')}</option>
-            ${vendors.map(v=>`<option value="${v.id}"${recommendedVendor && v.id===recommendedVendor.id ? ' selected' : ''}>${recommendedVendor && v.id===recommendedVendor.id ? '⭐ ' : ''}${v.company_name}${v.vendor_code?` [${v.vendor_code}]`:''}</option>`).join('')}
-          </select>
-          ${recommendedVendor ? `<span class="pm-rec-hint">⭐ ${L('추천','Suggested')}: ${recommendedVendor.company_name} (${L('최근 매칭 기록','last match on record')})</span>` : ''}
-          <button class="btn btn-p pm-match-btn" onclick="event.stopPropagation();matchAxVendor('${code}', document.getElementById('${selId}').value)">${L('전체 일괄 매칭','Match All')}</button>
-        </div>
-      </div>
-    </div>`;
+    </label>`;
   }).join('');
 }
 
-async function matchAxVendor(axVendorCode, vendorUserId) {
-  if (!vendorUserId) { alert(L('벤더를 선택해주세요','Please select a vendor')); return; }
-  try {
-    const existingMapping = allVendorMappings.find(m => m.ax_vendor_code === axVendorCode);
-    if (existingMapping) {
-      await sb(`vendor_mappings?id=eq.${existingMapping.id}`, 'PATCH', { vendor_user_id: vendorUserId });
-    } else {
-      await sb('vendor_mappings', 'POST', { ax_vendor_code: axVendorCode, vendor_user_id: vendorUserId });
-    }
-    const ids = allOrders.filter(o => o.ax_vendor_code === axVendorCode && o.match_status === 'unmatched').map(o => o.id);
-    if (ids.length) {
-      await sb(`orders?id=in.(${ids.join(',')})`, 'PATCH', { vendor_id: vendorUserId, match_status: 'matched' });
-    }
-    await loadAll();
-    renderPoMatch();
-    alert(L('매칭이 완료되었습니다','Matching completed'));
-  } catch (e) { alert(e.message); }
+function selectPoMatchVendor(vendorId) {
+  if (!poMatchModalCtx) return;
+  poMatchModalCtx.selectedVendorId = vendorId;
+  renderPoMatchModalVendorList(document.getElementById('pmm-vendor-search').value);
 }
 
-// ── 스타일(행) 단위 개별 매칭: 벤더 카드 전체가 아니라 PO+스타일 한 건만 매칭 처리 ──
-function matchAxStyleFromRow(btnEl, axVendorCode, selId) {
-  const tr = btnEl.closest('tr');
-  const poNumber = tr?.dataset.po || '-';
-  const styleNo = tr?.dataset.style || '';
-  const vendorUserId = document.getElementById(selId).value;
-  matchAxStyle(axVendorCode, poNumber, styleNo, vendorUserId);
-}
-async function matchAxStyle(axVendorCode, poNumber, styleNo, vendorUserId) {
-  if (!vendorUserId) { alert(L('벤더를 선택해주세요','Please select a vendor')); return; }
+async function savePoMatch() {
+  if (!poMatchModalCtx) return;
+  const vendorId = poMatchModalCtx.selectedVendorId;
+  if (!vendorId) { showAlert('pmm-alert', L('벤더를 선택해주세요','Please select a vendor')); return; }
+  const btn = document.getElementById('pmm-save');
+  btn.disabled = true; btn.textContent = L('저장 중...','Saving...');
   try {
-    // 개별 매칭도 벤더코드 매핑을 기록해 이후 같은 AX 벤더코드로 들어오는 PO가 자동 매칭되도록 한다
-    const existingMapping = allVendorMappings.find(m => m.ax_vendor_code === axVendorCode);
-    if (existingMapping) {
-      await sb(`vendor_mappings?id=eq.${existingMapping.id}`, 'PATCH', { vendor_user_id: vendorUserId });
-    } else {
-      await sb('vendor_mappings', 'POST', { ax_vendor_code: axVendorCode, vendor_user_id: vendorUserId });
+    // 대상 행에 걸친 AX벤더코드마다 매핑을 upsert (다음 가져오기부터 추천에 반영)
+    const codes = [...new Set(poMatchModalCtx.rows.map(r => r.axVendorCode).filter(Boolean))];
+    for (const code of codes) {
+      const existingMapping = allVendorMappings.find(m => m.ax_vendor_code === code);
+      if (existingMapping) await sb(`vendor_mappings?id=eq.${existingMapping.id}`, 'PATCH', { vendor_user_id: vendorId });
+      else await sb('vendor_mappings', 'POST', { ax_vendor_code: code, vendor_user_id: vendorId });
     }
-    const ids = allOrders
-      .filter(o => o.ax_vendor_code === axVendorCode && o.match_status === 'unmatched' && (o.ax_po_number || '-') === poNumber && o.style_no === styleNo)
-      .map(o => o.id);
-    if (ids.length) {
-      await sb(`orders?id=in.(${ids.join(',')})`, 'PATCH', { vendor_id: vendorUserId, match_status: 'matched' });
-    }
+    const ids = [];
+    poMatchModalCtx.rows.forEach(r => {
+      allOrders.filter(o => o.match_status === 'unmatched' && o.ax_vendor_code === r.axVendorCode && (o.ax_po_number || '-') === r.po && o.style_no === r.styleNo)
+        .forEach(o => ids.push(o.id));
+    });
+    if (ids.length) await sb(`orders?id=in.(${ids.join(',')})`, 'PATCH', { vendor_id: vendorId, match_status: 'matched' });
+
+    poMatchModalCtx.rows.forEach(r => selectedPoMatchKeys.delete(poMatchRowKey(r.po, r.styleNo)));
+    document.getElementById('po-match-modal').classList.remove('on');
+    poMatchModalCtx = null;
     await loadAll();
     renderPoMatch();
     alert(L('매칭이 완료되었습니다','Matching completed'));
-  } catch (e) { alert(e.message); }
+  } catch (e) {
+    showAlert('pmm-alert', e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = L('저장','Save');
+  }
 }
 
 // ── PO 변경 감지 공용 로직 (마스터/MD가 반영·무시 처리, 벤더/CS는 조회만) ──
@@ -2562,7 +2711,22 @@ async function matchAxStyle(axVendorCode, poNumber, styleNo, vendorUserId) {
 // 그룹(PO+스타일) 전체를 뒤져서 어느 컬러에서 변경이 감지됐든 모두 찾아야 하므로,
 // "변경됨" 배지 / PO 변경 모달 / 오더 상세 모달의 이력 섹션이 모두 이 헬퍼들을 공유한다.
 function poChangeFieldLabel(field) {
-  return { order_qty: L('발주수량','Order Qty'), unit_price: L('단가','Unit Price') }[field] || field;
+  return {
+    order_qty: L('발주수량','Order Qty'),
+    unit_price: L('단가','Unit Price'),
+    planned_ship_date: L('납기(AX 원본)','Delivery Date (AX Original)'),
+    adjusted_date: L('납기(조정)','Adjusted Delivery Date')
+  }[field] || field;
+}
+// 마스터가 오더 상세에서 adjusted_date를 직접 수정한 이력이 있는지 (AX 재연동 반영 시 덮어쓰기 확인용)
+function hasManualAdjustedDateEdit(orderId) {
+  return allPoChangeLogs.some(l => l.order_id === orderId && l.changed_field === 'adjusted_date');
+}
+// changed_field별로 PATCH할 값/본문을 구성 (날짜 필드는 문자열 그대로, 납기는 planned_ship_date+adjusted_date 동시 갱신)
+function buildPoChangeApplyBody(field, newValue) {
+  if (field === 'order_qty') return { order_qty: parseInt(newValue) || 0 };
+  if (field === 'planned_ship_date') return { planned_ship_date: newValue, adjusted_date: newValue };
+  return { [field]: parseFloat(newValue) };
 }
 function getPendingPoChangeLogs(orderId) {
   const groupIds = new Set(getOrderGroup(orderId).map(x => x.id));
@@ -2698,8 +2862,12 @@ function openPoChangeModal(orderId) {
 
 async function applyPoChangeLog(logId, orderId, field, newValue) {
   try {
-    const castValue = (field === 'order_qty') ? (parseInt(newValue)||0) : parseFloat(newValue);
-    await sb(`orders?id=eq.${orderId}`, 'PATCH', { [field]: castValue, updated_at: nowKstIso() });
+    if (field === 'planned_ship_date' && hasManualAdjustedDateEdit(orderId)) {
+      if (!confirm(L('조정된 납기가 있습니다. 덮어쓸까요?','An adjusted delivery date already exists for this order. Overwrite it?'))) return;
+    }
+    const body = buildPoChangeApplyBody(field, newValue);
+    body.updated_at = nowKstIso();
+    await sb(`orders?id=eq.${orderId}`, 'PATCH', body);
     await sb(`po_change_logs?id=eq.${logId}`, 'PATCH', { confirmed: true, confirmed_at: nowKstIso(), resolution: 'applied' });
     await loadAll();
     reopenPoChangeUi(orderId);
@@ -2718,8 +2886,12 @@ async function applyAllPoChangeLogs(orderId) {
   try {
     const pending = getPendingPoChangeLogs(orderId);
     for (const l of pending) {
-      const castValue = (l.changed_field === 'order_qty') ? (parseInt(l.new_value)||0) : parseFloat(l.new_value);
-      await sb(`orders?id=eq.${l.order_id}`, 'PATCH', { [l.changed_field]: castValue, updated_at: nowKstIso() });
+      if (l.changed_field === 'planned_ship_date' && hasManualAdjustedDateEdit(l.order_id)) {
+        if (!confirm(L(`조정된 납기가 있습니다. ${l.new_value} 값으로 덮어쓸까요?`,`An adjusted delivery date already exists. Overwrite it with ${l.new_value}?`))) continue;
+      }
+      const body = buildPoChangeApplyBody(l.changed_field, l.new_value);
+      body.updated_at = nowKstIso();
+      await sb(`orders?id=eq.${l.order_id}`, 'PATCH', body);
       await sb(`po_change_logs?id=eq.${l.id}`, 'PATCH', { confirmed: true, confirmed_at: nowKstIso(), resolution: 'applied' });
     }
     await loadAll();
@@ -3160,7 +3332,8 @@ function openVendorModal(orderId) {
     </div>` : '';
 
   document.getElementById('vm-title').textContent = o.style_name;
-  const ddayVal = calcDday(o.planned_ship_date);
+  const oDispDate = dispDate(o);
+  const ddayVal = calcDday(oDispDate);
   const ddayBadge = ddayVal === null ? '' : ` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`;
   document.getElementById('vm-sub').innerHTML = `${o.style_no} · ${L('오더','Order')} ${Number(groupTotalQty).toLocaleString()}${L('장','pcs')}${ddayBadge}`;
 
@@ -3179,7 +3352,7 @@ function openVendorModal(orderId) {
             <div><strong>${L('PO 발송일','PO Send Date')}:</strong> ${o.po_send||'-'}</div>
             <div><strong>${L('스타일 번호','Style No.')}:</strong> ${o.style_no||'-'}</div>
             <div><strong>Order Q'ty:</strong> ${Number(groupTotalQty).toLocaleString()}</div>
-            <div><strong>Target ETD:</strong> ${(o.planned_ship_date||'-')}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
+            <div><strong>Target ETD:</strong> ${(oDispDate||'-')}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
             <div><strong>Supplier:</strong> ${v?.company_name||'-'}</div>
             <div><strong>FOB Price:</strong> ${fmtPrice(o.unit_price, o.currency)}</div>
           </div>
@@ -3194,7 +3367,7 @@ function openVendorModal(orderId) {
             <div><strong>${L('PO 발송일','PO Send Date')}:</strong> ${o.po_send||'-'}</div>
             <div><strong>${L('스타일 번호','Style No.')}:</strong> ${o.style_no||'-'}</div>
             <div><strong>Order Q'ty:</strong> ${Number(groupTotalQty).toLocaleString()}</div>
-            <div><strong>Target ETD:</strong> ${(o.planned_ship_date||'-')}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
+            <div><strong>Target ETD:</strong> ${(oDispDate||'-')}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
           </div>
           <div style="border-top: 1px dashed #eee; padding-top: 4px; margin-top: 4px; color:#555;"><strong>Description:</strong> ${o.style_name||'-'}</div>
           ${colorTableHtml}
@@ -3347,7 +3520,7 @@ function shipProgressLabel(remaining) {
 // 벤더가 선적 요청한(status=shipping_requested) 오더를 마스터가 확인하고 선적수량/ETD/초기 불량을 확정하는 화면
 function renderShipout() {
   const list = allOrders.filter(o => o.status === 'shipping_requested')
-    .sort((a,b)=>(a.planned_ship_date||'').localeCompare(b.planned_ship_date||''));
+    .sort((a,b)=>(dispDate(a)||'').localeCompare(dispDate(b)||''));
   if (!list.length) {
     document.getElementById('shipout-tbl').innerHTML = `<div class="empty"><div class="empty-t">${L('선적 요청된 오더가 없습니다','No orders awaiting shipment confirmation')}</div></div>`;
     return;
@@ -4598,13 +4771,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lang-toggle')?.addEventListener('click', toggleLang);
 });
 
-// ── 마스터 오더 수정 ──
+// ── 마스터/MD 오더 수정 (AX 연동 PO는 납기(조정)만 편집 가능, 나머지는 AX 원본 유지) ──
 function openOrderEditModal(orderId) {
   activeOrderId = orderId;
   const o = allOrders.find(x => x.id === orderId);
   if (!o) return;
+  const isAx = o.source === 'ax';
 
-  document.getElementById('oe-sub').textContent = `${o.style_no} · ${o.style_name}`;
+  document.getElementById('oe-sub').textContent = isAx
+    ? `${o.style_no} · ${o.style_name} · ${L('AX 연동 PO (납기(조정)만 수정 가능)','AX-synced PO (only Adjusted ETD is editable)')}`
+    : `${o.style_no} · ${o.style_name}`;
 
   const vendorSel = document.getElementById('oe-vendor');
   vendorSel.innerHTML = '';
@@ -4618,7 +4794,7 @@ function openOrderEditModal(orderId) {
   document.getElementById('oe-qty').value = o.order_qty || '';
   document.getElementById('oe-currency').value = o.currency || 'USD';
   document.getElementById('oe-fob').value = o.unit_price != null ? o.unit_price : '';
-  document.getElementById('oe-etd').value = o.planned_ship_date || '';
+  document.getElementById('oe-etd').value = dispDate(o) || '';
   document.getElementById('oe-po-send').value = o.po_send || '';
 
   const aqWrap = document.getElementById('oe-actualqty-wrap');
@@ -4642,6 +4818,11 @@ function openOrderEditModal(orderId) {
   const po = parsePoNotes(o.notes);
   document.getElementById('oe-notes').value = po.isPo ? po.rawNotes : (o.notes || '');
 
+  // AX 연동 PO는 스타일/수량/벤더/단가 등이 AX 원본 값이므로 여기서 수정하지 못하게 잠그고, 납기(조정)만 열어둔다
+  ['oe-styleno','oe-stylename','oe-vendor','oe-qty','oe-currency','oe-fob','oe-po-send','oe-notes','oe-urgent','oe-actualqty','oe-actualetd'].forEach(id => {
+    document.getElementById(id).disabled = isAx;
+  });
+
   document.getElementById('oe-alert').classList.remove('on');
   document.getElementById('order-edit-modal').classList.add('on');
 }
@@ -4650,6 +4831,30 @@ async function saveOrderEdit() {
   if (!activeOrderId) return;
   const o = allOrders.find(x => x.id === activeOrderId);
   if (!o) return;
+
+  // AX 연동 PO는 납기(조정)만 갱신한다. 다른 필드는 disabled 상태라 값이 바뀔 수 없지만, 안전하게 여기서 저장 자체를 분기한다.
+  if (o.source === 'ax') {
+    const newEtd = document.getElementById('oe-etd').value || null;
+    if (!newEtd) return showAlert('oe-alert', L('납기(조정)를 입력해주세요','Please enter the adjusted ETD'));
+    const oldAdjustedDate = dispDate(o);
+    const btn = document.getElementById('oe-save');
+    btn.disabled = true; btn.textContent = L('저장 중...','Saving...');
+    try {
+      await sb(`orders?id=eq.${activeOrderId}`, 'PATCH', { adjusted_date: newEtd, updated_at: new Date().toISOString() });
+      if (newEtd !== (oldAdjustedDate || null)) {
+        await sb('po_change_logs', 'POST', {
+          order_id: activeOrderId, changed_field: 'adjusted_date',
+          old_value: oldAdjustedDate || '', new_value: newEtd || '',
+          confirmed: true, confirmed_at: nowKstIso(), resolution: 'applied'
+        });
+      }
+      closeModal('oe');
+      await loadAll();
+      alert(L('납기가 수정되었습니다','Delivery date updated'));
+    } catch(e) { showAlert('oe-alert', e.message); }
+    finally { btn.disabled = false; btn.textContent = L('저장','Save'); }
+    return;
+  }
 
   const newStyleNo = document.getElementById('oe-styleno').value.trim();
   const newStyleName = document.getElementById('oe-stylename').value.trim();
@@ -4663,7 +4868,7 @@ async function saveOrderEdit() {
   const newRawNotes = document.getElementById('oe-notes').value.trim();
 
   if (!newStyleNo || !newStyleName || !newVendorId || !newQty || !newEtd)
-    return showAlert('oe-alert', L('스타일번호, 스타일명, 벤더, 발주수량, Target ETD는 필수입니다','Style No., Style Name, Vendor, Order Qty, and Target ETD are required'));
+    return showAlert('oe-alert', L('스타일번호, 스타일명, 벤더, 발주수량, 납기(조정)는 필수입니다','Style No., Style Name, Vendor, Order Qty, and Adjusted ETD are required'));
 
   const hasActualShipInfo = o.actual_qty != null || !!o.actual_etd;
   let newActualQty = null, newActualEtd = null;
@@ -4693,10 +4898,12 @@ async function saveOrderEdit() {
     quantityHistory.push({ before: o.order_qty, after: newQty, changed_at: new Date().toISOString() });
   }
 
+  // 납기는 adjusted_date만 갱신한다. planned_ship_date(AX 원본/최초 등록값)는 백업/비교용으로 절대 건드리지 않는다.
+  const oldAdjustedDate = dispDate(o);
   const body = {
     style_no: newStyleNo, style_name: newStyleName, vendor_id: newVendorId,
     order_qty: newQty, currency: newCurrency, unit_price: newFob,
-    planned_ship_date: newEtd, po_send: newPoSend,
+    adjusted_date: newEtd, po_send: newPoSend,
     is_urgent: newIsUrgent, notes: finalNotes,
     quantity_history: quantityHistory,
     updated_at: new Date().toISOString()
@@ -4719,6 +4926,14 @@ async function saveOrderEdit() {
   btn.disabled = true; btn.textContent = L('저장 중...','Saving...');
   try {
     await sb(`orders?id=eq.${activeOrderId}`, 'PATCH', body);
+    if (newEtd !== (oldAdjustedDate || null)) {
+      // 마스터의 납기 조정도 기존 변경이력 테이블(po_change_logs)에 남겨 타임라인에서 함께 조회 가능하게 한다
+      await sb('po_change_logs', 'POST', {
+        order_id: activeOrderId, changed_field: 'adjusted_date',
+        old_value: oldAdjustedDate || '', new_value: newEtd || '',
+        confirmed: true, confirmed_at: nowKstIso(), resolution: 'applied'
+      });
+    }
     closeModal('oe');
     await loadAll();
     alert(L('오더가 수정되었습니다','Order updated successfully'));
