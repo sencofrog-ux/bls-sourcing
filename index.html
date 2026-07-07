@@ -324,6 +324,8 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .pm-match-row{display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap}
 .pm-vendor-select{padding:14px 16px;font-size:15px;flex:1;min-width:220px;max-width:340px}
 .pm-match-btn{padding:14px 28px!important;font-size:15px!important;font-weight:700;width:auto!important;min-height:48px}
+.pm-row-axvendor{font-size:10px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+.pm-rec-hint{font-size:12px;color:var(--ac);font-weight:600;white-space:nowrap}
 @media(max-width:992px){
   .pm-card{padding:18px}
   .pm-vendor-name{font-size:18px}
@@ -551,7 +553,7 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
         </div>
 
         <div class="sec" id="sec-po-match">
-          <div class="sec-hdr"><div><div class="sec-title" data-ko="PO 매칭 관리" data-en="PO Matching">PO 매칭 관리</div><div class="sec-sub" data-ko="AX에서 넘어온 미매칭 PO를 벤더 계정과 연결하세요" data-en="Link unmatched AX POs to vendor accounts">AX에서 넘어온 미매칭 PO를 벤더 계정과 연결하세요</div></div></div>
+          <div class="sec-hdr"><div><div class="sec-title" data-ko="PO 매칭 관리" data-en="PO Matching">PO 매칭 관리</div><div class="sec-sub" data-ko="AX에서 넘어온 PO를 벤더 계정과 연결하세요. 과거 매칭 이력이 있으면 추천 벤더가 미리 선택되어 있으니 확인 후 다르면 변경하세요." data-en="Link AX POs to vendor accounts. If there's a past match, a suggested vendor is pre-selected — review and change it if needed.">AX에서 넘어온 PO를 벤더 계정과 연결하세요. 과거 매칭 이력이 있으면 추천 벤더가 미리 선택되어 있으니 확인 후 다르면 변경하세요.</div></div></div>
           <div id="po-match-tbl"></div>
         </div>
 
@@ -2182,12 +2184,13 @@ async function importAxPo(records) {
       const key = buildAxLineKey(rec);
       const existing = allOrders.find(o => o.ax_line_key === key);
       if (!existing) {
-        const mapping = allVendorMappings.find(m => m.ax_vendor_code === rec.vendor_code);
         // AX의 season(예: "2026SS")을 시즌명과 매칭. 매칭 실패 시 활성 시즌으로 폴백.
         const season = allSeasons.find(s => s.name === rec.season) || allSeasons.find(s => s.is_active) || allSeasons[0];
+        // vendor_mappings에 과거 매칭 이력이 있어도 여기서 자동으로 matched 처리하지 않는다.
+        // 전부 미매칭 목록에 올리고, PO 매칭 관리 화면에서 마스터가 추천을 확인 후 확정한다.
         await sb('orders', 'POST', {
           season_id: season?.id || null,
-          vendor_id: mapping ? mapping.vendor_user_id : null,
+          vendor_id: null,
           style_no: rec.style_no,
           style_name: rec.style_name || rec.style_no,
           category: null,
@@ -2205,7 +2208,7 @@ async function importAxPo(records) {
           ax_color_code: rec.color_code || null,
           ax_brand: rec.brand || null,
           ax_line_key: key,
-          match_status: mapping ? 'matched' : 'unmatched'
+          match_status: 'unmatched'
         });
         result.created++;
       } else {
@@ -2447,11 +2450,14 @@ function renderPoMatch() {
     const totalQty = g.orders.reduce((s,o)=>s+(o.order_qty||0),0);
     const selId = `pm-sel-${code.replace(/[^a-zA-Z0-9]/g,'_')}`;
     const expanded = expandedPoMatchCodes.has(code);
+    // vendor_mappings에 남아있는 이 AX코드의 최근 매칭 계정을 "추천"으로만 사용 (강제 규칙 아님, 마스터가 자유롭게 변경 가능)
+    const recommendedMapping = allVendorMappings.find(m => m.ax_vendor_code === code);
+    const recommendedVendor = recommendedMapping ? vendors.find(v => v.id === recommendedMapping.vendor_user_id) : null;
     // PO번호+스타일번호 단위로 컬러 행을 묶어 표로 정리 (같은 스타일이 컬러 수만큼 중복 나열되지 않도록)
     const styleMap = new Map();
     g.orders.forEach(o => {
       const sk = `${o.ax_po_number || '-'}__${o.style_no}`;
-      if (!styleMap.has(sk)) styleMap.set(sk, { po: o.ax_po_number || '-', styleNo: o.style_no, styleName: o.style_name, delivery: o.planned_ship_date, qty: 0, colors: 0 });
+      if (!styleMap.has(sk)) styleMap.set(sk, { po: o.ax_po_number || '-', styleNo: o.style_no, styleName: o.style_name, delivery: o.planned_ship_date, qty: 0, colors: 0, axVendorCode: o.ax_vendor_code, axVendorName: o.ax_vendor_name });
       const r = styleMap.get(sk);
       r.qty += (o.order_qty || 0);
       r.colors += 1;
@@ -2477,7 +2483,10 @@ function renderPoMatch() {
           <tbody>
             ${styleRows.map(r=>`<tr data-po="${(r.po||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-style="${(r.styleNo||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">
               <td style="font-family:'DM Mono',monospace;font-size:12px" data-label="${L('PO번호','PO No.')}">${r.po}</td>
-              <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ac);font-weight:700" data-label="${L('스타일번호','Style No.')}">${r.styleNo}</td>
+              <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--ac);font-weight:700" data-label="${L('스타일번호','Style No.')}">
+                ${r.styleNo}
+                <div class="pm-row-axvendor">${(r.axVendorName||'-')} [${r.axVendorCode||code}]</div>
+              </td>
               <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-label="${L('스타일명','Style Name')}" title="${(r.styleName||'').replace(/"/g,'&quot;')}">${r.styleName || '-'}</td>
               <td data-label="${L('컬러 수','Colors')}">${r.colors}${L('컬러','colors')}</td>
               <td style="font-weight:700" data-label="${L('합계 수량','Total Qty')}">${r.qty.toLocaleString()}${L('장','pcs')}</td>
@@ -2489,8 +2498,9 @@ function renderPoMatch() {
         <div class="pm-match-row">
           <select id="${selId}" class="fsel pm-vendor-select" onclick="event.stopPropagation()">
             <option value="">${L('벤더 선택','Select Vendor')}</option>
-            ${vendors.map(v=>`<option value="${v.id}">${v.company_name}${v.vendor_code?` [${v.vendor_code}]`:''}</option>`).join('')}
+            ${vendors.map(v=>`<option value="${v.id}"${recommendedVendor && v.id===recommendedVendor.id ? ' selected' : ''}>${recommendedVendor && v.id===recommendedVendor.id ? '⭐ ' : ''}${v.company_name}${v.vendor_code?` [${v.vendor_code}]`:''}</option>`).join('')}
           </select>
+          ${recommendedVendor ? `<span class="pm-rec-hint">⭐ ${L('추천','Suggested')}: ${recommendedVendor.company_name} (${L('최근 매칭 기록','last match on record')})</span>` : ''}
           <button class="btn btn-p pm-match-btn" onclick="event.stopPropagation();matchAxVendor('${code}', document.getElementById('${selId}').value)">${L('전체 일괄 매칭','Match All')}</button>
         </div>
       </div>
