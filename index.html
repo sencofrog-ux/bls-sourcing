@@ -408,6 +408,7 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
             <button class="view-tab on" data-dstatus="active" data-ko="진행중" data-en="In Progress">진행중</button>
             <button class="view-tab" data-dstatus="all" data-ko="전체" data-en="All">전체</button>
             <button class="view-tab" data-dstatus="shipped" data-ko="선적완료" data-en="Shipped">선적완료</button>
+            <button class="view-tab" data-dstatus="ax_unregistered" data-ko="AX 미등록" data-en="Not in AX">AX 미등록</button>
           </div>
           <div class="sum-grid" id="sum-grid"></div>
           <div class="filter-row">
@@ -442,6 +443,27 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
           </div>
 
           <div class="card" style="max-width:680px"><div class="card-body">
+            <div class="fl" style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:4px" data-ko="📋 수기 보완 등록 CSV 업로드 (한 벤더의 여러 스타일 일괄 등록)" data-en="📋 Manual Supplement CSV Upload (bulk-register multiple styles for one vendor)">📋 수기 보완 등록 CSV 업로드 (한 벤더의 여러 스타일 일괄 등록)</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:10px" data-ko="AX에 아직 등록되지 않은 PO를 CSV로 한 번에 등록합니다. 등록된 오더는 이후 AX 재연동 시 자동으로 전환됩니다." data-en="Bulk-register POs not yet in AX via CSV. These orders will auto-convert on a later AX re-import.">AX에 아직 등록되지 않은 PO를 CSV로 한 번에 등록합니다. 등록된 오더는 이후 AX 재연동 시 자동으로 전환됩니다.</p>
+            <div class="alert alert-e" id="manual-csv-alert"></div>
+            <div class="alert alert-s" id="manual-csv-result"></div>
+            <div class="fg"><label class="fl" data-ko="이 배치의 벤더 *" data-en="Vendor for this batch *">이 배치의 벤더 *</label><select id="manual-csv-vendor"></select></div>
+            <div class="ax-csv-dropzone" id="manual-csv-dropzone">
+              <div data-ko="CSV 파일을 여기로 드래그하거나 클릭해서 선택하세요" data-en="Drag & drop a CSV file here, or click to select">CSV 파일을 여기로 드래그하거나 클릭해서 선택하세요</div>
+              <div style="font-size:11px;margin-top:6px;word-break:break-all" data-ko="컬럼: po_number, vendor_code, vendor_name, style_no, style_name, color_code, qty, unit_price, currency, delivery_date, brand, season (헤더 포함, UTF-8)" data-en="Columns: po_number, vendor_code, vendor_name, style_no, style_name, color_code, qty, unit_price, currency, delivery_date, brand, season (with header, UTF-8)">컬럼: po_number, vendor_code, vendor_name, style_no, style_name, color_code, qty, unit_price, currency, delivery_date, brand, season (헤더 포함, UTF-8)</div>
+              <input type="file" id="manual-csv-file" accept=".csv" style="display:none">
+            </div>
+            <div id="manual-csv-preview-zone" style="display:none;margin-top:12px">
+              <div id="manual-csv-preview-summary" style="font-size:12px;color:var(--muted);margin-bottom:6px"></div>
+              <div id="manual-csv-error-wrap" style="display:none;margin-bottom:8px;background:#fdecea;border:1px solid #f1b0b7;border-radius:6px;padding:8px;font-size:11px;color:#c0392b;max-height:100px;overflow-y:auto"></div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-p btn-sm" id="manual-csv-run-btn" style="width:auto" data-ko="등록 실행" data-en="Run Import">등록 실행</button>
+                <button class="btn btn-s btn-sm" id="manual-csv-cancel-btn" style="width:auto" data-ko="취소" data-en="Cancel">취소</button>
+              </div>
+            </div>
+          </div></div>
+
+          <div class="card" style="max-width:680px"><div class="card-body">
             <div class="alert alert-e" id="reg-alert"></div>
             <div class="row2">
               <div class="fg"><label class="fl" data-ko="시즌 *" data-en="Season *">시즌 *</label><select id="reg-season"></select></div>
@@ -454,6 +476,17 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
             <div class="row2">
               <div class="fg"><label class="fl" data-ko="카테고리" data-en="Category">카테고리</label><input type="text" id="reg-cat" placeholder="T-SHIRTS"></div>
               <div class="fg"><label class="fl" data-ko="오더 수량 *" data-en="Order Qty *">오더 수량 *</label><input type="number" id="reg-qty" placeholder="1000"></div>
+            </div>
+            <div class="row2">
+              <div class="fg"><label class="fl" data-ko="브랜드" data-en="Brand">브랜드</label><input type="text" id="reg-brand" placeholder="BLS"></div>
+              <div class="fg"><label class="fl" data-ko="컬러코드 *" data-en="Color Code *">컬러코드 *</label><input type="text" id="reg-color" data-ko-ph="25 → 025로 자동 저장" data-en-ph="e.g. 25 → saved as 025" placeholder="25 → 025로 자동 저장" style="font-family:'DM Mono',monospace"></div>
+            </div>
+            <div class="card" style="border:1px dashed var(--bdr);background:var(--bg);margin:4px 0 8px;padding:12px">
+              <div class="fl" style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px" data-ko="AX 연동 보완 정보 (선택 — AX PO번호를 입력하면 이후 AX 재연동 시 이 오더로 자동 전환됩니다)" data-en="AX linkage info (optional — if AX PO No. is entered, a later AX re-import will auto-convert into this order)">AX 연동 보완 정보 (선택 — AX PO번호를 입력하면 이후 AX 재연동 시 이 오더로 자동 전환됩니다)</div>
+              <div class="row2">
+                <div class="fg"><label class="fl" data-ko="AX PO번호" data-en="AX PO No.">AX PO번호</label><input type="text" id="reg-ax-po" placeholder="P0001234" style="font-family:'DM Mono',monospace"></div>
+                <div class="fg"><label class="fl" data-ko="AX 벤더코드" data-en="AX Vendor Code">AX 벤더코드</label><input type="text" id="reg-ax-vendorcode" placeholder="AXV-0012" style="font-family:'DM Mono',monospace"></div>
+              </div>
             </div>
             <div class="row3">
               <div class="fg"><label class="fl" data-ko="통화" data-en="Currency">통화</label><select id="reg-currency"><option value="USD">USD ($)</option><option value="CNY">CNY (¥)</option><option value="KRW">KRW (₩)</option><option value="EUR">EUR (€)</option><option value="JPY">JPY (¥)</option><option value="VND">VND (₫)</option></select></div>
@@ -876,6 +909,19 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
   </div>
 </div>
 
+<div class="overlay" id="dup-suspect-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="mhdr"><div><div class="mhdr-t" data-ko="중복 의심 오더 비교" data-en="Possible Duplicate Orders">중복 의심 오더 비교</div><div class="mhdr-s" data-ko="같은 스타일번호+컬러의 오더가 두 건 있습니다" data-en="Two orders share the same style no. + color">같은 스타일번호+컬러의 오더가 두 건 있습니다</div></div><button class="mclose" id="dsp-close">×</button></div>
+    <div class="mbody">
+      <div id="dsp-body" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+    </div>
+    <div class="mfooter" style="flex-wrap:wrap">
+      <button class="btn btn-s btn-sm" id="dsp-keep-btn" style="width:auto" data-ko="각각 유지" data-en="Keep Both">각각 유지</button>
+      <button class="btn btn-p btn-sm" id="dsp-merge-btn" style="width:auto;background:#2952cc" data-ko="병합" data-en="Merge">병합</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="order-edit-modal">
   <div class="modal" style="max-width:560px">
     <div class="mhdr">
@@ -1121,6 +1167,7 @@ let parsedSampleUploadRows = []; // 샘플 관리 대량 엑셀 홀더
 let sampleUploadRowErrors = [];
 let selectedOrderIds = new Set();
 let pendingBulkAction = null; // 'cancel' | 'delete'
+let activeDupPair = null; // [orderId1, orderId2] — 중복 의심 비교 모달에서 사용
 // PO 매칭 관리(평면 테이블): 현재 페이지/선택 행(PO+스타일 키)/매칭 팝업 컨텍스트
 let poMatchPage = 1;
 const PO_MATCH_PAGE_SIZE = 40;
@@ -1467,7 +1514,10 @@ function bindAppEvents() {
     document.getElementById('dup-style-modal').classList.remove('on');
     doSubmitOrder(body);
   });
-  
+  document.getElementById('dsp-close').addEventListener('click', ()=>closeModal('dsp'));
+  document.getElementById('dsp-keep-btn').addEventListener('click', keepDupSuspectSeparate);
+  document.getElementById('dsp-merge-btn').addEventListener('click', mergeDupSuspect);
+
   // 엑셀 일괄 등록용 이벤트 바인딩 추가
   document.getElementById('bulk-excel-file')?.addEventListener('change', handleBulkExcelUpload);
   document.getElementById('bulk-submit-btn')?.addEventListener('click', submitBulkOrders);
@@ -1535,6 +1585,7 @@ function bindAppEvents() {
   document.getElementById('po-change-modal').addEventListener('click', e=>{ if(e.target.id==='po-change-modal') closeModal('pcm'); });
   document.getElementById('ax-import-btn')?.addEventListener('click', handleAxImportClick);
   initAxCsvUpload();
+  initManualCsvUpload();
   document.getElementById('vendor-modal').addEventListener('click', e=>{ if(e.target.id==='vendor-modal') closeModal('vm'); });
   document.getElementById('defect-modal').addEventListener('click', e=>{ if(e.target.id==='defect-modal') closeModal('defm'); });
   document.getElementById('factory-modal').addEventListener('click', e=>{ if(e.target.id==='factory-modal') closeModal('fm'); });
@@ -1591,7 +1642,7 @@ function bindAppEvents() {
   document.getElementById('sample-detail-modal')?.addEventListener('click', e=>{ if(e.target.id==='sample-detail-modal') closeSampleDetailModal(); });
 }
 function closeModal(prefix) {
-  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal', sm:'sample-modal', sum:'sample-upload-modal', pcm:'po-change-modal'};
+  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal', sm:'sample-modal', sum:'sample-upload-modal', pcm:'po-change-modal', dsp:'dup-suspect-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
@@ -1672,14 +1723,17 @@ function setupFilters() {
   const dashV = document.getElementById('ord-vendor');
   const regV = document.getElementById('reg-vendor');
   const facV = document.getElementById('fac-vendor-filter');
+  const manualCsvV = document.getElementById('manual-csv-vendor');
   dashV.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>`;
   facV.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>`;
   if(regV) regV.innerHTML = '';
+  if(manualCsvV) manualCsvV.innerHTML = `<option value="">${L('벤더 선택','Select vendor')}</option>`;
   vendors.forEach(v=>{
     const code = v.vendor_code ? ` [${v.vendor_code}]` : '';
     dashV.innerHTML += `<option value="${v.id}">${v.company_name}${code}</option>`;
     facV.innerHTML += `<option value="${v.id}">${v.company_name}${code}</option>`;
     if (regV) regV.innerHTML += `<option value="${v.id}">${v.company_name}${code}</option>`;
+    if (manualCsvV) manualCsvV.innerHTML += `<option value="${v.id}">${v.company_name}${code}</option>`;
   });
   const facSeasonSel = document.getElementById('fac-season-filter');
   if (facSeasonSel) {
@@ -1746,12 +1800,14 @@ function getVisibleOrders() {
   // 진행중/선적완료 탭 분류는 PO+스타일 그룹 전체 기준으로 판단한다(컬러 행 단위 X).
   // 컬러별로 선적 상태가 갈리면(예: 일부 컬러만 먼저 선적) 그룹이 탭 사이에서 쪼개져
   // 같은 스타일이 두 개의 카드로 중복 표시되고, 각 카드의 수량 합계도 컬러 일부만 집계되어 어긋난다.
-  const statusGroups = statusFilter === 'all'
-    ? buildOrderGroups(list)
-    : buildOrderGroups(list).filter(g => {
-        const allShipped = g.every(isInShippedTab);
-        return statusFilter === 'shipped' ? allShipped : !allShipped;
-      });
+  const statusGroups = statusFilter === 'ax_unregistered'
+    ? buildOrderGroups(list.filter(o => o.source === 'manual')) // AX로 전환되지 않은(source가 여전히 manual인) 오더 — AX 담당자에게 등록 요청할 목록
+    : statusFilter === 'all'
+      ? buildOrderGroups(list)
+      : buildOrderGroups(list).filter(g => {
+          const allShipped = g.every(isInShippedTab);
+          return statusFilter === 'shipped' ? allShipped : !allShipped;
+        });
   list = statusGroups.flat();
   // 1) 선적완료 건은 하단으로 고정 2) 그 안에서 긴급건 최상단, 리오더건 그 다음 고정 3) target ETD 오름차순
   list.sort((a,b)=>{
@@ -1878,6 +1934,8 @@ function renderDashboard() {
           ? `<span class="bdg bdg-urgent" style="font-size:9px;padding:2px 5px">${L('긴급','URGENT')}</span>`
           : '';
       const changedBadge = getPendingPoChangeLogs(o.id).length ? `<span class="bdg bdg-changed" style="font-size:9px;padding:2px 5px" onclick="openPoChangeModal('${o.id}')">${L('변경됨','Changed')}</span>` : '';
+      const dupSuspectRow = group.find(x => findDupSuspect(x));
+      const dupBadge = dupSuspectRow ? `<span class="bdg bdg-late" style="font-size:9px;padding:2px 5px;cursor:pointer" onclick="openDupSuspectModal('${dupSuspectRow.id}')">${L('중복 의심','Possible Dup.')}</span>` : '';
       // 컬러가 여러 개인 그룹(AX)만 접이식 컬러별 수량 내역 노출
       const colorBreakdown = group.length > 1 ? `
         <details style="margin-top:4px;font-family:'Noto Sans KR',sans-serif">
@@ -1889,7 +1947,7 @@ function renderDashboard() {
       return `<tr${rowBg}>
         ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" ${o.source==='ax'?'disabled title="AX 연동 PO는 삭제/취소할 수 없습니다"':''} style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
         <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
-        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${priorityBadge?` ${priorityBadge}`:''}${changedBadge?` ${changedBadge}`:''}${colorBreakdown}</td>
+        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${priorityBadge?` ${priorityBadge}`:''}${changedBadge?` ${changedBadge}`:''}${dupBadge?` ${dupBadge}`:''}${colorBreakdown}</td>
         <td data-label="${L('스타일명','Style Name')}">${o.style_name}</td>
         <td data-label="${L('오더','Order')}">${Number(totalQty).toLocaleString()}</td>
         <td data-label="${L('진행율','Progress')}"><div class="stage-progbar">${stageSegs}</div></td>
@@ -1916,6 +1974,114 @@ function getOrderGroup(orderId) {
   if (!o) return [];
   const key = getOrderGroupKey(o);
   return allOrders.filter(x => getOrderGroupKey(x) === key);
+}
+
+// ── 중복 의심 감지 (수기 보완 등록 vs AX 신규 라인) ──
+// ax_line_key가 일치하지 않아 별개 행으로 남았더라도, 같은 스타일번호+컬러의 오더가
+// (한쪽은 반드시 수기 등록) 이미 있으면 중복 등록 가능성이 있으므로 서로를 짝지어 배지로 알린다.
+function findDupSuspect(o) {
+  if (!o || !o.ax_color_code || o.status === 'cancelled' || o.dup_reviewed) return null;
+  return allOrders.find(x =>
+    x.id !== o.id &&
+    x.status !== 'cancelled' &&
+    !x.dup_reviewed &&
+    x.ax_color_code === o.ax_color_code &&
+    (x.style_no||'').trim().toLowerCase() === (o.style_no||'').trim().toLowerCase() &&
+    (x.ax_line_key || null) !== (o.ax_line_key || null) &&
+    (o.source === 'manual' || x.source === 'manual')
+  ) || null;
+}
+
+function openDupSuspectModal(orderId) {
+  const o = allOrders.find(x => x.id === orderId);
+  const partner = o && findDupSuspect(o);
+  if (!o || !partner) return;
+  activeDupPair = [o.id, partner.id];
+  const card = x => {
+    const v = allUsers.find(u => u.id === x.vendor_id);
+    return `<div style="flex:1;min-width:190px;background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.8">
+      <div style="font-weight:700;margin-bottom:4px;color:${x.source==='ax'?'var(--ac)':'var(--ora)'}">${x.source==='ax'?L('AX 연동','AX-synced'):L('수기 등록','Manual')}</div>
+      <div>${L('스타일','Style')}: ${x.style_no}</div>
+      <div>${L('스타일명','Style Name')}: ${x.style_name||'-'}</div>
+      <div>${L('컬러','Color')}: ${x.ax_color_code||'-'}</div>
+      <div>${L('벤더','Vendor')}: ${v?.company_name || L('미매칭','Unmatched')}</div>
+      <div>${L('발주수량','Order Qty')}: ${Number(x.order_qty||0).toLocaleString()}</div>
+      <div>${L('단가','Unit Price')}: ${x.unit_price!=null ? x.unit_price : '-'} ${x.currency||''}</div>
+      <div>${L('납기','ETD')}: ${dispDate(x)||'-'}</div>
+      <div>AX PO: ${x.ax_po_number||'-'}</div>
+    </div>`;
+  };
+  document.getElementById('dsp-body').innerHTML = card(o) + card(partner);
+  document.getElementById('dup-suspect-modal').classList.add('on');
+}
+
+async function keepDupSuspectSeparate() {
+  const [id1, id2] = activeDupPair || [];
+  if (!id1 || !id2) return;
+  try {
+    await sb(`orders?id=eq.${id1}`, 'PATCH', { dup_reviewed: true });
+    await sb(`orders?id=eq.${id2}`, 'PATCH', { dup_reviewed: true });
+    closeModal('dsp');
+    activeDupPair = null;
+    await loadAll();
+  } catch (e) { alert(e.message); }
+}
+
+// production_log(생산현황 체크 이력)가 있는 행을 남기고, 그 행이 AX 원본이 아니면 AX 값으로 갱신한다.
+// 삭제되는 쪽은 하위 기록(production_log, po_change_logs)부터 지워 외래키 오류를 피한다.
+async function mergeDupSuspect() {
+  const [id1, id2] = activeDupPair || [];
+  if (!id1 || !id2) return;
+  const o1 = allOrders.find(o => o.id === id1), o2 = allOrders.find(o => o.id === id2);
+  if (!o1 || !o2) return;
+  if (!confirm(L('두 오더를 병합하시겠습니까? 한쪽 오더와 그 하위 기록(생산현황 체크 이력 등)이 삭제됩니다.','Merge these two orders? One order and its related records (production log, etc.) will be deleted.'))) return;
+  const btn = document.getElementById('dsp-merge-btn');
+  btn.disabled = true;
+  try {
+    const [log1, log2] = await Promise.all([
+      sb(`production_log?select=id&order_id=eq.${o1.id}&limit=1`),
+      sb(`production_log?select=id&order_id=eq.${o2.id}&limit=1`)
+    ]);
+    const o1HasLog = log1.length > 0, o2HasLog = log2.length > 0;
+    let keep, drop;
+    if (o1HasLog && !o2HasLog) { keep = o1; drop = o2; }
+    else if (!o1HasLog && o2HasLog) { keep = o2; drop = o1; }
+    else { keep = o1.source === 'manual' ? o1 : o2; drop = keep === o1 ? o2 : o1; } // 둘 다 있거나 둘 다 없으면 수기 등록 행을 남긴다
+
+    if (drop.source === 'ax') {
+      await sb(`orders?id=eq.${keep.id}`, 'PATCH', {
+        source: 'ax',
+        order_qty: drop.order_qty,
+        unit_price: drop.unit_price,
+        currency: drop.currency,
+        planned_ship_date: drop.planned_ship_date,
+        adjusted_date: drop.adjusted_date || drop.planned_ship_date,
+        style_name: drop.style_name || keep.style_name,
+        ax_po_number: drop.ax_po_number,
+        ax_vendor_code: drop.ax_vendor_code,
+        ax_vendor_name: drop.ax_vendor_name,
+        ax_brand: drop.ax_brand || keep.ax_brand,
+        ax_color_code: drop.ax_color_code || keep.ax_color_code,
+        ax_line_key: drop.ax_line_key,
+        vendor_id: keep.vendor_id || drop.vendor_id || null,
+        match_status: (keep.vendor_id || drop.vendor_id) ? 'matched' : 'unmatched',
+        dup_reviewed: true,
+        updated_at: new Date().toISOString()
+      });
+    } else {
+      await sb(`orders?id=eq.${keep.id}`, 'PATCH', { dup_reviewed: true, updated_at: new Date().toISOString() });
+    }
+
+    await sb(`production_log?order_id=eq.${drop.id}`, 'DELETE');
+    await sb(`po_change_logs?order_id=eq.${drop.id}`, 'DELETE');
+    await sb(`orders?id=eq.${drop.id}`, 'DELETE');
+
+    closeModal('dsp');
+    activeDupPair = null;
+    await loadAll();
+    alert(L('병합이 완료되었습니다','Merge completed'));
+  } catch (e) { alert(e.message); }
+  finally { btn.disabled = false; }
 }
 function buildOrderGroups(list) {
   const map = new Map();
@@ -2178,28 +2344,63 @@ document.addEventListener('DOMContentLoaded', ()=>{
 // ── 오더 개별 등록 ──
 let pendingOrderBody = null;
 
+// 스타일번호 형식(XXXXX-XXX-XXX-XX) 검증 — AX PO번호를 함께 입력하는 경우에만 강제.
+// 순수 수기 등록(AX 정보 없음)은 기존처럼 자유 형식을 그대로 허용해 과거 데이터/운영 방식과 충돌하지 않는다.
+const AX_STYLE_NO_RE = /^[A-Za-z0-9]{5}-[A-Za-z0-9]{3}-[A-Za-z0-9]{3}-[A-Za-z0-9]{2}$/;
+const AX_PO_NO_RE = /^P\d+$/i;
+
 async function submitOrder() {
+  const styleNo = document.getElementById('reg-styleno').value.trim().replace(/\s+/g, '');
+  const axPoRaw = document.getElementById('reg-ax-po').value.trim();
+  const usingAx = !!axPoRaw;
+  const vendorId = document.getElementById('reg-vendor').value || null;
+
+  if (usingAx && !AX_PO_NO_RE.test(axPoRaw))
+    return showAlert('reg-alert', L('AX PO번호는 P+숫자 형식이어야 합니다 (예: P0001234)','AX PO No. must be in P+digits format (e.g. P0001234)'));
+  if (usingAx && !AX_STYLE_NO_RE.test(styleNo))
+    return showAlert('reg-alert', L('AX 연동 정보를 입력하는 경우 스타일번호는 XXXXX-XXX-XXX-XX 형식이어야 합니다','When AX linkage info is entered, Style No. must match XXXXX-XXX-XXX-XX'));
+
+  const colorRaw = document.getElementById('reg-color').value.trim();
+  if (!colorRaw) return showAlert('reg-alert', L('컬러코드를 입력해주세요','Please enter a color code'));
+  const colorCode = formatColorCode(colorRaw);
+
+  const shipDate = document.getElementById('reg-shipdate').value || null;
   const body = {
     season_id: document.getElementById('reg-season').value,
-    vendor_id: document.getElementById('reg-vendor').value,
-    style_no: document.getElementById('reg-styleno').value.trim(),
+    vendor_id: vendorId,
+    style_no: styleNo,
     style_name: document.getElementById('reg-stylename').value.trim(),
     category: document.getElementById('reg-cat').value.trim() || null,
     order_qty: parseInt(document.getElementById('reg-qty').value)||0,
     unit_price: parseFloat(document.getElementById('reg-price').value)||null,
     currency: document.getElementById('reg-currency').value,
-    planned_ship_date: document.getElementById('reg-shipdate').value || null,
+    planned_ship_date: shipDate,
+    adjusted_date: shipDate, // 납기는 adjusted_date로도 함께 저장(추후 AX 재연동/납기조정 흐름과 동일하게 취급)
     notes: document.getElementById('reg-notes').value.trim() || null,
     po_send: document.getElementById('reg-po-send').value || null,
     shipped_qty: 0,
     is_urgent: document.getElementById('reg-urgent').checked,
-    is_reorder: false
+    is_reorder: false,
+    source: 'manual',
+    ax_color_code: colorCode,
+    ax_brand: document.getElementById('reg-brand').value.trim() || null,
+    match_status: vendorId ? 'matched' : 'unmatched'
   };
+  if (usingAx) {
+    body.ax_po_number = axPoRaw.toUpperCase();
+    body.ax_vendor_code = document.getElementById('reg-ax-vendorcode').value.trim() || null;
+    body.ax_line_key = buildAxLineKey({ po_number: body.ax_po_number, style_no: styleNo, color_code: colorCode });
+  }
   if (me.role === 'md') body.created_by_md = me.id;
-  if (!body.season_id || !body.vendor_id || !body.style_no || !body.style_name || !body.order_qty || !body.planned_ship_date)
+
+  // 벤더는 AX 정보를 입력한 경우에만 선택사항(미매칭으로 등록 후 추후 매칭). 순수 수기 등록은 기존처럼 필수.
+  if (!body.season_id || (!usingAx && !vendorId) || !body.style_no || !body.style_name || !body.order_qty || !body.planned_ship_date)
     return showAlert('reg-alert', L('필수 항목을 모두 입력해주세요','Please fill in all required fields'));
 
-  const dup = allOrders.find(o => (o.style_no||'').trim().toLowerCase() === body.style_no.toLowerCase());
+  if (usingAx && allOrders.some(o => o.ax_line_key === body.ax_line_key))
+    return showAlert('reg-alert', L('이미 등록된 PO+스타일+컬러입니다','This PO + style + color is already registered'));
+
+  const dup = allOrders.find(o => (o.style_no||'').trim().toLowerCase() === body.style_no.toLowerCase() && (o.ax_color_code||null) === (body.ax_color_code||null));
   if (dup) {
     pendingOrderBody = body;
     const v = allUsers.find(u=>u.id===dup.vendor_id);
@@ -2221,7 +2422,7 @@ async function doSubmitOrder(body) {
   try {
     await sb('orders', 'POST', body);
     showAlert('reg-alert', L('✓ 오더가 등록되었습니다','✓ Order registered successfully'), 's');
-    ['reg-styleno','reg-stylename','reg-cat','reg-qty','reg-price','reg-shipdate','reg-notes','reg-po-send'].forEach(id=>document.getElementById(id).value='');
+    ['reg-styleno','reg-stylename','reg-cat','reg-qty','reg-price','reg-shipdate','reg-notes','reg-po-send','reg-brand','reg-color','reg-ax-po','reg-ax-vendorcode'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('reg-urgent').checked = false;
     document.getElementById('reg-urgent-label').textContent = L('일반 오더','Normal Order');
     document.getElementById('reg-urgent-label').style.color = '';
@@ -2235,8 +2436,22 @@ async function doSubmitOrder(body) {
 // 컬러 단위로 집계되어 들어오므로(사이즈 합산 완료) 컬러까지 포함해야 라인을 유일하게 식별할 수 있다.
 function buildAxLineKey(rec) { return `${rec.po_number}__${rec.style_no}__${rec.color_code}`; }
 
+// AX 값과 기존 행의 값을 비교해 po_change_logs에 쌓을 변경분 목록을 만든다.
+// 수기→AX 전환 시에도 신규 AX 재수신 변경감지와 동일한 필드 집합/판정 기준을 그대로 재사용한다.
+function diffAxFields(existing, rec) {
+  const logs = [];
+  if (Number(existing.order_qty) !== Number(rec.qty))
+    logs.push({ order_id: existing.id, changed_field: 'order_qty', old_value: String(existing.order_qty), new_value: String(rec.qty) });
+  if (Number(existing.unit_price) !== Number(rec.unit_price))
+    logs.push({ order_id: existing.id, changed_field: 'unit_price', old_value: String(existing.unit_price), new_value: String(rec.unit_price) });
+  // 납기(AX 원본)만 비교. adjusted_date(마스터 조정값)는 재연동으로 자동 변경되지 않음 — [반영] 시에만 갱신됨
+  if ((existing.planned_ship_date || '') !== (rec.delivery_date || ''))
+    logs.push({ order_id: existing.id, changed_field: 'planned_ship_date', old_value: existing.planned_ship_date || '', new_value: rec.delivery_date || '' });
+  return logs;
+}
+
 async function importAxPo(records) {
-  const result = { created: 0, changeLogged: 0, skipped: 0, errors: [] };
+  const result = { created: 0, changeLogged: 0, skipped: 0, convertedFromManual: 0, errors: [] };
   for (const rec of records) {
     try {
       const key = buildAxLineKey(rec);
@@ -2270,15 +2485,22 @@ async function importAxPo(records) {
           match_status: 'unmatched'
         });
         result.created++;
+      } else if (existing.source === 'manual') {
+        // 수기 보완 등록된 오더와 ax_line_key(PO+스타일+컬러)가 일치 — 새 행을 만들지 않고 기존 행을 AX로 전환한다.
+        // 값이 다른 필드는 새 행 생성 시와 동일하게 po_change_logs에 남겨 기존 배지(변경됨) → 반영/무시 흐름을 그대로 탄다.
+        const logs = diffAxFields(existing, rec);
+        if (logs.length) await sb('po_change_logs', 'POST', logs);
+        await sb(`orders?id=eq.${existing.id}`, 'PATCH', {
+          source: 'ax',
+          ax_po_number: rec.po_number,
+          ax_vendor_code: rec.vendor_code,
+          ax_vendor_name: rec.vendor_name,
+          ax_brand: rec.brand || existing.ax_brand || null,
+          updated_at: new Date().toISOString()
+        });
+        result.convertedFromManual++;
       } else {
-        const logs = [];
-        if (Number(existing.order_qty) !== Number(rec.qty))
-          logs.push({ order_id: existing.id, changed_field: 'order_qty', old_value: String(existing.order_qty), new_value: String(rec.qty) });
-        if (Number(existing.unit_price) !== Number(rec.unit_price))
-          logs.push({ order_id: existing.id, changed_field: 'unit_price', old_value: String(existing.unit_price), new_value: String(rec.unit_price) });
-        // 납기(AX 원본)만 비교. adjusted_date(마스터 조정값)는 재연동으로 자동 변경되지 않음 — [반영] 시에만 갱신됨
-        if ((existing.planned_ship_date || '') !== (rec.delivery_date || ''))
-          logs.push({ order_id: existing.id, changed_field: 'planned_ship_date', old_value: existing.planned_ship_date || '', new_value: rec.delivery_date || '' });
+        const logs = diffAxFields(existing, rec);
         if (!logs.length) { result.skipped++; continue; }
         await sb('po_change_logs', 'POST', logs);
         result.changeLogged++;
@@ -2304,7 +2526,7 @@ async function handleAxImportClick() {
   btn.disabled = true; btn.textContent = L('처리 중...','Processing...');
   try {
     const r = await importAxPo(records);
-    showAlert('ax-import-result', L(`✓ 신규 ${r.created}건 · 변경감지 ${r.changeLogged}건 · 동일(스킵) ${r.skipped}건 · 오류 ${r.errors.length}건`,`✓ New ${r.created} · Changed ${r.changeLogged} · Skipped ${r.skipped} · Errors ${r.errors.length}`), 's');
+    showAlert('ax-import-result', L(`✓ 신규 ${r.created}건 · 수기→AX 전환 ${r.convertedFromManual}건 · 변경감지 ${r.changeLogged}건 · 동일(스킵) ${r.skipped}건 · 오류 ${r.errors.length}건`,`✓ New ${r.created} · Converted from manual ${r.convertedFromManual} · Changed ${r.changeLogged} · Skipped ${r.skipped} · Errors ${r.errors.length}`), 's');
     if (r.errors.length) console.error('AX import errors:', r.errors);
   } catch (e) {
     showAlert('ax-import-alert', e.message);
@@ -2452,7 +2674,7 @@ async function runAxCsvImport() {
   const text = document.getElementById('ax-csv-progress-text');
   const total = records.length;
   const totalBatches = Math.ceil(total / AX_CSV_BATCH_SIZE);
-  const agg = { created: 0, changeLogged: 0, skipped: 0, errors: [] };
+  const agg = { created: 0, changeLogged: 0, skipped: 0, convertedFromManual: 0, errors: [] };
 
   try {
     for (let b = 0; b < totalBatches; b++) {
@@ -2461,6 +2683,7 @@ async function runAxCsvImport() {
       agg.created += r.created;
       agg.changeLogged += r.changeLogged;
       agg.skipped += r.skipped;
+      agg.convertedFromManual += r.convertedFromManual;
       agg.errors.push(...r.errors);
 
       const done = Math.min((b+1) * AX_CSV_BATCH_SIZE, total);
@@ -2471,7 +2694,7 @@ async function runAxCsvImport() {
 
     document.getElementById('ax-csv-progress-zone').style.display = 'none';
     document.getElementById('ax-csv-preview-zone').style.display = 'none';
-    showAlert('ax-csv-result', L(`✓ 신규 ${agg.created}건 · 변경감지 ${agg.changeLogged}건 · 동일(스킵) ${agg.skipped}건 · 오류 ${agg.errors.length}건`,`✓ New ${agg.created} · Changed ${agg.changeLogged} · Skipped ${agg.skipped} · Errors ${agg.errors.length}`), 's');
+    showAlert('ax-csv-result', L(`✓ 신규 ${agg.created}건 · 수기→AX 전환 ${agg.convertedFromManual}건 · 변경감지 ${agg.changeLogged}건 · 동일(스킵) ${agg.skipped}건 · 오류 ${agg.errors.length}건`,`✓ New ${agg.created} · Converted from manual ${agg.convertedFromManual} · Changed ${agg.changeLogged} · Skipped ${agg.skipped} · Errors ${agg.errors.length}`), 's');
 
     if (agg.errors.length) {
       const detailZone = document.getElementById('ax-csv-error-detail-zone');
@@ -2488,6 +2711,167 @@ async function runAxCsvImport() {
     showAlert('ax-csv-alert', e.message);
   } finally {
     runBtn.disabled = false; cancelBtn.disabled = false;
+  }
+}
+
+// ── 수기 보완 등록 CSV 업로드 (한 벤더/PO의 여러 스타일 일괄 등록, source='manual') ──
+// 파싱은 AX CSV와 동일한 컬럼 포맷/파서(parseAxCsvText, AX_CSV_REQUIRED_COLS)를 그대로 재사용하고, 저장만 source='manual'로 분기한다.
+let manualCsvParsedRecords = null;
+
+function initManualCsvUpload() {
+  const dropzone = document.getElementById('manual-csv-dropzone');
+  const fileInput = document.getElementById('manual-csv-file');
+  if (!dropzone || !fileInput) return;
+  dropzone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) handleManualCsvFile(file);
+    e.target.value = '';
+  });
+  ['dragover','dragenter'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag-over'); }));
+  ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag-over'); }));
+  dropzone.addEventListener('drop', e => {
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleManualCsvFile(file);
+  });
+  document.getElementById('manual-csv-run-btn').addEventListener('click', runManualCsvImport);
+  document.getElementById('manual-csv-cancel-btn').addEventListener('click', resetManualCsvUpload);
+}
+
+function resetManualCsvUpload() {
+  manualCsvParsedRecords = null;
+  document.getElementById('manual-csv-preview-zone').style.display = 'none';
+  document.getElementById('manual-csv-alert').classList.remove('on');
+  document.getElementById('manual-csv-result').classList.remove('on');
+}
+
+function handleManualCsvFile(file) {
+  resetManualCsvUpload();
+  if (!/\.csv$/i.test(file.name)) {
+    showAlert('manual-csv-alert', L('CSV 파일만 업로드할 수 있습니다','Only CSV files are allowed'));
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const rows = parseAxCsvText(String(evt.target.result || ''));
+      if (rows.length < 2) throw new Error(L('CSV에 데이터가 없습니다','CSV has no data rows'));
+      const header = rows[0].map(h => h.trim());
+      const colIdx = {};
+      header.forEach((h,i) => { colIdx[h] = i; });
+      const missing = AX_CSV_REQUIRED_COLS.filter(c => colIdx[c] === undefined);
+      if (missing.length) throw new Error(L(`필수 컬럼 누락: ${missing.join(', ')}`,`Missing required columns: ${missing.join(', ')}`));
+
+      const records = [];
+      const rowErrors = [];
+      for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i];
+        if (!cells || cells.every(c => c.trim() === '')) continue;
+        const rowNum = i + 1;
+        const get = name => (cells[colIdx[name]] ?? '').trim();
+        const po_number = get('po_number');
+        const style_no = get('style_no').replace(/\s+/g, '');
+        if (!po_number || !style_no) { rowErrors.push(`${rowNum}${L('행','row')}: ${L('po_number/style_no 누락','missing po_number/style_no')}`); continue; }
+        if (!AX_PO_NO_RE.test(po_number)) { rowErrors.push(`${rowNum}${L('행','row')}: ${L('po_number 형식 오류(P+숫자)','po_number must be P+digits')} (${po_number})`); continue; }
+        if (!AX_STYLE_NO_RE.test(style_no)) { rowErrors.push(`${rowNum}${L('행','row')}: ${L('style_no 형식 오류(XXXXX-XXX-XXX-XX)','style_no must match XXXXX-XXX-XXX-XX')} (${style_no})`); continue; }
+        const colorCode = formatColorCode(get('color_code'));
+        if (!colorCode) { rowErrors.push(`${rowNum}${L('행','row')}: ${L('color_code 누락','missing color_code')}`); continue; }
+        const qty = Number(get('qty'));
+        const unit_price = Number(get('unit_price'));
+        if (!Number.isFinite(qty)) { rowErrors.push(`${rowNum}${L('행','row')}: ${L('qty가 숫자가 아님','qty is not a number')} (${get('qty')})`); continue; }
+        if (!Number.isFinite(unit_price)) { rowErrors.push(`${rowNum}${L('행','row')}: ${L('unit_price가 숫자가 아님','unit_price is not a number')} (${get('unit_price')})`); continue; }
+        const ax_line_key = buildAxLineKey({ po_number, style_no, color_code: colorCode });
+        if (allOrders.some(o => o.ax_line_key === ax_line_key)) { rowErrors.push(`${rowNum}${L('행','row')}: ${L('이미 등록된 PO+스타일+컬러입니다','PO + style + color already registered')} (${po_number}/${style_no}/${colorCode})`); continue; }
+        records.push({
+          po_number, style_no,
+          vendor_code: get('vendor_code'),
+          vendor_name: get('vendor_name'),
+          style_name: get('style_name'),
+          color_code: colorCode,
+          qty, unit_price,
+          currency: get('currency') || 'USD',
+          delivery_date: get('delivery_date'),
+          brand: get('brand'),
+          season: get('season'),
+          ax_line_key
+        });
+      }
+
+      if (!records.length) throw new Error(L('유효한 데이터 행이 없습니다','No valid data rows'));
+
+      manualCsvParsedRecords = records;
+      document.getElementById('manual-csv-preview-summary').textContent =
+        L(`총 ${records.length}라인 등록 준비됨`, `${records.length} lines ready to register`);
+      const errWrap = document.getElementById('manual-csv-error-wrap');
+      if (rowErrors.length) {
+        errWrap.style.display = 'block';
+        errWrap.innerHTML = L(`⚠️ 파싱 스킵 ${rowErrors.length}건<br>`,`⚠️ Skipped ${rowErrors.length} rows<br>`) + rowErrors.slice(0,50).join('<br>');
+      } else {
+        errWrap.style.display = 'none';
+        errWrap.innerHTML = '';
+      }
+      document.getElementById('manual-csv-preview-zone').style.display = 'block';
+    } catch (e) {
+      showAlert('manual-csv-alert', L('CSV 파싱 오류: ','CSV parse error: ') + e.message);
+    }
+  };
+  reader.onerror = () => showAlert('manual-csv-alert', L('파일을 읽을 수 없습니다','Failed to read file'));
+  reader.readAsText(file, 'UTF-8');
+}
+
+async function runManualCsvImport() {
+  if (!manualCsvParsedRecords || !manualCsvParsedRecords.length) return;
+  const vendorId = document.getElementById('manual-csv-vendor').value;
+  if (!vendorId) return showAlert('manual-csv-alert', L('이 배치의 벤더를 선택해주세요','Please select a vendor for this batch'));
+  const records = manualCsvParsedRecords;
+  const runBtn = document.getElementById('manual-csv-run-btn');
+  const cancelBtn = document.getElementById('manual-csv-cancel-btn');
+  runBtn.disabled = true; cancelBtn.disabled = true; runBtn.textContent = L('처리 중...','Processing...');
+  document.getElementById('manual-csv-result').classList.remove('on');
+  document.getElementById('manual-csv-alert').classList.remove('on');
+
+  let created = 0;
+  const errors = [];
+  try {
+    for (const rec of records) {
+      try {
+        const season = allSeasons.find(s => s.name === rec.season) || allSeasons.find(s => s.is_active) || allSeasons[0];
+        await sb('orders', 'POST', {
+          season_id: season?.id || null,
+          vendor_id: vendorId,
+          style_no: rec.style_no,
+          style_name: rec.style_name || rec.style_no,
+          category: null,
+          order_qty: rec.qty,
+          unit_price: rec.unit_price,
+          currency: rec.currency || 'USD',
+          planned_ship_date: rec.delivery_date || null,
+          adjusted_date: rec.delivery_date || null,
+          shipped_qty: 0,
+          is_urgent: false,
+          is_reorder: false,
+          source: 'manual',
+          ax_po_number: rec.po_number,
+          ax_vendor_code: rec.vendor_code || null,
+          ax_vendor_name: rec.vendor_name || null,
+          ax_color_code: rec.color_code || null,
+          ax_brand: rec.brand || null,
+          ax_line_key: rec.ax_line_key,
+          match_status: 'matched'
+        });
+        created++;
+      } catch (e) { errors.push({ rec, message: e.message }); }
+    }
+
+    document.getElementById('manual-csv-preview-zone').style.display = 'none';
+    showAlert('manual-csv-result', L(`✓ ${created}건 등록 완료${errors.length ? ` · 오류 ${errors.length}건` : ''}`,`✓ ${created} registered${errors.length ? ` · ${errors.length} errors` : ''}`), 's');
+    if (errors.length) console.error('Manual CSV import errors:', errors);
+    manualCsvParsedRecords = null;
+    await loadAll();
+  } catch (e) {
+    showAlert('manual-csv-alert', e.message);
+  } finally {
+    runBtn.disabled = false; cancelBtn.disabled = false; runBtn.textContent = L('등록 실행','Run Import');
   }
 }
 
@@ -4807,7 +5191,9 @@ function openOrderEditModal(orderId) {
     : `${o.style_no} · ${o.style_name}`;
 
   const vendorSel = document.getElementById('oe-vendor');
-  vendorSel.innerHTML = '';
+  // 수기 보완 등록 시 벤더를 지정하지 않아 미매칭 상태로 남아있던 오더는, 마스터가 실수로
+  // 목록 첫 벤더를 그대로 저장하지 않도록 빈 옵션을 먼저 두어 명시적으로 고르게 한다.
+  vendorSel.innerHTML = o.vendor_id ? '' : `<option value="">${L('벤더 선택','Select vendor')}</option>`;
   allUsers.filter(u => u.role === 'vendor' && u.status === 'active').forEach(v => {
     const code = v.vendor_code ? ` [${v.vendor_code}]` : '';
     vendorSel.innerHTML += `<option value="${v.id}" ${o.vendor_id === v.id ? 'selected' : ''}>${v.company_name}${code}</option>`;
@@ -4930,6 +5316,7 @@ async function saveOrderEdit() {
     adjusted_date: newEtd, po_send: newPoSend,
     is_urgent: newIsUrgent, notes: finalNotes,
     quantity_history: quantityHistory,
+    match_status: 'matched', // 벤더 선택이 필수이므로 저장 시점에 항상 매칭 상태로 확정(수기 보완 등록의 미매칭 상태 해소)
     updated_at: new Date().toISOString()
   };
   if (hasActualShipInfo) {
