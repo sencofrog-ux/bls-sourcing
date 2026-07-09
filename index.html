@@ -48,7 +48,7 @@ textarea{resize:vertical;min-height:70px}
 .alert-e{background:var(--redl);color:var(--red);border:1px solid #f0c0bb}
 .alert-s{background:var(--grnl);color:var(--grn);border:1px solid #b8e4c8}
 .app-wrap{display:flex;min-height:100vh}
-.sidebar{width:240px;background:var(--ac);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:210;transition:transform .3s ease}
+.sidebar{width:240px;background:var(--ac);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:330;transition:transform .3s ease}
 .sb-logo{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.12)}
 .sb-brand{font-size:11px;letter-spacing:.15em;opacity:.6;text-transform:uppercase}
 .sb-name{font-size:15px;font-weight:700;margin-top:2px}
@@ -60,7 +60,7 @@ textarea{resize:vertical;min-height:70px}
 .nav-badge.on{display:inline}
 .sb-foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.12)}
 .sb-logout{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);font-family:inherit;font-size:12px;padding:10px 14px;border-radius:6px;cursor:pointer;width:100%}
-.topbar{display:flex;background:var(--ac);color:#fff;padding:0 16px;height:56px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:190;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.topbar{display:flex;background:var(--ac);color:#fff;padding:0 16px;height:56px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:310;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
 .hamburger{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:8px;margin-left:-8px}
 .content{margin-left:240px;flex:1;min-width:0;width:100%}
 .inner{max-width:1140px;margin:0 auto;padding:24px 20px}
@@ -183,15 +183,26 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .modal-section-title{font-size:12px;font-weight:700;color:var(--ac);margin:16px 0 8px 0;border-bottom:1px solid var(--bdr);padding-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto}
 .overlay.on{display:flex}
-.modal{background:var(--surf);border-radius:16px;width:100%;max-width:600px;margin:auto;box-shadow:0 4px 24px rgba(0,0,0,.15);overflow:hidden;animation:pop .25s ease-out}
+.modal{background:var(--surf);border-radius:16px;width:100%;max-width:600px;margin:auto;box-shadow:0 4px 24px rgba(0,0,0,.15);overflow:hidden;animation:pop .25s ease-out;position:relative}
 @keyframes pop{from{transform:translateY(15px);opacity:0}to{transform:translateY(0);opacity:1}}
-.mhdr{padding:18px 20px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.mhdr{padding:18px 20px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;cursor:move;touch-action:none}
 .mhdr-t{font-size:16px;font-weight:700;line-height:1.3}
 .mhdr-s{font-size:12px;color:var(--muted);margin-top:3px}
 .mclose{background:none;border:none;font-size:28px;color:var(--muted);cursor:pointer;padding:4px 8px}
 .mbody{padding:16px 20px 24px}
 .mfooter{padding:12px 20px;border-top:1px solid var(--bdr);display:flex;gap:10px;justify-content:flex-end;background:#faf9f6}
-.sb-shade{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none}
+/* ── 팝업 공통 동작: 드래그/리사이즈 핸들 ── */
+.pz-handle{position:absolute;z-index:5;touch-action:none}
+.pz-n{top:0;left:10px;right:10px;height:7px;cursor:ns-resize}
+.pz-s{bottom:0;left:10px;right:10px;height:7px;cursor:ns-resize}
+.pz-e{top:10px;bottom:10px;right:0;width:7px;cursor:ew-resize}
+.pz-w{top:10px;bottom:10px;left:0;width:7px;cursor:ew-resize}
+.pz-ne{top:0;right:0;width:14px;height:14px;cursor:nesw-resize}
+.pz-nw{top:0;left:0;width:14px;height:14px;cursor:nwse-resize}
+.pz-se{bottom:0;right:0;width:14px;height:14px;cursor:nwse-resize}
+.pz-sw{bottom:0;left:0;width:14px;height:14px;cursor:nesw-resize}
+body.pz-noselect{user-select:none}
+.sb-shade{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:320;display:none}
 .sb-shade.on{display:block}
 .empty{text-align:center;padding:40px 20px;color:var(--muted);background:var(--surf);border-radius:12px;border:1px solid var(--bdr)}
 .empty-t{font-size:14px;font-weight:500;color:var(--txt);margin-bottom:4px}
@@ -1666,6 +1677,163 @@ function closeModal(prefix) {
   const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal', sm:'sample-modal', sum:'sample-upload-modal', pcm:'po-change-modal', dsp:'dup-suspect-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
+
+// ── 팝업 공통 동작 (드래그 이동 / 리사이즈 / 화면전환 시 유지) ──
+// 기존 팝업들의 열기/닫기 로직은 건드리지 않고, 모든 .overlay > .modal에 공통으로 UI 동작만 덧붙인다.
+(function initPopupCommon() {
+  const NO_RESIZE = new Set(['bulk-confirm-modal', 'dup-style-modal']); // 짧은 확인성 팝업: 리사이즈 제외
+  const MIN_W = 300, MIN_H = 160;
+  const posState = {}; // overlay id -> 마지막 드래그/리사이즈 후 위치·크기 (같은 세션 내 재오픈 시 복원)
+  let zSeq = 0;
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  function bringToFront(overlay) {
+    zSeq = (zSeq + 1) % 9;
+    overlay.style.zIndex = 300 + zSeq;
+  }
+
+  function clampToViewport(modal) {
+    const r = modal.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const minVisible = 80;
+    let left = parseFloat(modal.style.left);
+    let top = parseFloat(modal.style.top);
+    left = clamp(left, minVisible - r.width, vw - minVisible);
+    top = clamp(top, 0, vh - 40);
+    modal.style.left = left + 'px';
+    modal.style.top = top + 'px';
+  }
+
+  function toFixedBox(modal) {
+    if (modal.dataset.pzFixed === '1') return;
+    const r = modal.getBoundingClientRect();
+    modal.style.position = 'fixed';
+    modal.style.margin = '0';
+    modal.style.left = r.left + 'px';
+    modal.style.top = r.top + 'px';
+    modal.style.width = r.width + 'px';
+    modal.dataset.pzFixed = '1';
+  }
+
+  function enableInnerScroll(modal) {
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    const mbody = modal.querySelector('.mbody');
+    if (mbody) { mbody.style.flex = '1 1 auto'; mbody.style.minHeight = '0'; mbody.style.overflowY = 'auto'; }
+  }
+
+  function savePos(overlayId, modal) {
+    posState[overlayId] = {
+      left: modal.style.left, top: modal.style.top,
+      width: modal.style.width, height: modal.style.height
+    };
+  }
+
+  function restorePos(overlayId, modal) {
+    const s = posState[overlayId];
+    if (!s) return;
+    modal.style.position = 'fixed';
+    modal.style.margin = '0';
+    modal.style.left = s.left;
+    modal.style.top = s.top;
+    if (s.width) modal.style.width = s.width;
+    if (s.height) { modal.style.height = s.height; enableInnerScroll(modal); }
+    modal.dataset.pzFixed = '1';
+    clampToViewport(modal);
+  }
+
+  function startDrag(e, modal, overlay) {
+    if (e.target.closest('.mclose')) return;
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault();
+    toFixedBox(modal);
+    bringToFront(overlay);
+    document.body.classList.add('pz-noselect');
+    const startX = e.clientX, startY = e.clientY;
+    const startLeft = parseFloat(modal.style.left), startTop = parseFloat(modal.style.top);
+    function onMove(ev) {
+      modal.style.left = (startLeft + (ev.clientX - startX)) + 'px';
+      modal.style.top = (startTop + (ev.clientY - startY)) + 'px';
+      clampToViewport(modal);
+    }
+    function onUp() {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.body.classList.remove('pz-noselect');
+      savePos(overlay.id, modal);
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
+  function startResize(e, dir, modal, overlay) {
+    e.preventDefault();
+    e.stopPropagation();
+    toFixedBox(modal);
+    bringToFront(overlay);
+    enableInnerScroll(modal);
+    document.body.classList.add('pz-noselect');
+    const startX = e.clientX, startY = e.clientY;
+    const rect = modal.getBoundingClientRect();
+    const startLeft = rect.left, startTop = rect.top, startW = rect.width, startH = rect.height;
+    function onMove(ev) {
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      let left = startLeft, top = startTop, w = startW, h = startH;
+      if (dir.includes('e')) w = Math.max(MIN_W, startW + dx);
+      if (dir.includes('s')) h = Math.max(MIN_H, startH + dy);
+      if (dir.includes('w')) { w = Math.max(MIN_W, startW - dx); left = startLeft + (startW - w); }
+      if (dir.includes('n')) { h = Math.max(MIN_H, startH - dy); top = startTop + (startH - h); }
+      modal.style.width = w + 'px';
+      modal.style.height = h + 'px';
+      modal.style.left = left + 'px';
+      modal.style.top = top + 'px';
+    }
+    function onUp() {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.body.classList.remove('pz-noselect');
+      savePos(overlay.id, modal);
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
+  function initPopup(overlay) {
+    if (overlay.dataset.pzInit === '1') return;
+    overlay.dataset.pzInit = '1';
+    const modal = overlay.querySelector('.modal');
+    if (!modal) return;
+
+    const hdr = modal.querySelector('.mhdr');
+    if (hdr) hdr.addEventListener('pointerdown', e => startDrag(e, modal, overlay));
+    modal.addEventListener('pointerdown', () => bringToFront(overlay));
+
+    if (!NO_RESIZE.has(overlay.id)) {
+      ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].forEach(dir => {
+        const h = document.createElement('div');
+        h.className = 'pz-handle pz-' + dir;
+        h.addEventListener('pointerdown', e => startResize(e, dir, modal, overlay));
+        modal.appendChild(h);
+      });
+    }
+
+    // 팝업이 다시 열릴 때(overlay에 'on' 클래스가 추가될 때)마다 직전 위치/크기를 복원
+    // → 화면(메뉴) 전환 후에도 열려있는 동안 팝업은 그대로 유지되며(overlay는 DOM에서 제거되지 않음),
+    //   닫혔다 다시 열어도 사용자가 옮겨둔 위치를 기억한다.
+    new MutationObserver(muts => {
+      muts.forEach(m => {
+        if (m.attributeName === 'class' && overlay.classList.contains('on')) restorePos(overlay.id, modal);
+      });
+    }).observe(overlay, { attributes: true });
+  }
+
+  document.querySelectorAll('.overlay').forEach(initPopup);
+
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.overlay.on .modal').forEach(m => { if (m.dataset.pzFixed === '1') clampToViewport(m); });
+  });
+})();
 
 // ── 전체 데이터 로드 ──
 async function loadAll() {
