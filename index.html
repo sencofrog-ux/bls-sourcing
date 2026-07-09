@@ -308,7 +308,7 @@ body.pz-noselect{user-select:none}
 .ss-style-no{font-family:'DM Mono',monospace;font-weight:700;color:var(--ac);cursor:pointer;text-decoration:underline;text-underline-offset:2px;background:none;border:none;padding:0;font-size:12px}
 .ss-style-no:hover{color:var(--ach)}
 .ss-style-name{font-size:11px;color:var(--txt);margin-top:2px;white-space:normal}
-.ss-vendor{font-size:11px;color:var(--muted);margin-top:1px;white-space:normal}
+.ss-style-meta{font-family:inherit;font-weight:400;font-size:11px;color:var(--muted);text-decoration:none}
 .sample-tbl tbody td.ss-stage-cell{min-width:170px;white-space:normal;vertical-align:top;font-size:18px;padding:10px 10px}
 .ss-stage-line{font-size:18px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap;white-space:normal}
 .sample-tbl .bdg{font-size:16px;padding:4px 10px}
@@ -734,7 +734,6 @@ body.pz-noselect{user-select:none}
           </div>
           <div class="filter-row">
             <select class="fsel" id="sample-season-filter"><option value="">전체 시즌</option></select>
-            <select class="fsel" id="sample-vendor-filter"><option value="">전체 벤더</option></select>
             <input class="fsearch" type="text" id="sample-search" placeholder="스타일 검색">
           </div>
           <div class="sample-tbl-wrap">
@@ -1703,7 +1702,6 @@ function bindAppEvents() {
 
   document.getElementById('sample-pcl-btn')?.addEventListener('click', downloadPCLData);
   document.getElementById('sample-season-filter')?.addEventListener('change', renderSampleTracking);
-  document.getElementById('sample-vendor-filter')?.addEventListener('change', renderSampleTracking);
   document.getElementById('sample-search')?.addEventListener('input', renderSampleTracking);
   document.querySelectorAll('#sample-status-tabs [data-samplestatus]').forEach(b=>b.addEventListener('click', ()=>{
     document.querySelectorAll('#sample-status-tabs [data-samplestatus]').forEach(x=>x.classList.remove('on'));
@@ -1987,22 +1985,14 @@ function setupFilters() {
     allSeasons.forEach(s => { facSeasonSel.innerHTML += `<option value="${s.id}" ${s.is_active?'selected':''}>${s.name}</option>`; });
   }
   // sample_tracking은 orders와 조인하지 않는 독립 테이블이므로, 필터 옵션도
-  // 실제 sample_tracking 데이터에 들어있는 season/vendor 텍스트 값에서 직접 추출한다.
+  // 실제 sample_tracking 데이터에 들어있는 season 텍스트 값에서 직접 추출한다.
   const sampleSeasonSel = document.getElementById('sample-season-filter');
-  const sampleVendorSel = document.getElementById('sample-vendor-filter');
   if (sampleSeasonSel) {
     const prevVal = sampleSeasonSel.value;
     const sampleSeasons = [...new Set(allSampleTracking.map(st => st.season).filter(Boolean))].sort();
     sampleSeasonSel.innerHTML = `<option value="">${L('전체 시즌','All Seasons')}</option>` +
       sampleSeasons.map(s => `<option value="${s}">${s}</option>`).join('');
     if (prevVal && sampleSeasons.includes(prevVal)) sampleSeasonSel.value = prevVal;
-  }
-  if (sampleVendorSel) {
-    const prevVal = sampleVendorSel.value;
-    const sampleVendors = [...new Set(allSampleTracking.map(st => st.vendor).filter(Boolean))].sort();
-    sampleVendorSel.innerHTML = `<option value="">${L('전체 벤더','All Vendors')}</option>` +
-      sampleVendors.map(v => `<option value="${v}">${v}</option>`).join('');
-    if (prevVal && sampleVendors.includes(prevVal)) sampleVendorSel.value = prevVal;
   }
   restoreDashFilters();
 }
@@ -5890,12 +5880,10 @@ function isSampleDone(st) {
 
 function getSampleFiltered() {
   const seasonVal = document.getElementById('sample-season-filter')?.value || '';
-  const vendorVal = document.getElementById('sample-vendor-filter')?.value || '';
   const searchVal = (document.getElementById('sample-search')?.value || '').toLowerCase().trim();
   const statusVal = document.querySelector('#sample-status-tabs .view-tab.on')?.dataset.samplestatus || 'all';
   const result = allSampleTracking.filter(st => {
     if (seasonVal && st.season !== seasonVal) return false;
-    if (vendorVal && st.vendor !== vendorVal) return false;
     if (searchVal) {
       const hay = `${st.style_no||''} ${st.style_name||''}`.toLowerCase();
       if (!hay.includes(searchVal)) return false;
@@ -5904,6 +5892,13 @@ function getSampleFiltered() {
     if (statusVal === 'active' && done) return false;
     if (statusVal === 'done' && !done) return false;
     return true;
+  });
+  // Target ETD 오름차순 정렬 (값이 없는 항목은 맨 아래로)
+  result.sort((a, b) => {
+    if (!a.target_etd && !b.target_etd) return 0;
+    if (!a.target_etd) return 1;
+    if (!b.target_etd) return -1;
+    return a.target_etd < b.target_etd ? -1 : a.target_etd > b.target_etd ? 1 : 0;
   });
   return result;
 }
@@ -5943,9 +5938,8 @@ function renderSampleTracking() {
       : `<div style="color:var(--muted);font-size:12px">-</div>`;
     return `<tr>
       <td class="ss-style-cell">
-        <div class="ss-style-no" onclick="openSampleDetail('${st.id}')">${escHtml(st.style_no||'')}</div>
+        <div class="ss-style-no" onclick="openSampleDetail('${st.id}')">${escHtml(st.style_no||'')} <span class="ss-style-meta">[${escHtml(st.vendor||L('미지정','Unassigned'))}] [${st.target_etd||'-'}]</span></div>
         <div class="ss-style-name">${escHtml(st.style_name||'-')}</div>
-        <div class="ss-vendor">${escHtml(st.vendor||'-')}</div>
       </td>
       <td class="ss-stage-cell">${st.tp_date||'<span style="color:var(--muted)">-</span>'}</td>
       <td class="ss-stage-cell">${qcLatestHtml}</td>
