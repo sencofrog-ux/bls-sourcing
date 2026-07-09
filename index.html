@@ -1234,6 +1234,26 @@ function showAlert(id, msg, type='e') { const el=document.getElementById(id); if
 function today() { return new Date().toISOString().slice(0,10); }
 // 화면에 표시할 납기: adjusted_date(마스터 조정값)가 있으면 우선, 없으면 planned_ship_date(AX 원본/수기 등록값)로 대체
 function dispDate(o) { return (o && (o.adjusted_date || o.planned_ship_date)) || null; }
+// 컬러별로 납기가 다를 수 있으므로, 스타일 그룹(같은 PO+스타일의 컬러 행 전체)의 정렬/지연판정은
+// 그룹 내 컬러 행들 중 가장 이른 날짜(MIN)를 기준으로 한다.
+function groupMinDate(group) {
+  const dates = (group || []).map(dispDate).filter(Boolean);
+  return dates.length ? dates.reduce((a, b) => a < b ? a : b) : null;
+}
+// ── 납기 지연 판정 (공통 규칙) ──
+// 컬러 행 1개의 지연 여부: 유효 납기(dispDate = adjusted_date 우선, 없으면 planned_ship_date)가
+// 오늘보다 이전이면서 아직 다 선적되지 않았으면 지연. 유효 납기가 둘 다 없으면(NULL) 판정에서 제외.
+function isRowDelayed(o, t) {
+  if (!o || o.status === 'cancelled') return false;
+  const d = dispDate(o);
+  if (!d) return false;
+  return d < t && (o.shipped_qty||0) < (o.order_qty||0);
+}
+// 스타일 그룹의 지연 배지: 그룹(같은 PO+스타일의 컬러 행 전체) 중 하나의 컬러 행이라도
+// 위 규칙으로 지연이면 스타일 전체를 지연으로 표시한다.
+function isGroupDelayed(group, t) {
+  return (group || []).some(o => isRowDelayed(o, t));
+}
 function isMobileCal() { return window.matchMedia('(max-width:992px)').matches; }
 function addDaysToDateStr(dateStr, n) { const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 function getWeekRange(dateStr) {
@@ -1809,16 +1829,17 @@ function getVisibleOrders() {
           const allShipped = g.every(isInShippedTab);
           return statusFilter === 'shipped' ? allShipped : !allShipped;
         });
-  list = statusGroups.flat();
-  // 1) 선적완료 건은 하단으로 고정 2) 그 안에서 긴급건 최상단, 리오더건 그 다음 고정 3) target ETD 오름차순
-  list.sort((a,b)=>{
-    const aShipped = isInShippedTab(a), bShipped = isInShippedTab(b);
+  // 1) 선적완료 건은 하단으로 고정 2) 그 안에서 긴급건 최상단, 리오더건 그 다음 고정
+  // 3) 스타일 그룹 내 컬러 행들 중 가장 이른 adjusted_date(MIN) 기준 오름차순 — 컬러별 행 단위가 아니라
+  //    그룹 단위로 정렬해야 컬러마다 납기가 달라도 같은 스타일 행들이 흩어지지 않는다.
+  statusGroups.sort((ga,gb)=>{
+    const aShipped = ga.every(isInShippedTab), bShipped = gb.every(isInShippedTab);
     if (aShipped !== bShipped) return aShipped ? 1 : -1;
-    const aTier = orderPriorityTier(a), bTier = orderPriorityTier(b);
+    const aTier = orderPriorityTier(ga[0]), bTier = orderPriorityTier(gb[0]);
     if (aTier !== bTier) return aTier - bTier;
-    return (dispDate(a)||'9999-99-99').localeCompare(dispDate(b)||'9999-99-99');
+    return (groupMinDate(ga)||'9999-99-99').localeCompare(groupMinDate(gb)||'9999-99-99');
   });
-  return list;
+  return statusGroups.flat();
 }
 function L(ko, en) {
   const lang = localStorage.getItem('bls_lang') || 'ko';
@@ -1839,9 +1860,7 @@ function renderDashboard() {
     const gPrd = g.reduce((s,x)=>s+(x.produced_qty||0),0);
     const gShp = g.reduce((s,x)=>s+(x.shipped_qty||0),0);
     tOrd += gOrd; tPrd += gPrd; tShp += gShp;
-    const rep = g[0];
-    const repDate = dispDate(rep);
-    if (repDate && repDate<t && gShp<gOrd) delayed++;
+    if (isGroupDelayed(g, t)) delayed++;
     if (g.some(x=>(x.defect_qty||0)>0)) defectCnt++;
   }
   const ppct = tOrd?Math.round(tPrd/tOrd*100):0;
@@ -1886,7 +1905,6 @@ function renderDashboard() {
       <th>${L('선적','Shipped')}</th>
       <th>${L('차이율','Variance')}</th>
       <th>${L('불량률','Defect')}</th>
-      <th>${L('선적예정','Target ETD')}</th>
       <th>${L('상태','Status')}</th>
       <th></th>
     </tr></thead>
@@ -1897,8 +1915,7 @@ function renderDashboard() {
       const cancelled = o.status === 'cancelled';
       const totalQty = group.reduce((s,x)=>s+(x.order_qty||0),0);
       const totalShipped = group.reduce((s,x)=>s+(x.shipped_qty||0),0);
-      const oDate = dispDate(o);
-      const late = !cancelled && oDate && oDate<t && totalShipped<totalQty;
+      const late = !cancelled && isGroupDelayed(group, t);
       const fail = group.reduce((s,x)=>s+((x.defect_qty||0)>0 ? (x.defect_qty||0) : (x.vendor_fail_qty||0)), 0);
       const hasDefect = group.some(x=>(x.defect_qty||0)>0);
       const def = totalQty && fail ? ((fail/totalQty)*100).toFixed(1) : '0.0';
@@ -1955,7 +1972,6 @@ function renderDashboard() {
         <td data-label="${L('선적','Shipped')}">${Number(totalShipped).toLocaleString()}</td>
         <td data-label="${L('차이율','Variance')}" style="color:${varInfo.color};font-weight:${hasShippedQty?'600':''}">${varInfo.text}</td>
         <td data-label="${L('불량률','Defect')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${hasDefect?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
-        <td data-label="${L('선적예정','Target ETD')}" style="font-size:12px">${(()=>{const dt=dispDate(o);const d=calcDday(dt);const dday=d===null?'':`<span class="bdg ${d===0?'bdg-dday0':'bdg-dday'}" style="margin-left:4px;font-size:10px">${d===0?'D-day':'D-'+d}</span>`;return `${(dt||'-').slice(0,10)}${dday}`;})()}</td>
         <td data-label="${L('상태','Status')}">${statusBadge}</td>
         <td data-label="${L('액션','Action')}">${actBtn}</td>
       </tr>`;
@@ -2108,8 +2124,8 @@ function renderVendorOrderCards(list) {
     const done = STAGES.map(s=>group.every(x=>!!x[s+'_done'])); // 컬러 전원 완료해야 해당 단계 완료로 표시
     const cnt  = done.filter(Boolean).length;
     const pct  = Math.round(cnt / 4 * 100);
-    const oDate = dispDate(o);
-    const late = oDate && oDate<t && totalShipped<totalQty;
+    const oDate = groupMinDate(group);
+    const late = isGroupDelayed(group, t);
     const shipped = group.every(isOrderShipped);
     const shipRequested = group.every(isOrderShipRequested);
     const canRequestShip = cnt === STAGES.length && group.every(x=>x.status !== 'shipping_requested' && x.status !== 'shipped' && x.status !== 'cancelled');
@@ -3732,16 +3748,31 @@ function openVendorModal(orderId) {
       <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.05em">${L('📜 변경 이력 보기','📜 View Change History')}</summary>
       <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-top:8px;font-size:12px">${renderMergedChangeHistoryHtml(orderId, canActOnPoChange)}</div>
     </details>`;
+  // 마스터/MD만 컬러별 조정 ETD를 직접 수정할 수 있다(벤더/CS는 조회만)
+  const canEditAdjusted = me.role === 'master' || me.role === 'md';
   const colorTableHtml = group.length > 1 ? `
     <div style="margin-top: 8px; border-top: 1px dashed var(--bdr); padding-top: 8px;">
       <div style="font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px;">${L('컬러별 수량','Qty by Color')} (${group.length})</div>
       <table style="width:100%;font-size:12px;border-collapse:collapse">
-        <tbody>${group.map(x=>`<tr><td style="padding:3px 6px 3px 0;font-family:'DM Mono',monospace">${x.ax_color_code||'-'}</td><td style="padding:3px 0;text-align:right;font-weight:600">${Number(x.order_qty||0).toLocaleString()}${L('장','pcs')}</td></tr>`).join('')}</tbody>
+        <thead><tr>
+          <th style="text-align:left;padding:3px 6px 3px 0;color:var(--muted);font-weight:600">${L('컬러','Color')}</th>
+          <th style="text-align:right;padding:3px 6px;color:var(--muted);font-weight:600">${L('수량','Qty')}</th>
+          <th style="text-align:right;padding:3px 6px;color:var(--muted);font-weight:600;white-space:nowrap">${L('원래 타겟 ETD','Original Target ETD')}</th>
+          <th style="text-align:right;padding:3px 0 3px 6px;color:var(--muted);font-weight:600;white-space:nowrap">${L('조정 ETD','Adjusted ETD')}</th>
+        </tr></thead>
+        <tbody>${group.map(x=>`<tr>
+          <td style="padding:3px 6px 3px 0;font-family:'DM Mono',monospace">${x.ax_color_code||'-'}</td>
+          <td style="padding:3px 6px;text-align:right;font-weight:600">${Number(x.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
+          <td style="padding:3px 6px;text-align:right;color:var(--muted)">${x.planned_ship_date ? x.planned_ship_date.slice(0,10) : '-'}</td>
+          <td style="padding:3px 0 3px 6px;text-align:right">${canEditAdjusted
+            ? `<input type="date" class="color-adj-etd" value="${x.adjusted_date ? x.adjusted_date.slice(0,10) : ''}" style="font-size:12px;padding:2px 4px;font-family:inherit" onchange="saveColorAdjustedDate('${x.id}', this)">`
+            : (x.adjusted_date ? x.adjusted_date.slice(0,10) : '-')}</td>
+        </tr>`).join('')}</tbody>
       </table>
     </div>` : '';
 
   document.getElementById('vm-title').textContent = o.style_name;
-  const oDispDate = dispDate(o);
+  const oDispDate = groupMinDate(group);
   const ddayVal = calcDday(oDispDate);
   const ddayBadge = ddayVal === null ? '' : ` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`;
   document.getElementById('vm-sub').innerHTML = `${o.style_no} · ${L('오더','Order')} ${Number(groupTotalQty).toLocaleString()}${L('장','pcs')}${ddayBadge}`;
@@ -3879,6 +3910,36 @@ function openVendorModal(orderId) {
 
   document.getElementById('vm-alert').classList.remove('on');
   document.getElementById('vendor-modal').classList.add('on');
+}
+
+// ── 컬러별 조정 ETD 개별 저장 (일괄 적용 아님 — 컬러 행 하나만 갱신) ──
+async function saveColorAdjustedDate(orderId, inputEl) {
+  const o = allOrders.find(x => x.id === orderId);
+  if (!o) return;
+  const newVal = inputEl.value || null;
+  const oldVal = o.adjusted_date || null;
+  if (newVal === oldVal) return;
+  if (!newVal) {
+    alert(L('납기(조정)를 입력해주세요','Please enter the adjusted ETD'));
+    inputEl.value = oldVal ? oldVal.slice(0,10) : '';
+    return;
+  }
+  inputEl.disabled = true;
+  try {
+    await sb(`orders?id=eq.${orderId}`, 'PATCH', { adjusted_date: newVal, updated_at: new Date().toISOString() });
+    await sb('po_change_logs', 'POST', {
+      order_id: orderId, changed_field: 'adjusted_date',
+      old_value: oldVal || '', new_value: newVal,
+      confirmed: true, confirmed_at: nowKstIso(), resolution: 'applied'
+    });
+    o.adjusted_date = newVal;
+    renderDashboard();
+  } catch (e) {
+    inputEl.value = oldVal ? oldVal.slice(0,10) : '';
+    alert(L('납기 수정 실패: ','Failed to update ETD: ') + e.message);
+  } finally {
+    inputEl.disabled = false;
+  }
 }
 
 async function saveVendorProduction() {
