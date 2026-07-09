@@ -767,6 +767,8 @@ body.pz-noselect{user-select:none}
       
       <div id="po-info-top-zone"></div>
 
+      <div id="vm-schedule-zone"></div>
+
       <div id="vm-readonly-view" style="display:none"></div>
 
       <div id="vendor-input-fields">
@@ -781,11 +783,6 @@ body.pz-noselect{user-select:none}
         <div class="row2">
           <div class="fg"><label class="fl" data-ko="누적 생산 완료 (장)" data-en="Total Produced (pcs)">누적 생산 완료 (장)</label><input type="number" id="vm-produced" placeholder="0"></div>
           <div class="fg"><label class="fl" data-ko="생산중 불량 (장)" data-en="Defects in Production">생산중 불량 (장)</label><input type="number" id="vm-fail" placeholder="0"></div>
-        </div>
-        <div class="modal-section-title" data-ko="📅 일정" data-en="📅 Schedule">📅 일정</div>
-        <div class="row2">
-          <div class="fg"><label class="fl" data-ko="생산완료 예정일" data-en="Planned Completion Date">생산완료 예정일</label><input type="date" id="vm-plan-date"></div>
-          <div class="fg"><label class="fl" data-ko="실제 생산완료일" data-en="Actual Completion Date">실제 생산완료일</label><input type="date" id="vm-actual-date"></div>
         </div>
         <div class="fg"><label class="fl" data-ko="비고" data-en="Notes">비고</label><textarea id="vm-notes" style="min-height:90px" data-ko-ph="생산 현황, 특이사항, 지연 사유 등" data-en-ph="Production status, special notes, delay reason, etc." placeholder="생산 현황, 특이사항, 지연 사유 등"></textarea></div>
       </div>
@@ -4058,7 +4055,9 @@ function openVendorModal(orderId) {
     readonlyView.style.display = 'none';
     footerBlock.style.display = 'flex';
   }
-  
+
+  document.getElementById('vm-schedule-zone').innerHTML = renderScheduleZone(o, canEditAdjusted, isMasterView);
+
   const factorySel = document.getElementById('vm-factory');
   const myFactories = allFactories.filter(f=>f.vendor_id===me.id);
   if (!myFactories.length) {
@@ -4080,8 +4079,6 @@ function openVendorModal(orderId) {
   document.getElementById('vm-line').value = o.production_line||'';
   document.getElementById('vm-produced').value = o.produced_qty||'';
   document.getElementById('vm-fail').value = o.vendor_fail_qty||'';
-  document.getElementById('vm-plan-date').value = o.planned_complete_date||'';
-  document.getElementById('vm-actual-date').value = o.actual_complete_date||'';
   // 기존 delay_reason + notes 통합해서 비고란에 표시
   const baseNotes = po.isPo ? po.rawNotes : (o.notes || '');
   const delayPart = o.delay_reason || '';
@@ -4168,6 +4165,82 @@ async function saveColorAdjustedDate(orderId, inputEl) {
   } finally {
     inputEl.disabled = false;
   }
+}
+
+// ── 수기(AX 미등록) 오더의 Target ETD 최초 입력 (마스터/MD 전용, 값이 비어있을 때만) ──
+async function saveManualTargetEtd(orderId, inputEl) {
+  const o = allOrders.find(x => x.id === orderId);
+  if (!o) return;
+  const newVal = inputEl.value || null;
+  if (!newVal) {
+    alert(L('Target ETD를 입력해주세요','Please enter the Target ETD'));
+    return;
+  }
+  inputEl.disabled = true;
+  try {
+    await sb(`orders?id=eq.${orderId}`, 'PATCH', { planned_ship_date: newVal, updated_at: new Date().toISOString() });
+    o.planned_ship_date = newVal;
+    renderDashboard();
+    openVendorModal(orderId);
+  } catch (e) {
+    inputEl.value = '';
+    alert(L('Target ETD 저장 실패: ','Failed to save Target ETD: ') + e.message);
+  } finally {
+    inputEl.disabled = false;
+  }
+}
+
+// ── 상세보기 팝업 "일정" 영역 (Target ETD / 변경 납기일 / 생산완료 예정일 3칸 + 실제 생산완료일) ──
+// 마스터/MD: Target ETD 조회만(단, AX 미등록 수기 오더에 값이 없으면 최초 입력 가능) / 변경 납기일 입력·수정 / 생산완료 예정일·실제 생산완료일 조회만
+// 벤더: Target ETD·변경 납기일 조회만 / 생산완료 예정일·실제 생산완료일 입력·수정
+function renderScheduleZone(o, canEditAdjusted, isMasterView) {
+  const targetEtdRaw = o.planned_ship_date ? o.planned_ship_date.slice(0,10) : '';
+  const adjustedRaw = o.adjusted_date ? o.adjusted_date.slice(0,10) : '';
+  const adjustedShown = adjustedRaw || targetEtdRaw; // 값이 없으면 Target ETD와 동일하게 표시
+
+  const roVal = (v) => `<div style="padding:12px;border-radius:var(--r);background:var(--bg);font-size:14px;color:var(--txt)">${v || '-'}</div>`;
+
+  const canInputInitialEtd = canEditAdjusted && o.source !== 'ax' && !targetEtdRaw;
+  const targetEtdCell = canInputInitialEtd
+    ? `<input type="date" id="vm-target-etd" value="" onchange="saveManualTargetEtd('${o.id}', this)">`
+    : roVal(targetEtdRaw);
+
+  const adjustedCell = canEditAdjusted
+    ? `<input type="date" id="vm-adjusted-date" value="${adjustedShown}" onchange="saveColorAdjustedDate('${o.id}', this)">`
+    : roVal(adjustedShown);
+
+  const planCell = !isMasterView
+    ? `<input type="date" id="vm-plan-date" value="${o.planned_complete_date ? o.planned_complete_date.slice(0,10) : ''}">`
+    : roVal(o.planned_complete_date ? o.planned_complete_date.slice(0,10) : '');
+
+  const actualCell = !isMasterView
+    ? `<input type="date" id="vm-actual-date" value="${o.actual_complete_date ? o.actual_complete_date.slice(0,10) : ''}">`
+    : roVal(o.actual_complete_date ? o.actual_complete_date.slice(0,10) : '');
+
+  return `
+    <div class="modal-section-title">📅 ${L('일정','Schedule')}</div>
+    <div class="row3">
+      <div class="fg">
+        <label class="fl">Target ETD</label>
+        ${targetEtdCell}
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${L('PO 원본 납기','Original PO delivery date')}</div>
+      </div>
+      <div class="fg">
+        <label class="fl">${L('변경 납기일','Adjusted ETD')}</label>
+        ${adjustedCell}
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${L('협의 후 변경된 납기','ETD changed after discussion')}</div>
+      </div>
+      <div class="fg">
+        <label class="fl">${L('생산완료 예정일','Planned Completion Date')}</label>
+        ${planCell}
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${L('공장 자체 생산 목표일','Factory-set production target date')}</div>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">${L('실제 생산완료일','Actual Completion Date')}</label>
+      ${actualCell}
+    </div>
+  `;
 }
 
 async function saveVendorProduction() {
