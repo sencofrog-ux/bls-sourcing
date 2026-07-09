@@ -58,6 +58,14 @@ textarea{resize:vertical;min-height:70px}
 .nav-btn:hover,.nav-btn.on{background:rgba(255,255,255,.15);color:#fff}
 .nav-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;display:none}
 .nav-badge.on{display:inline}
+.nav-group-hdr{display:flex;align-items:center;gap:10px;padding:13px 18px;font-size:14px;font-weight:600;color:rgba(255,255,255,.75);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.nav-group-hdr:hover{background:rgba(255,255,255,.1);color:#fff}
+.nav-group-label{flex:1}
+.nav-group-arrow{font-size:11px;transition:transform .2s ease;opacity:.7}
+.nav-group.open>.nav-group-hdr .nav-group-arrow{transform:rotate(90deg)}
+.nav-group-body{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.nav-group.open>.nav-group-body{max-height:600px}
+.nav-group-body .nav-btn{padding-left:34px;font-size:13.5px}
 .sb-foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.12)}
 .sb-logout{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);font-family:inherit;font-size:12px;padding:10px 14px;border-radius:6px;cursor:pointer;width:100%}
 .topbar{display:flex;background:var(--ac);color:#fff;padding:0 16px;height:56px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:310;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
@@ -1448,18 +1456,43 @@ function buildSidebar() {
   if (me.role === 'master') {
     menu = `
       <button class="nav-btn on" data-sec="dashboard" data-ko="📊 대시보드" data-en="📊 Dashboard">📊 대시보드</button>
-      <button class="nav-btn" data-sec="pending" data-ko="⏳ 승인 대기" data-en="⏳ Pending Approval">⏳ 승인 대기 <span class="nav-badge" id="pend-badge">0</span></button>
-      <button class="nav-btn" data-sec="order-reg" data-ko="➕ 오더 등록" data-en="➕ Order Registration">➕ 오더 등록</button>
-      <button class="nav-btn" data-sec="shipout" data-ko="📦 선적 확정" data-en="📦 Confirm Shipment">📦 선적 확정</button>
-      <button class="nav-btn" data-sec="sample" data-ko="🧾 샘플 관리" data-en="🧾 Sample Tracking">🧾 샘플 관리</button>
-      <button class="nav-btn" data-sec="recap" data-ko="📊 생산 RECAP 다운로드" data-en="📊 Production Recap">📊 생산 RECAP 다운로드</button>
-      <button class="nav-btn" data-sec="inbound" data-ko="📅 입고 일정표" data-en="📅 Inbound Schedule">📅 입고 일정표</button>
-      <button class="nav-btn" data-sec="factory-all" data-ko="🏭 공장 현황" data-en="🏭 Factory Overview">🏭 공장 현황</button>
-      <button class="nav-btn" data-sec="members" data-ko="👥 회원 관리" data-en="👥 Member Management">👥 회원 관리</button>
-      <button class="nav-btn" data-sec="po-match" data-ko="🔄 PO 매칭 관리" data-en="🔄 PO Matching">🔄 PO 매칭 관리</button>
-      <button class="nav-btn" data-sec="ax-import" data-ko="🔗 AX PO 연동(임시)" data-en="🔗 AX PO Import (Temp)">🔗 AX PO 연동(임시)</button>
-      <button class="nav-btn" data-sec="errors" data-ko="🛠️ 오류 관리" data-en="🛠️ Error Log">🛠️ 오류 관리 <span class="nav-badge" id="err-badge">0</span></button>
-      <button class="nav-btn" data-sec="settings" data-ko="⚙️ 설정" data-en="⚙️ Settings">⚙️ 설정</button>
+      <div class="nav-group" data-group="order">
+        <button class="nav-group-hdr"><span class="nav-group-label" data-ko="📋 오더 관리" data-en="📋 Order Management">📋 오더 관리</span><span class="nav-group-arrow">▸</span></button>
+        <div class="nav-group-body">
+          <button class="nav-btn" data-sec="order-reg" data-ko="➕ 오더 등록" data-en="➕ Order Registration">➕ 오더 등록</button>
+          <button class="nav-btn" data-sec="pending" data-ko="⏳ 승인 대기" data-en="⏳ Pending Approval">⏳ 승인 대기 <span class="nav-badge" id="pend-badge">0</span></button>
+          <button class="nav-btn" data-sec="po-match" data-ko="🔄 PO 매칭 관리" data-en="🔄 PO Matching">🔄 PO 매칭 관리</button>
+          <button class="nav-btn" data-sec="ax-import" data-ko="🔗 AX PO 연동(임시)" data-en="🔗 AX PO Import (Temp)">🔗 AX PO 연동(임시)</button>
+        </div>
+      </div>
+      <div class="nav-group" data-group="production">
+        <button class="nav-group-hdr"><span class="nav-group-label" data-ko="🏭 생산 관리" data-en="🏭 Production Management">🏭 생산 관리</span><span class="nav-group-arrow">▸</span></button>
+        <div class="nav-group-body">
+          <button class="nav-btn" data-sec="factory-all" data-ko="🏭 공장 현황" data-en="🏭 Factory Overview">🏭 공장 현황</button>
+          <button class="nav-btn" data-sec="recap" data-ko="📊 생산 RECAP 다운로드" data-en="📊 Production Recap">📊 생산 RECAP 다운로드</button>
+        </div>
+      </div>
+      <div class="nav-group" data-group="quality">
+        <button class="nav-group-hdr"><span class="nav-group-label" data-ko="🧵 품질/샘플" data-en="🧵 Quality/Sample">🧵 품질/샘플</span><span class="nav-group-arrow">▸</span></button>
+        <div class="nav-group-body">
+          <button class="nav-btn" data-sec="sample" data-ko="🧾 샘플 관리" data-en="🧾 Sample Tracking">🧾 샘플 관리</button>
+        </div>
+      </div>
+      <div class="nav-group" data-group="shipping">
+        <button class="nav-group-hdr"><span class="nav-group-label" data-ko="🚢 선적/입고" data-en="🚢 Shipping/Inbound">🚢 선적/입고</span><span class="nav-group-arrow">▸</span></button>
+        <div class="nav-group-body">
+          <button class="nav-btn" data-sec="shipout" data-ko="📦 선적 확정" data-en="📦 Confirm Shipment">📦 선적 확정</button>
+          <button class="nav-btn" data-sec="inbound" data-ko="📅 입고 일정표" data-en="📅 Inbound Schedule">📅 입고 일정표</button>
+        </div>
+      </div>
+      <div class="nav-group" data-group="system">
+        <button class="nav-group-hdr"><span class="nav-group-label" data-ko="⚙️ 시스템 관리" data-en="⚙️ System Management">⚙️ 시스템 관리</span><span class="nav-group-arrow">▸</span></button>
+        <div class="nav-group-body">
+          <button class="nav-btn" data-sec="members" data-ko="👥 회원 관리" data-en="👥 Member Management">👥 회원 관리</button>
+          <button class="nav-btn" data-sec="errors" data-ko="🛠️ 오류 관리" data-en="🛠️ Error Log">🛠️ 오류 관리 <span class="nav-badge" id="err-badge">0</span></button>
+          <button class="nav-btn" data-sec="settings" data-ko="⚙️ 설정" data-en="⚙️ Settings">⚙️ 설정</button>
+        </div>
+      </div>
       <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
   } else if (me.role === 'vendor') {
     menu = `
@@ -1487,10 +1520,37 @@ function buildSidebar() {
   nav.innerHTML = menu;
   nav.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click', ()=>switchSec(b.dataset.sec)));
 
+  if (me.role === 'master') initSidebarGroups();
+
   if (me.role === 'viewer' || me.role === 'schedule') {
     document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
     document.getElementById('sec-inbound').classList.add('on');
   }
+}
+
+function initSidebarGroups() {
+  const KEY = 'sbMasterOpenGroups';
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY)); } catch(e) { saved = null; }
+  let openGroups;
+  if (Array.isArray(saved)) {
+    openGroups = saved;
+  } else {
+    const activeBtn = document.querySelector('.nav-btn.on');
+    const activeGroup = activeBtn ? activeBtn.closest('.nav-group') : null;
+    openGroups = activeGroup ? [activeGroup.dataset.group] : [];
+  }
+  document.querySelectorAll('.nav-group').forEach(g=>{
+    if (openGroups.includes(g.dataset.group)) g.classList.add('open');
+  });
+  document.querySelectorAll('.nav-group-hdr').forEach(hdr=>{
+    hdr.addEventListener('click', ()=>{
+      hdr.closest('.nav-group').classList.toggle('open');
+      const groups = [];
+      document.querySelectorAll('.nav-group.open').forEach(g=>groups.push(g.dataset.group));
+      try { localStorage.setItem(KEY, JSON.stringify(groups)); } catch(e) {}
+    });
+  });
 }
 
 function switchSec(id) {
