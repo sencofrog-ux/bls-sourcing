@@ -312,6 +312,11 @@ body.pz-noselect{user-select:none}
 .sample-tbl tbody td.ss-stage-cell{min-width:170px;white-space:normal;vertical-align:top;font-size:18px;padding:10px 10px}
 .ss-stage-line{font-size:18px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap;white-space:normal}
 .sample-tbl .bdg{font-size:16px;padding:4px 10px}
+.sample-tbl tbody td.ss-target-etd-cell{background:#fff9c4;color:#000;font-weight:700;text-align:center;min-width:110px}
+.sample-tbl thead th.ss-sortable{cursor:pointer;user-select:none}
+.sample-tbl thead th.ss-sortable:hover{color:var(--ac)}
+.ss-sort-arrow{display:inline-block;font-size:9px;color:var(--muted);margin-left:3px;letter-spacing:-1px}
+.ss-sort-arrow.on{color:var(--ac)}
 .ss-stage-comment{font-size:11px;color:var(--muted);margin-top:3px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ss-qc-add-btn{margin-top:6px;font-size:10px;padding:3px 8px;border:1px dashed var(--bdr);border-radius:6px;background:transparent;color:var(--ac);cursor:pointer;font-weight:600}
 .ss-qc-add-btn:hover{background:var(--acl)}
@@ -741,11 +746,12 @@ body.pz-noselect{user-select:none}
             <table class="sample-tbl">
               <thead>
                 <tr>
-                  <th>STYLE</th>
-                  <th>TP</th>
-                  <th>QC</th>
-                  <th>PP</th>
-                  <th>SHIPPING</th>
+                  <th class="ss-sortable" onclick="setSampleSort('style_no')">STYLE<span class="ss-sort-arrow" data-arrow="style_no"></span></th>
+                  <th class="ss-sortable" onclick="setSampleSort('target_etd')">TARGET ETD<span class="ss-sort-arrow" data-arrow="target_etd"></span></th>
+                  <th class="ss-sortable" onclick="setSampleSort('tp_date')">TP<span class="ss-sort-arrow" data-arrow="tp_date"></span></th>
+                  <th class="ss-sortable" onclick="setSampleSort('qc_date')">QC<span class="ss-sort-arrow" data-arrow="qc_date"></span></th>
+                  <th class="ss-sortable" onclick="setSampleSort('pp_date')">PP<span class="ss-sort-arrow" data-arrow="pp_date"></span></th>
+                  <th class="ss-sortable" onclick="setSampleSort('shipping_date')">SHIPPING<span class="ss-sort-arrow" data-arrow="shipping_date"></span></th>
                   <th></th>
                 </tr>
               </thead>
@@ -5913,6 +5919,27 @@ let activeSampleTrackingId = null;
 let activeQcRoundStyleId = null;
 let editingQcRoundId = null;
 let activeDetailStyleId = null;
+let sampleSortCol = 'target_etd';
+let sampleSortDir = 'asc';
+
+function setSampleSort(col) {
+  if (sampleSortCol === col) {
+    sampleSortDir = sampleSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sampleSortCol = col;
+    sampleSortDir = 'asc';
+  }
+  renderSampleTracking();
+}
+
+function getSampleSortValue(st, col) {
+  if (col === 'qc_date') {
+    const rounds = qcRoundsByStyle[st.id] || [];
+    const latest = rounds.length ? rounds[rounds.length - 1] : null;
+    return latest?.qc_date || '';
+  }
+  return st[col] || '';
+}
 
 function escHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -5943,12 +5970,15 @@ function getSampleFiltered() {
     if (statusVal === 'done' && !done) return false;
     return true;
   });
-  // Target ETD 오름차순 정렬 (값이 없는 항목은 맨 아래로)
+  // 선택된 컬럼 기준 정렬 (기본은 Target ETD 오름차순, 값이 없는 항목은 맨 아래로)
   result.sort((a, b) => {
-    if (!a.target_etd && !b.target_etd) return 0;
-    if (!a.target_etd) return 1;
-    if (!b.target_etd) return -1;
-    return a.target_etd < b.target_etd ? -1 : a.target_etd > b.target_etd ? 1 : 0;
+    const av = getSampleSortValue(a, sampleSortCol);
+    const bv = getSampleSortValue(b, sampleSortCol);
+    if (!av && !bv) return 0;
+    if (!av) return 1;
+    if (!bv) return -1;
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return sampleSortDir === 'asc' ? cmp : -cmp;
   });
   return result;
 }
@@ -5977,7 +6007,8 @@ function renderSampleTracking() {
   console.log('[renderSampleTracking] allSampleTracking(raw):', allSampleTracking.length, '/ 필터 후 표시될 행 수:', rows.length);
   if (!tbody) return;
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)">등록된 샘플 데이터가 없습니다</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">등록된 샘플 데이터가 없습니다</td></tr>`;
+    updateSampleSortArrows();
     return;
   }
   const isMaster = me && me.role === 'master';
@@ -5996,9 +6027,10 @@ function renderSampleTracking() {
       : '';
     return `<tr${cancelled ? ' style="opacity:.55"' : ''}>
       <td class="ss-style-cell">
-        <div class="ss-style-no" onclick="openSampleDetail('${st.id}')">${escHtml(st.style_no||'')} ${cancelled ? `<span class="bdg" style="background:#999;color:#fff">${L('취소','Cancelled')}</span>` : ''} <span class="ss-style-meta">[${escHtml(st.vendor||L('미지정','Unassigned'))}] [${st.target_etd||'-'}]</span>${orderInfoHtml}</div>
+        <div class="ss-style-no" onclick="openSampleDetail('${st.id}')">${escHtml(st.style_no||'')} ${cancelled ? `<span class="bdg" style="background:#999;color:#fff">${L('취소','Cancelled')}</span>` : ''} <span class="ss-style-meta">[${escHtml(st.vendor||L('미지정','Unassigned'))}]</span>${orderInfoHtml}</div>
         <div class="ss-style-name">${escHtml(st.style_name||'-')}</div>
       </td>
+      <td class="ss-target-etd-cell">${st.target_etd||'-'}</td>
       <td class="ss-stage-cell">${st.tp_date||'<span style="color:var(--muted)">-</span>'}</td>
       <td class="ss-stage-cell">${qcLatestHtml}</td>
       ${sampleStageCell(st, 'pp')}
@@ -6011,6 +6043,20 @@ function renderSampleTracking() {
       </td>
     </tr>`;
   }).join('');
+  updateSampleSortArrows();
+}
+
+function updateSampleSortArrows() {
+  document.querySelectorAll('#sec-sample .ss-sort-arrow').forEach(el => {
+    const col = el.dataset.arrow;
+    if (col === sampleSortCol) {
+      el.textContent = sampleSortDir === 'asc' ? '▲' : '▼';
+      el.classList.add('on');
+    } else {
+      el.textContent = '▲▼';
+      el.classList.remove('on');
+    }
+  });
 }
 
 function openSampleModal(trackingId) {
