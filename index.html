@@ -1244,6 +1244,24 @@ async function sb(path, method='GET', body=null) {
   return await r.json();
 }
 
+// Supabase(PostgREST)는 명시적 order 없이 select=*만 호출하면 서버 기본 max-rows(보통 1000건)에서
+// 조회 결과가 잘리고, 그마저도 정렬 순서가 보장되지 않아 뒤쪽 데이터가 통째로 누락될 수 있다.
+// 전체 건수를 안전하게 가져와야 하는 목록(예: sample_tracking)은 이 헬퍼로 id 정렬 + offset 페이지네이션하여 끝까지 수집한다.
+async function sbAll(path, pageSize = 1000) {
+  const sep = path.includes('?') ? '&' : '?';
+  const orderParam = /(\?|&)order=/.test(path) ? '' : `${sep}order=id`;
+  let all = [];
+  let offset = 0;
+  while (true) {
+    const pageSep = (path + orderParam).includes('?') ? '&' : '?';
+    const page = await sb(`${path}${orderParam}${pageSep}limit=${pageSize}&offset=${offset}`);
+    all = all.concat(page);
+    if (page.length < pageSize) break;
+    offset += pageSize;
+  }
+  return all;
+}
+
 // ── 유틸 ──
 function showPg(id) { document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on')); document.getElementById(id).classList.add('on'); }
 function showAlert(id, msg, type='e') { const el=document.getElementById(id); if(!el)return; el.textContent=msg; el.className='alert on alert-'+type; if(type!=='s')setTimeout(()=>el.classList.remove('on'),5000); }
@@ -1745,7 +1763,7 @@ function closeModal(prefix) {
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
   function bringToFront(overlay) {
-    zSeq = (zSeq + 1) % 9;
+    zSeq += 1;
     overlay.style.zIndex = 300 + zSeq;
   }
 
@@ -1879,7 +1897,12 @@ function closeModal(prefix) {
     //   닫혔다 다시 열어도 사용자가 옮겨둔 위치를 기억한다.
     new MutationObserver(muts => {
       muts.forEach(m => {
-        if (m.attributeName === 'class' && overlay.classList.contains('on')) restorePos(overlay.id, modal);
+        if (m.attributeName === 'class' && overlay.classList.contains('on')) {
+          // 팝업이 열릴 때마다(다른 팝업 위에 중첩되어 열리는 경우 포함) 항상 맨 앞으로 오도록 하여
+          // 같은 자리에 겹친 팝업끼리 z-index가 뒤바뀌어 두 개가 겹쳐 보이는 문제를 방지한다.
+          bringToFront(overlay);
+          restorePos(overlay.id, modal);
+        }
       });
     }).observe(overlay, { attributes: true });
   }
@@ -1908,17 +1931,20 @@ async function loadAll() {
       me.role==='master' ? sb('errors?select=*&order=created_at.desc') : Promise.resolve([]),
       sb('arrival_schedule?select=*&order=arrival_date.asc,style_no.asc'),
       (me.role==='master'||me.role==='cs') ? sb('defect_history?select=*&order=created_at.desc') : Promise.resolve([]),
-      canSeeSample ? sb('sample_tracking?select=*') : Promise.resolve([]),
+      canSeeSample ? sbAll('sample_tracking?select=*') : Promise.resolve([]),
       canSeeSample ? sb('qc_rounds?select=*') : Promise.resolve([]),
       canSeeSample ? sb('vendor_mappings?select=*') : Promise.resolve([]),
       sb('po_change_logs?select=*&order=detected_at.desc') // 벤더도 자기 오더의 AX 변경 이력을 조회할 수 있어야 하므로 마스터/MD 전용 제한(canSeeSample)에서 분리
     ]);
     rebuildQcRoundsMap();
-    console.log('[loadAll] orders:', allOrders.length, 'sample_tracking:', allSampleTracking.length, allSampleTracking);
+    console.log('[loadAll] sample_tracking fetch 성공 — canSeeSample:', canSeeSample, '/ 조회된 행 수:', allSampleTracking.length);
     setupFilters();
     renderDashboard();
     updateBadges();
-  } catch(e) { console.error(e); alert(L('데이터 로드 실패: ','Data load failed: ')+e.message); }
+    renderSampleTracking(); // loadAll()은 앱 곳곳에서 재호출되므로, 샘플관리 탭이 이미 열려 있어도
+                             // 최신 데이터로 다시 그려지도록 매번 갱신한다 (이전엔 탭 전환 시에만 렌더링되어
+                             // 데이터 로드 중 탭에 머물러 있으면 빈 목록이 그대로 남는 문제가 있었음)
+  } catch(e) { console.error('[loadAll] 실패:', e); alert(L('데이터 로드 실패: ','Data load failed: ')+e.message); }
 }
 function updateBadges() {
   if (me.role !== 'master') return;
@@ -5901,6 +5927,9 @@ function getSampleFiltered() {
   const searchVal = (document.getElementById('sample-search')?.value || '').toLowerCase().trim();
   const statusVal = document.querySelector('#sample-status-tabs .view-tab.on')?.dataset.samplestatus || 'all';
   const result = allSampleTracking.filter(st => {
+    // order_id 기반 구버전 스키마 시절 생성된 뒤 스타일 정보가 채워지지 않은 채 남은 고아 행은
+    // style_no가 비어 있어 목록에 표시할 수 없으므로 제외한다 (2026-07-01 standalone 마이그레이션 이전 잔재)
+    if (!st.style_no) return false;
     if (seasonVal && st.season !== seasonVal) return false;
     if (searchVal) {
       const hay = `${st.style_no||''} ${st.style_name||''}`.toLowerCase();
@@ -5945,6 +5974,7 @@ function sampleStageCell(st, key) {
 function renderSampleTracking() {
   const rows = getSampleFiltered();
   const tbody = document.getElementById('sample-tbody');
+  console.log('[renderSampleTracking] allSampleTracking(raw):', allSampleTracking.length, '/ 필터 후 표시될 행 수:', rows.length);
   if (!tbody) return;
   if (rows.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)">등록된 샘플 데이터가 없습니다</td></tr>`;
@@ -5958,9 +5988,15 @@ function renderSampleTracking() {
       ? `<div class="ss-stage-line">${latest.round_no}${L('차','R')} · ${latest.qc_date||'-'} ${sampleResultBadge(latest.status)}</div>`
       : `<div style="color:var(--muted);font-size:12px">-</div>`;
     const cancelled = st.status === 'cancelled';
+    // linked_order_id는 참고 정보로만 사용 — 있으면 연결된 오더의 실제 수량을 함께 보여주고,
+    // 없어도(오더 미연결) 이 항목 자체는 그대로 목록에 표시된다
+    const linkedOrder = st.linked_order_id ? allOrders.find(o => o.id === st.linked_order_id) : null;
+    const orderInfoHtml = linkedOrder
+      ? ` <span class="ss-style-meta" style="color:var(--ac)">[🔗 ${L('오더수량','Order Qty')} ${Number(linkedOrder.order_qty||0).toLocaleString()}]</span>`
+      : '';
     return `<tr${cancelled ? ' style="opacity:.55"' : ''}>
       <td class="ss-style-cell">
-        <div class="ss-style-no" onclick="openSampleDetail('${st.id}')">${escHtml(st.style_no||'')} ${cancelled ? `<span class="bdg" style="background:#999;color:#fff">${L('취소','Cancelled')}</span>` : ''} <span class="ss-style-meta">[${escHtml(st.vendor||L('미지정','Unassigned'))}] [${st.target_etd||'-'}]</span></div>
+        <div class="ss-style-no" onclick="openSampleDetail('${st.id}')">${escHtml(st.style_no||'')} ${cancelled ? `<span class="bdg" style="background:#999;color:#fff">${L('취소','Cancelled')}</span>` : ''} <span class="ss-style-meta">[${escHtml(st.vendor||L('미지정','Unassigned'))}] [${st.target_etd||'-'}]</span>${orderInfoHtml}</div>
         <div class="ss-style-name">${escHtml(st.style_name||'-')}</div>
       </td>
       <td class="ss-stage-cell">${st.tp_date||'<span style="color:var(--muted)">-</span>'}</td>
@@ -6059,7 +6095,7 @@ async function saveSampleData() {
   });
   try {
     await sb(`sample_tracking?id=eq.${activeSampleTrackingId}`, 'PATCH', patch);
-    allSampleTracking = await sb('sample_tracking?select=*');
+    allSampleTracking = await sbAll('sample_tracking?select=*');
     closeSampleModal();
     renderSampleTracking();
   } catch(e) {
@@ -6425,7 +6461,7 @@ async function submitSampleUploadRows() {
         failures.push(`[${_action}] ${r.style_no} — ${e.message}`);
       }
     }
-    allSampleTracking = await sb('sample_tracking?select=*');
+    allSampleTracking = await sbAll('sample_tracking?select=*');
     const successCnt = parsedSampleUploadRows.length - failures.length;
     const rejectedCnt = rejections.length + failures.length;
     parsedSampleUploadRows = []; sampleUploadRowErrors = [];
