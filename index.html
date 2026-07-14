@@ -682,6 +682,22 @@ body.pz-noselect{user-select:none}
             <div class="fg"><label class="fl" data-ko="코드" data-en="Code">코드</label><input type="text" id="settings-schedule-code" placeholder="bls0701"></div>
             <button class="btn btn-p" id="settings-schedule-code-save" data-ko="저장" data-en="Save">저장</button>
           </div></div>
+
+          <div class="card" style="max-width:480px;margin-top:16px"><div class="card-body">
+            <label class="fl" data-ko="🔗 이메일 발송용 웹 로그인 링크" data-en="🔗 Web Login Link for Emails">🔗 이메일 발송용 웹 로그인 링크</label>
+            <p style="color:var(--muted);font-size:12px;margin:4px 0 10px" data-ko="벤더 납기 알림 이메일에 포함되는 '진행 상황 업데이트' 버튼의 링크입니다." data-en="URL used by the 'Update progress' button included in vendor delivery alert emails.">벤더 납기 알림 이메일에 포함되는 '진행 상황 업데이트' 버튼의 링크입니다.</p>
+            <div class="fg"><label class="fl" data-ko="링크" data-en="URL">링크</label><input type="text" id="settings-login-url" placeholder="https://your-site.com"></div>
+            <button class="btn btn-p" id="settings-login-url-save" data-ko="저장" data-en="Save">저장</button>
+          </div></div>
+
+          <div class="card" style="max-width:480px;margin-top:16px"><div class="card-body">
+            <div class="alert alert-e" id="settings-alert-2"></div>
+            <div class="alert alert-s" id="settings-alert-s2"></div>
+            <label class="fl" data-ko="🧪 벤더 납기 알림 테스트 발송" data-en="🧪 Test Vendor ETD Alert Email">🧪 벤더 납기 알림 테스트 발송</label>
+            <p style="color:var(--muted);font-size:12px;margin:4px 0 10px" data-ko="실제 납기(18일 전) 조건을 기다리지 않고, 생산 미완료 + matched 오더 1건의 데이터로 테스트 메일을 즉시 발송합니다. 발송 이력에는 기록되지 않아 실제 자동 발송에 영향을 주지 않습니다." data-en="Immediately sends a test email using data from one production-incomplete, matched order, without waiting for the actual 18-day condition. Not recorded in send history, so it does not affect real automated sends.">실제 납기(18일 전) 조건을 기다리지 않고, 생산 미완료 + matched 오더 1건의 데이터로 테스트 메일을 즉시 발송합니다. 발송 이력에는 기록되지 않아 실제 자동 발송에 영향을 주지 않습니다.</p>
+            <div class="fg"><label class="fl" data-ko="테스트 수신 이메일" data-en="Test recipient email">테스트 수신 이메일</label><input type="email" id="settings-test-email" placeholder="you@example.com"></div>
+            <button class="btn btn-p" id="settings-test-alert-btn" data-ko="테스트 발송" data-en="Send Test">테스트 발송</button>
+          </div></div>
         </div>
 
         <div class="sec" id="sec-manual">
@@ -1518,8 +1534,7 @@ function buildSidebar() {
   } else if (me.role === 'vendor') {
     menu = `
       <button class="nav-btn on" data-sec="dashboard" data-ko="📋 내 오더 현황" data-en="📋 My Orders">📋 내 오더 현황</button>
-      <button class="nav-btn" data-sec="factory-mine" data-ko="🏭 공장 관리" data-en="🏭 Factory Management">🏭 공장 관리</button>
-      <button class="nav-btn" data-sec="manual" data-ko="📖 매뉴얼" data-en="📖 Manual">📖 매뉴얼</button>`;
+      <button class="nav-btn" data-sec="factory-mine" data-ko="🏭 공장 관리" data-en="🏭 Factory Management">🏭 공장 관리</button>`;
   } else if (me.role === 'cs') {
     menu = `
       <button class="nav-btn on" data-sec="dashboard" data-ko="📋 전체 오더 현황" data-en="📋 All Orders">📋 전체 오더 현황</button>
@@ -1645,6 +1660,8 @@ function bindAppEvents() {
   }));
   document.getElementById('arr-upload-btn')?.addEventListener('click', openArrivalUploadModal);
   document.getElementById('settings-schedule-code-save')?.addEventListener('click', saveScheduleCode);
+  document.getElementById('settings-login-url-save')?.addEventListener('click', saveLoginUrl);
+  document.getElementById('settings-test-alert-btn')?.addEventListener('click', sendTestAlertEmail);
   document.getElementById('arr-download-btn').addEventListener('click', downloadArrivalExcel);
   document.getElementById('arr-excel-file').addEventListener('change', handleArrivalExcelUpload);
   document.getElementById('arr-submit-btn').addEventListener('click', submitArrivalRows);
@@ -5480,9 +5497,17 @@ async function clearResolvedErrors() {
 async function renderSettings() {
   const input = document.getElementById('settings-schedule-code');
   input.value = '';
+  const loginInput = document.getElementById('settings-login-url');
+  if (loginInput) loginInput.value = '';
+  const testEmailInput = document.getElementById('settings-test-email');
+  if (testEmailInput) testEmailInput.value = me.email || '';
   try {
     const code = await getScheduleAccessCode();
     input.value = code || '';
+    if (loginInput) {
+      const rows = await sb('app_settings?key=eq.app_login_url&select=value');
+      loginInput.value = rows?.[0]?.value || '';
+    }
   } catch(e) { showAlert('settings-alert', e.message); }
 }
 async function saveScheduleCode() {
@@ -5495,6 +5520,34 @@ async function saveScheduleCode() {
     showAlert('settings-alert-s', L('✓ 저장되었습니다','✓ Saved'), 's');
   } catch(e) { showAlert('settings-alert', e.message); }
   finally { btn.disabled = false; }
+}
+async function saveLoginUrl() {
+  const val = document.getElementById('settings-login-url').value.trim();
+  if (!val) return showAlert('settings-alert', L('링크를 입력해주세요','Please enter a URL'));
+  const btn = document.getElementById('settings-login-url-save');
+  btn.disabled = true;
+  try {
+    await sb('app_settings?key=eq.app_login_url', 'PATCH', { value: val });
+    showAlert('settings-alert-s', L('✓ 저장되었습니다','✓ Saved'), 's');
+  } catch(e) { showAlert('settings-alert', e.message); }
+  finally { btn.disabled = false; }
+}
+async function sendTestAlertEmail() {
+  const email = document.getElementById('settings-test-email').value.trim();
+  if (!email) return showAlert('settings-alert-2', L('테스트 수신 이메일을 입력해주세요','Please enter a test recipient email'));
+  const btn = document.getElementById('settings-test-alert-btn');
+  btn.disabled = true; btn.textContent = L('발송 중...','Sending...');
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/vendor-etd-alert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      body: JSON.stringify({ test: true, testEmail: email })
+    });
+    const data = await r.json().catch(()=>({}));
+    if (!r.ok || data.ok === false) throw new Error(data.message || L('발송 실패','Send failed'));
+    showAlert('settings-alert-s2', L('✓ 테스트 메일을 발송했습니다: ','✓ Test email sent: ') + email, 's');
+  } catch(e) { showAlert('settings-alert-2', e.message); }
+  finally { btn.disabled = false; btn.textContent = L('테스트 발송','Send Test'); }
 }
 
 // ── 매뉴얼 QR ──
