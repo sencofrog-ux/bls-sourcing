@@ -1185,7 +1185,7 @@ const SUPABASE_KEY = "sb_publishable_b19kpVsItvdlFneFpzYb2Q_Z_Xc3ccr";
 
 // ── 전역 상태 ──
 let me = null;
-let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allErrors = [], allArrival = [], allDefectHistory = [], allSampleTracking = [], allQcRounds = [], allVendorMappings = [], allPoChangeLogs = [];
+let allOrders = [], allUsers = [], allSeasons = [], allFactories = [], allErrors = [], allArrival = [], allDefectHistory = [], allSampleTracking = [], allQcRounds = [], allVendorMappings = [], allPoChangeLogs = [], allStyles = [];
 let qcRoundsByStyle = {};
 function rebuildQcRoundsMap() {
   qcRoundsByStyle = {};
@@ -1946,7 +1946,7 @@ async function loadAll() {
     const usersQuery = isVendor ? `users?select=id,company_name,role&id=eq.${me.id}` : 'users?select=*';
 
     const canSeeSample = me.role==='master'||me.role==='md';
-    [allUsers, allSeasons, allOrders, allFactories, allErrors, allArrival, allDefectHistory, allSampleTracking, allQcRounds, allVendorMappings, allPoChangeLogs] = await Promise.all([
+    [allUsers, allSeasons, allOrders, allFactories, allErrors, allArrival, allDefectHistory, allSampleTracking, allQcRounds, allVendorMappings, allPoChangeLogs, allStyles] = await Promise.all([
       sb(usersQuery),
       sb('seasons?select=*'),
       sb(ordersQuery),
@@ -1957,7 +1957,8 @@ async function loadAll() {
       canSeeSample ? sbAll('sample_tracking?select=*') : Promise.resolve([]),
       canSeeSample ? sb('qc_rounds?select=*') : Promise.resolve([]),
       canSeeSample ? sb('vendor_mappings?select=*') : Promise.resolve([]),
-      sb('po_change_logs?select=*&order=detected_at.desc') // 벤더도 자기 오더의 AX 변경 이력을 조회할 수 있어야 하므로 마스터/MD 전용 제한(canSeeSample)에서 분리
+      sb('po_change_logs?select=*&order=detected_at.desc'), // 벤더도 자기 오더의 AX 변경 이력을 조회할 수 있어야 하므로 마스터/MD 전용 제한(canSeeSample)에서 분리
+      sb('styles?select=*') // 스타일 마스터(정규화 1단계) — 오더 등록 자동완성 / 샘플관리 업로드 매칭에 사용
     ]);
     rebuildQcRoundsMap();
     console.log('[loadAll] sample_tracking fetch 성공 — canSeeSample:', canSeeSample, '/ 조회된 행 수:', allSampleTracking.length);
@@ -2620,6 +2621,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
     document.getElementById('reg-urgent-label').textContent = on ? L('긴급 오더 (Reorder)','Urgent Order (Reorder)') : L('일반 오더','Normal Order');
     document.getElementById('reg-urgent-label').style.color = on ? 'var(--red)' : '';
     document.getElementById('reg-urgent-badge').style.display = on ? '' : 'none';
+  });
+
+  // 스타일번호 입력 시 styles 마스터(정규화 1단계)에 이미 있는 스타일이면 스타일명/카테고리/브랜드를
+  // 자동완성한다. 빈 칸만 채우고, 이미 입력된 값은 덮어쓰지 않는다.
+  const styleNoInput = document.getElementById('reg-styleno');
+  if (styleNoInput) styleNoInput.addEventListener('blur', ()=>{
+    const styleNo = styleNoInput.value.trim();
+    if (!styleNo) return;
+    const match = allStyles.find(s => (s.style_no||'').trim().toLowerCase() === styleNo.toLowerCase());
+    if (!match) return;
+    const nameEl = document.getElementById('reg-stylename');
+    const catEl = document.getElementById('reg-cat');
+    const brandEl = document.getElementById('reg-brand');
+    if (nameEl && !nameEl.value.trim() && match.style_name) nameEl.value = match.style_name;
+    if (catEl && !catEl.value.trim() && match.category) catEl.value = match.category;
+    if (brandEl && !brandEl.value.trim() && match.brand) brandEl.value = match.brand;
   });
 });
 
@@ -6481,10 +6498,15 @@ function handleSampleExcelUpload(e) {
           ? (parseFloat(String(fobRaw).replace(/[^0-9.]/g,'')) || 0) : null;
         const currency = (COL_CURRENCY>=0 && row[COL_CURRENCY]) ? String(row[COL_CURRENCY]).trim().toUpperCase() : null;
 
+        // styles 마스터(정규화 1단계) 매칭 — style_id를 함께 저장하고, 엑셀에 DESCRIPTION이
+        // 비어있는 경우에 한해 마스터의 스타일명으로 보완한다. 매칭 안 되면 그대로 두고 건드리지 않는다.
+        const styleMaster = allStyles.find(s => (s.style_no||'').trim().toLowerCase() === styleNo.toLowerCase());
+
         // UPDATE/REORDER는 SUPPLIER/수량/단가/Target ETD/DESCRIPTION만 갱신하고, TP/QC/PP/SHIPPING 진행 데이터는 절대 건드리지 않는다
-        const infoFields = { style_name: desc, vendor: vendorText, vendor_code: vendorCodeText, order_qty: qty, target_etd: targetEtd };
+        const infoFields = { style_name: desc || (styleMaster ? styleMaster.style_name : null), vendor: vendorText, vendor_code: vendorCodeText, order_qty: qty, target_etd: targetEtd };
         if (unitPrice !== null) infoFields.unit_price = unitPrice;
         if (currency) infoFields.currency = currency;
+        if (styleMaster) infoFields.style_id = styleMaster.id;
 
         if (action === 'NEW') {
           parsed.push({ _rowNum: rowNum, _action: 'NEW', style_no: styleNo, season: seasonName, status: 'active', ...infoFields });
