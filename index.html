@@ -1296,27 +1296,28 @@ async function sbAll(path, pageSize = 1000) {
 function showPg(id) { document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on')); document.getElementById(id).classList.add('on'); }
 function showAlert(id, msg, type='e') { const el=document.getElementById(id); if(!el)return; el.textContent=msg; el.className='alert on alert-'+type; if(type!=='s')setTimeout(()=>el.classList.remove('on'),5000); }
 function today() { return new Date().toISOString().slice(0,10); }
-// 화면에 표시할 납기: adjusted_date(마스터 조정값)가 있으면 우선, 없으면 planned_ship_date(AX 원본/수기 등록값)로 대체
+// 화면에 표시할 납기(단일 행 기준): adjusted_date(마스터 조정값)가 있으면 우선, 없으면 planned_ship_date(AX 원본/수기 등록값)로 대체
 function dispDate(o) { return (o && (o.adjusted_date || o.planned_ship_date)) || null; }
-// 컬러별로 납기가 다를 수 있으므로, 스타일 그룹(같은 PO+스타일의 컬러 행 전체)의 정렬/지연판정은
-// 그룹 내 컬러 행들 중 가장 이른 날짜(MIN)를 기준으로 한다.
+// 스타일(같은 PO+스타일의 컬러 행 전체) 단위 유효 납기: 조정 ETD는 저장 시 그룹 내 모든 컬러 행에
+// 동일한 값으로 일괄 반영되므로, 그룹 중 한 행이라도 adjusted_date가 있으면 그 값을 그대로 쓴다.
+// 조정 ETD가 아직 없으면(컬러별 원본 target ETD만 있는 상태) 컬러별 원본 중 가장 이른 날짜(MIN)를 기준으로 한다.
 function groupMinDate(group) {
-  const dates = (group || []).map(dispDate).filter(Boolean);
+  const withAdjusted = (group || []).find(x => x && x.adjusted_date);
+  if (withAdjusted) return withAdjusted.adjusted_date;
+  const dates = (group || []).map(x => x && x.planned_ship_date).filter(Boolean);
   return dates.length ? dates.reduce((a, b) => a < b ? a : b) : null;
 }
-// ── 납기 지연 판정 (공통 규칙) ──
-// 컬러 행 1개의 지연 여부: 유효 납기(dispDate = adjusted_date 우선, 없으면 planned_ship_date)가
-// 오늘보다 이전이면서 아직 다 선적되지 않았으면 지연. 유효 납기가 둘 다 없으면(NULL) 판정에서 제외.
-function isRowDelayed(o, t) {
-  if (!o || o.status === 'cancelled') return false;
-  const d = dispDate(o);
-  if (!d) return false;
-  return d < t && (o.shipped_qty||0) < (o.order_qty||0);
-}
-// 스타일 그룹의 지연 배지: 그룹(같은 PO+스타일의 컬러 행 전체) 중 하나의 컬러 행이라도
-// 위 규칙으로 지연이면 스타일 전체를 지연으로 표시한다.
+// ── 납기 지연 판정 (공통 규칙, 스타일 그룹 단위) ──
+// 그룹의 유효 납기(groupMinDate: 조정 ETD 우선, 없으면 컬러별 원본 중 가장 이른 날짜)가 오늘보다 이전이면서
+// 그룹 전체 발주수량이 아직 다 선적되지 않았으면 지연. 취소된 컬러 행은 판정에서 제외한다.
 function isGroupDelayed(group, t) {
-  return (group || []).some(o => isRowDelayed(o, t));
+  const active = (group || []).filter(o => o && o.status !== 'cancelled');
+  if (!active.length) return false;
+  const d = groupMinDate(active);
+  if (!d) return false;
+  const totalQty = active.reduce((s,x)=>s+(x.order_qty||0),0);
+  const totalShipped = active.reduce((s,x)=>s+(x.shipped_qty||0),0);
+  return d < t && totalShipped < totalQty;
 }
 function isMobileCal() { return window.matchMedia('(max-width:992px)').matches; }
 function addDaysToDateStr(dateStr, n) { const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
@@ -4075,8 +4076,10 @@ function openVendorModal(orderId) {
       <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.05em">${L('📜 변경 이력 보기','📜 View Change History')}</summary>
       <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-top:8px;font-size:12px">${renderMergedChangeHistoryHtml(orderId, canActOnPoChange)}</div>
     </details>`;
-  // 마스터/MD만 컬러별 조정 ETD를 직접 수정할 수 있다(벤더/CS는 조회만)
+  // 마스터/MD만 조정 ETD(변경 납기일)를 수정할 수 있다(벤더/CS는 조회만) — 입력은 아래 일정 영역에 스타일 단위로 하나만 존재한다
   const canEditAdjusted = me.role === 'master' || me.role === 'md';
+  // 원래 타겟 ETD(planned_ship_date)는 컬러별로 다를 수 있어 참고용으로 계속 컬러별 표시(읽기 전용).
+  // 조정 ETD는 스타일 전체에 하나만 존재하므로(아래 일정 영역 참고) 이 표에는 더 이상 표시하지 않는다.
   const colorTableHtml = group.length > 1 ? `
     <div style="margin-top: 8px; border-top: 1px dashed var(--bdr); padding-top: 8px;">
       <div style="font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px;">${L('컬러별 수량','Qty by Color')} (${group.length})</div>
@@ -4084,16 +4087,12 @@ function openVendorModal(orderId) {
         <thead><tr>
           <th style="text-align:left;padding:3px 6px 3px 0;color:var(--muted);font-weight:600">${L('컬러','Color')}</th>
           <th style="text-align:right;padding:3px 6px;color:var(--muted);font-weight:600">${L('수량','Qty')}</th>
-          <th style="text-align:right;padding:3px 6px;color:var(--muted);font-weight:600;white-space:nowrap">${L('원래 타겟 ETD','Original Target ETD')}</th>
-          <th style="text-align:right;padding:3px 0 3px 6px;color:var(--muted);font-weight:600;white-space:nowrap">${L('조정 ETD','Adjusted ETD')}</th>
+          <th style="text-align:right;padding:3px 0 3px 6px;color:var(--muted);font-weight:600;white-space:nowrap">${L('원래 타겟 ETD','Original Target ETD')}</th>
         </tr></thead>
         <tbody>${group.map(x=>`<tr>
           <td style="padding:3px 6px 3px 0;font-family:'DM Mono',monospace">${x.ax_color_code||'-'}</td>
           <td style="padding:3px 6px;text-align:right;font-weight:600">${Number(x.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
-          <td style="padding:3px 6px;text-align:right;color:var(--muted)">${x.planned_ship_date ? x.planned_ship_date.slice(0,10) : '-'}</td>
-          <td style="padding:3px 0 3px 6px;text-align:right">${canEditAdjusted
-            ? `<input type="date" class="color-adj-etd" value="${x.adjusted_date ? x.adjusted_date.slice(0,10) : ''}" style="font-size:12px;padding:2px 4px;font-family:inherit" onchange="saveColorAdjustedDate('${x.id}', this)">`
-            : (x.adjusted_date ? x.adjusted_date.slice(0,10) : '-')}</td>
+          <td style="padding:3px 0 3px 6px;text-align:right;color:var(--muted)">${x.planned_ship_date ? x.planned_ship_date.slice(0,10) : '-'}</td>
         </tr>`).join('')}</tbody>
       </table>
     </div>` : '';
@@ -4250,8 +4249,29 @@ function openVendorModal(orderId) {
   document.getElementById('vendor-modal').classList.add('on');
 }
 
-// ── 컬러별 조정 ETD 개별 저장 (일괄 적용 아님 — 컬러 행 하나만 갱신) ──
-async function saveColorAdjustedDate(orderId, inputEl) {
+// ── 조정 ETD(변경 납기일) 스타일 단위 일괄 저장 ──
+// 같은 PO+스타일의 컬러 행 전체(getOrderGroup)에 동일한 adjusted_date를 한 번에 반영한다.
+// 컬러별로 따로 조정하던 방식은 일부 컬러만 조정되면 나머지 원본 컬러 때문에 스타일 전체가
+// "지연"으로 잘못 표시되는 문제가 있어, 스타일 단위 하나의 값으로 통일했다.
+async function applyGroupAdjustedDate(orderId, newVal) {
+  const group = getOrderGroup(orderId);
+  if (!group.length) return;
+  const ids = group.map(x => x.id);
+  await sb(`orders?id=in.(${ids.join(',')})`, 'PATCH', { adjusted_date: newVal, updated_at: new Date().toISOString() });
+  const logTs = nowKstIso();
+  for (const row of group) {
+    const rowOldVal = row.adjusted_date || null;
+    if (newVal === rowOldVal) continue;
+    await sb('po_change_logs', 'POST', {
+      order_id: row.id, changed_field: 'adjusted_date',
+      old_value: rowOldVal || '', new_value: newVal,
+      confirmed: true, confirmed_at: logTs, resolution: 'applied'
+    });
+  }
+  group.forEach(row => { row.adjusted_date = newVal; });
+}
+
+async function saveAdjustedEtd(orderId, inputEl) {
   const o = allOrders.find(x => x.id === orderId);
   if (!o) return;
   const newVal = inputEl.value || null;
@@ -4264,14 +4284,9 @@ async function saveColorAdjustedDate(orderId, inputEl) {
   }
   inputEl.disabled = true;
   try {
-    await sb(`orders?id=eq.${orderId}`, 'PATCH', { adjusted_date: newVal, updated_at: new Date().toISOString() });
-    await sb('po_change_logs', 'POST', {
-      order_id: orderId, changed_field: 'adjusted_date',
-      old_value: oldVal || '', new_value: newVal,
-      confirmed: true, confirmed_at: nowKstIso(), resolution: 'applied'
-    });
-    o.adjusted_date = newVal;
+    await applyGroupAdjustedDate(orderId, newVal);
     renderDashboard();
+    openVendorModal(orderId);
   } catch (e) {
     inputEl.value = oldVal ? oldVal.slice(0,10) : '';
     alert(L('납기 수정 실패: ','Failed to update ETD: ') + e.message);
@@ -4306,9 +4321,13 @@ async function saveManualTargetEtd(orderId, inputEl) {
 // ── 상세보기 팝업 "일정" 영역 (Target ETD / 변경 납기일 / 생산완료 예정일 3칸 + 실제 생산완료일) ──
 // 마스터/MD: Target ETD 조회만(단, AX 미등록 수기 오더에 값이 없으면 최초 입력 가능) / 변경 납기일 입력·수정 / 생산완료 예정일·실제 생산완료일 조회만
 // 벤더: Target ETD·변경 납기일 조회만 / 생산완료 예정일·실제 생산완료일 입력·수정
+// 변경 납기일(조정 ETD)은 컬러별이 아니라 스타일(같은 PO+스타일의 컬러 행 전체) 단위로 하나만 입력한다(saveAdjustedEtd → 그룹 전체 일괄 반영).
 function renderScheduleZone(o, canEditAdjusted, isMasterView) {
   const targetEtdRaw = o.planned_ship_date ? o.planned_ship_date.slice(0,10) : '';
-  const adjustedRaw = o.adjusted_date ? o.adjusted_date.slice(0,10) : '';
+  // 조정 ETD는 스타일(그룹) 단위 값이므로, 이 행 하나가 아니라 같은 PO+스타일의 컬러 행 전체 중
+  // 값이 설정된 행을 찾아 표시한다(정상적으로는 그룹 전체가 동일한 값을 갖는다).
+  const groupAdjusted = getOrderGroup(o.id).find(x => x && x.adjusted_date);
+  const adjustedRaw = groupAdjusted ? groupAdjusted.adjusted_date.slice(0,10) : '';
   const adjustedShown = adjustedRaw || targetEtdRaw; // 값이 없으면 Target ETD와 동일하게 표시
 
   const roVal = (v) => `<div style="padding:12px;border-radius:var(--r);background:var(--bg);font-size:14px;color:var(--txt)">${v || '-'}</div>`;
@@ -4319,7 +4338,7 @@ function renderScheduleZone(o, canEditAdjusted, isMasterView) {
     : roVal(targetEtdRaw);
 
   const adjustedCell = canEditAdjusted
-    ? `<input type="date" id="vm-adjusted-date" value="${adjustedShown}" onchange="saveColorAdjustedDate('${o.id}', this)">`
+    ? `<input type="date" id="vm-adjusted-date" value="${adjustedShown}" onchange="saveAdjustedEtd('${o.id}', this)">`
     : roVal(adjustedShown);
 
   const planCell = !isMasterView
@@ -5840,21 +5859,14 @@ async function saveOrderEdit() {
   if (!o) return;
 
   // AX 연동 PO는 납기(조정)만 갱신한다. 다른 필드는 disabled 상태라 값이 바뀔 수 없지만, 안전하게 여기서 저장 자체를 분기한다.
+  // 조정 ETD는 스타일 단위 값이므로 같은 PO+스타일의 컬러 행 전체에 일괄 반영한다(applyGroupAdjustedDate).
   if (o.source === 'ax') {
     const newEtd = document.getElementById('oe-etd').value || null;
     if (!newEtd) return showAlert('oe-alert', L('납기(조정)를 입력해주세요','Please enter the adjusted ETD'));
-    const oldAdjustedDate = dispDate(o);
     const btn = document.getElementById('oe-save');
     btn.disabled = true; btn.textContent = L('저장 중...','Saving...');
     try {
-      await sb(`orders?id=eq.${activeOrderId}`, 'PATCH', { adjusted_date: newEtd, updated_at: new Date().toISOString() });
-      if (newEtd !== (oldAdjustedDate || null)) {
-        await sb('po_change_logs', 'POST', {
-          order_id: activeOrderId, changed_field: 'adjusted_date',
-          old_value: oldAdjustedDate || '', new_value: newEtd || '',
-          confirmed: true, confirmed_at: nowKstIso(), resolution: 'applied'
-        });
-      }
+      await applyGroupAdjustedDate(activeOrderId, newEtd);
       closeModal('oe');
       await loadAll();
       alert(L('납기가 수정되었습니다','Delivery date updated'));
