@@ -544,6 +544,11 @@ body.pz-noselect{user-select:none}
           <div id="shipout-tbl"></div>
         </div>
 
+        <div class="sec" id="sec-shipedit">
+          <div class="sec-hdr"><div><div class="sec-title" data-ko="선적 수정" data-en="Edit Shipment">선적 수정</div><div class="sec-sub" data-ko="이미 확정된 오더의 선적수량/ETD/불량 수량을 수정하세요" data-en="Edit the confirmed shipping qty/ETD/defect qty for already-shipped orders">이미 확정된 오더의 선적수량/ETD/불량 수량을 수정하세요</div></div></div>
+          <div id="shipedit-tbl"></div>
+        </div>
+
         <div class="sec" id="sec-recap">
           <div class="sec-hdr"><div><div class="sec-title" data-ko="PRODUCTION RECAP" data-en="Production Recap">PRODUCTION RECAP</div><div class="sec-sub" data-ko="단계별 일정/입력자, 선적수량, 불량율을 엑셀로 다운로드" data-en="Download stage dates/users, shipped qty, defect rate as Excel">단계별 일정/입력자, 선적수량, 불량율을 엑셀로 다운로드</div></div>
             <select class="fsel" id="recap-style-sel" style="max-width:220px"></select>
@@ -812,6 +817,7 @@ body.pz-noselect{user-select:none}
       <div id="vm-po-change-section"></div>
     </div>
     <div class="mfooter" id="vm-footer-actions">
+      <button class="btn btn-s btn-sm" id="vm-delete-btn" style="width:auto;margin-right:auto;color:var(--red);border-color:var(--red);display:none" onclick="confirmDeleteOrder(activeOrderId)" data-ko="🗑 오더 삭제" data-en="🗑 Delete Order">🗑 오더 삭제</button>
       <button class="btn btn-s btn-sm" id="vm-cancel" data-ko="취소" data-en="Cancel">취소</button>
       <button class="btn btn-p btn-sm" id="vm-save" style="width:auto" data-ko="저장" data-en="Save">저장</button>
     </div>
@@ -1524,6 +1530,7 @@ function buildSidebar() {
         <button class="nav-group-hdr"><span class="nav-group-label" data-ko="🚢 선적/입고" data-en="🚢 Shipping/Inbound">🚢 선적/입고</span><span class="nav-group-arrow">▸</span></button>
         <div class="nav-group-body">
           <button class="nav-btn" data-sec="shipout" data-ko="📦 선적 확정" data-en="📦 Confirm Shipment">📦 선적 확정</button>
+          <button class="nav-btn" data-sec="shipedit" data-ko="✏️ 선적 수정" data-en="✏️ Edit Shipment">✏️ 선적 수정</button>
           <button class="nav-btn" data-sec="inbound" data-ko="📅 입고 일정표" data-en="📅 Inbound Schedule">📅 입고 일정표</button>
         </div>
       </div>
@@ -1601,6 +1608,7 @@ function switchSec(id) {
   closeSidebar();
   if (id === 'pending') renderPending();
   if (id === 'shipout') renderShipout();
+  if (id === 'shipedit') renderShipoutEdit();
   if (id === 'recap') renderRecapStyleOptions();
   if (id === 'inbound') { renderArrivalList(); if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar(); }
   if (id === 'factory-all') renderFactoryAll();
@@ -4140,14 +4148,25 @@ function openVendorModal(orderId) {
   const footerBlock = document.getElementById('vm-footer-actions');
   const readonlyView = document.getElementById('vm-readonly-view');
   const isMasterView = me.role === 'master' || me.role === 'md' || me.role === 'cs';
+  const deleteBtn = document.getElementById('vm-delete-btn');
   if (isMasterView) {
     fieldsBlock.style.display = 'none';
     readonlyView.style.display = 'block';
-    footerBlock.style.display = 'none';
+    // 마스터만 이 모달에서 오더를 삭제할 수 있으므로, 마스터일 때만 푸터(삭제 버튼)를 노출한다
+    document.getElementById('vm-save').style.display = 'none';
+    if (me.role === 'master') {
+      footerBlock.style.display = 'flex';
+      deleteBtn.style.display = 'inline-block';
+    } else {
+      footerBlock.style.display = 'none';
+      deleteBtn.style.display = 'none';
+    }
   } else {
     fieldsBlock.style.display = 'block';
     readonlyView.style.display = 'none';
     footerBlock.style.display = 'flex';
+    document.getElementById('vm-save').style.display = '';
+    deleteBtn.style.display = 'none';
   }
 
   document.getElementById('vm-schedule-zone').innerHTML = renderScheduleZone(o, canEditAdjusted, isMasterView);
@@ -4371,6 +4390,37 @@ async function saveVendorProduction() {
   finally { btn.disabled=false; btn.textContent=L('저장','Save'); }
 }
 
+// ── 오더(스타일) 삭제 (마스터 전용) ──
+// order_id를 참조하는 하위 테이블(production_log, po_change_logs)을 먼저 삭제한 후 orders 행을 삭제한다
+// (두 테이블은 ON DELETE CASCADE가 아니므로 먼저 지우지 않으면 외래키 오류 발생 — mergeDupSuspect()와 동일한 순서).
+// defect_history는 ON DELETE CASCADE로 orders 삭제 시 자동 삭제되므로 별도 처리 불필요.
+// sample_tracking/qc_rounds는 오더와 무관한 독립 테이블(2026-07 standalone 마이그레이션 이후)이므로 대상에서 제외.
+// AX 연동 오더(source='ax')든 수기 오더든 마스터는 삭제 가능하도록 source 체크를 하지 않는다.
+async function confirmDeleteOrder(orderId) {
+  const o = allOrders.find(x => x.id === orderId);
+  if (!o) return;
+  if (me.role !== 'master') return;
+  if (!confirm(L(
+    '정말 삭제하시겠습니까?\n관련 생산현황 체크 이력, PO 변경 이력, CS 불량 이력 등 연관 기록이 모두 함께 삭제됩니다.\n(샘플관리 데이터는 오더와 무관하게 독립 운영되어 영향받지 않습니다)',
+    'Are you sure you want to delete this order?\nRelated records (production log, PO change history, defect history, etc.) will all be deleted together.\n(Sample tracking data is managed independently of orders and will not be affected)'
+  ))) return;
+  const btn = document.getElementById('vm-delete-btn');
+  if (btn) { btn.disabled = true; btn.textContent = L('삭제 중...', 'Deleting...'); }
+  try {
+    await sb(`production_log?order_id=eq.${orderId}`, 'DELETE');
+    await sb(`po_change_logs?order_id=eq.${orderId}`, 'DELETE');
+    await sb(`orders?id=eq.${orderId}`, 'DELETE');
+    closeModal('vm');
+    await loadAll();
+    renderDashboard();
+    alert(L('오더가 삭제되었습니다.', 'The order has been deleted.'));
+  } catch (e) {
+    alert(L('삭제 중 오류가 발생했습니다: ', 'An error occurred while deleting: ') + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = L('🗑 오더 삭제', '🗑 Delete Order'); }
+  }
+}
+
 // ── 선적 확정 (마스터: 선적 요청된 오더의 선적수량/ETD/초기 불량을 확정) ──
 // 잔량 = 발주수량(order_qty) - 누적 선적수량(shipped_qty). 강제완료(생산완료 처리) 기능에서만 사용됨.
 function getRemainingQty(o) {
@@ -4411,6 +4461,19 @@ function renderShipout() {
     }).join('')}
     </tbody></table></div>`;
 }
+// saveShipout(선적 확정)과 saveShipoutEdit(선적 수정)이 공유하는 핵심 로직.
+// markShipped=true면 status를 'shipped'로 전이(최초 확정), false면 이미 'shipped'인 오더의 값만 재수정한다.
+async function commitShipment(orderId, actual_qty, actual_etd, defect_qty, markShipped) {
+  if (!actual_etd) { alert(L('예정 ETD를 입력해주세요','Please enter the est. ETD')); return null; }
+  const arrival_date = addBusinessDays(actual_etd, 4);
+  const patch = {
+    actual_qty, actual_etd, defect_qty,
+    shipped_qty: actual_qty, arrival_date, updated_at: new Date().toISOString()
+  };
+  if (markShipped) patch.status = 'shipped';
+  await sb(`orders?id=eq.${orderId}`, 'PATCH', patch);
+  return arrival_date;
+}
 async function saveShipout(orderId) {
   const qtyInput = document.querySelector(`.shipout-qty[data-id="${orderId}"]`);
   const etdInput = document.querySelector(`.shipout-etd[data-id="${orderId}"]`);
@@ -4418,15 +4481,56 @@ async function saveShipout(orderId) {
   const actual_qty = parseInt(qtyInput?.value) || 0;
   const actual_etd = etdInput?.value || null;
   const defect_qty = parseInt(defectInput?.value) || 0;
-  if (!actual_etd) { alert(L('예정 ETD를 입력해주세요','Please enter the est. ETD')); return; }
-  const arrival_date = addBusinessDays(actual_etd, 4);
   try {
-    await sb(`orders?id=eq.${orderId}`, 'PATCH', {
-      status: 'shipped', actual_qty, actual_etd, defect_qty,
-      shipped_qty: actual_qty, arrival_date, updated_at: new Date().toISOString()
-    });
+    const arrival_date = await commitShipment(orderId, actual_qty, actual_etd, defect_qty, true);
+    if (!arrival_date) return;
     await loadAll(); renderShipout();
     alert(L('선적이 확정되었습니다 (입고 예정일 ' + arrival_date + ')','Shipment confirmed (Est. arrival: ' + arrival_date + ')'));
+  } catch(e) { alert(e.message); }
+}
+
+// ── 선적 수정 (마스터: 이미 확정된 오더의 선적수량/ETD/불량 수량을 재수정) ──
+// status='shipped'인 오더만 대상으로 하며, saveShipout과 동일한 commitShipment()를 재사용한다.
+function renderShipoutEdit() {
+  const list = allOrders.filter(o => o.status === 'shipped')
+    .sort((a,b)=>(b.actual_etd||'').localeCompare(a.actual_etd||''));
+  if (!list.length) {
+    document.getElementById('shipedit-tbl').innerHTML = `<div class="empty"><div class="empty-t">${L('확정된 선적 건이 없습니다','No confirmed shipments')}</div></div>`;
+    return;
+  }
+  document.getElementById('shipedit-tbl').innerHTML = `
+    <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>${L('벤더','Vendor')}</th><th>${L('스타일','Style')}</th><th>${L('발주수량','Order Qty')}</th>
+      <th>${L('선적 수량','Shipping Qty')}</th><th>${L('확정 ETD','Confirmed ETD')}</th><th>${L('불량 수량','Defect Qty')}</th><th>${L('관리','Action')}</th>
+    </tr></thead>
+    <tbody>
+    ${list.map(o=>{
+      const v = allUsers.find(u=>u.id===o.vendor_id);
+      return `<tr>
+        <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
+        <td data-label="${L('스타일','Style')}">${o.style_no}<br><span style="font-size:12px;color:var(--muted)">${o.style_name}</span></td>
+        <td data-label="${L('발주수량','Order Qty')}">${Number(o.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
+        <td data-label="${L('선적 수량','Shipping Qty')}"><input type="number" class="shipedit-qty" data-id="${o.id}" value="${o.actual_qty ?? 0}" min="0" style="width:100px;padding:6px 8px;font-size:12px"></td>
+        <td data-label="${L('확정 ETD','Confirmed ETD')}"><input type="date" class="shipedit-etd" data-id="${o.id}" value="${o.actual_etd||''}" style="padding:6px 8px;font-size:12px"></td>
+        <td data-label="${L('불량 수량','Defect Qty')}"><input type="number" class="shipedit-defect" data-id="${o.id}" value="${o.defect_qty || 0}" min="0" style="width:100px;padding:6px 8px;font-size:12px"></td>
+        <td data-label="${L('관리','Action')}"><button class="btn btn-p btn-sm" onclick="saveShipoutEdit('${o.id}')">${L('저장','Save')}</button></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+}
+async function saveShipoutEdit(orderId) {
+  const qtyInput = document.querySelector(`.shipedit-qty[data-id="${orderId}"]`);
+  const etdInput = document.querySelector(`.shipedit-etd[data-id="${orderId}"]`);
+  const defectInput = document.querySelector(`.shipedit-defect[data-id="${orderId}"]`);
+  const actual_qty = parseInt(qtyInput?.value) || 0;
+  const actual_etd = etdInput?.value || null;
+  const defect_qty = parseInt(defectInput?.value) || 0;
+  try {
+    const arrival_date = await commitShipment(orderId, actual_qty, actual_etd, defect_qty, false);
+    if (!arrival_date) return;
+    await loadAll(); renderShipoutEdit();
+    alert(L('선적 정보가 수정되었습니다 (입고 예정일 ' + arrival_date + ')','Shipment info updated (Est. arrival: ' + arrival_date + ')'));
   } catch(e) { alert(e.message); }
 }
 
