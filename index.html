@@ -1481,6 +1481,9 @@ async function launchApp() {
   if (ordVendorSel) ordVendorSel.style.display = me.role === 'vendor' ? 'none' : '';
   const arrUploadBtn = document.getElementById('arr-upload-btn');
   if (arrUploadBtn) arrUploadBtn.style.display = me.role === 'master' ? '' : 'none';
+  // 벤더 화면에는 "AX 미등록" 탭을 노출하지 않음(내부 관리용 — 마스터/MD 화면은 그대로 유지)
+  const axUnregTab = document.querySelector('#dash-status-tabs [data-dstatus="ax_unregistered"]');
+  if (axUnregTab) axUnregTab.style.display = me.role === 'vendor' ? 'none' : '';
   // 회사 코드 간편 접속(내부 직원 조회 전용): 목록/캘린더 탭 전환, 엑셀 다운로드/인쇄/주간 이동/날짜/검색은 그대로 사용 가능.
   // 목록 화면의 엑셀 업로드(위 arrUploadBtn)·행 관리(수정/삭제)·체크박스는 renderArrivalList()의 isMaster 분기에서 계속 차단됨.
   buildSidebar();
@@ -1994,7 +1997,9 @@ function saveDashFilters() {
 function restoreDashFilters() {
   let saved;
   try { saved = JSON.parse(sessionStorage.getItem(dashFilterKey()) || 'null'); } catch(e) { saved = null; }
-  const statusVal = saved?.status || 'active';
+  // 벤더 화면은 "AX 미등록" 탭을 노출하지 않으므로, 과거 세션에 저장된 값이라도 그 상태로 복원하지 않는다
+  let statusVal = saved?.status || 'active';
+  if (me.role === 'vendor' && statusVal === 'ax_unregistered') statusVal = 'active';
   document.querySelectorAll('#dash-status-tabs [data-dstatus]').forEach(b=>b.classList.toggle('on', b.dataset.dstatus===statusVal));
   if (!saved) return;
   const seasonSel = document.getElementById('dash-season');
@@ -2468,6 +2473,19 @@ function computeStageGroupUpdate(orderId, stage) {
   const currentVal = group.every(x => !!x[field]); // 컬러 전원 완료 상태만 '완료'로 간주
   const newVal = !currentVal;
   const isMasterForce = me.role === 'master';
+  // 벤더가 새로 체크(newVal=true)하려는데 공장이 아직 미입력이면 먼저 공장 선택을 요구한다.
+  // 해제(newVal=false)나 이미 공장 없이 체크되어 있던 기존 오더는 건드리지 않는다(요구사항: 앞으로 새로 체크하는 것부터만 적용).
+  if (me.role === 'vendor' && newVal) {
+    const o = allOrders.find(x => x.id === orderId);
+    if (o && !o.factory_name) {
+      alert(L('생산 단계를 체크하려면 먼저 생산 공장을 선택해주세요','Please select a production factory before checking production stages'));
+      // 상세 모달이 이미 이 오더로 열려 있으면 다시 열지 않는다(입력 중이던 다른 필드가 초기화되는 것을 방지) — 공장 선택란에 포커스만 이동
+      const modalAlreadyOpen = activeOrderId === orderId && document.getElementById('vendor-modal').classList.contains('on');
+      if (modalAlreadyOpen) document.getElementById('vm-factory')?.focus();
+      else openVendorModal(orderId);
+      return null;
+    }
+  }
   if (!isMasterForce) {
     if (newVal) {
       for (let i = 0; i < idx; i++) {
