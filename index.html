@@ -4600,18 +4600,53 @@ function getArrivalFilteredRows() {
   });
 }
 
+// INVOICE NO. 정규화 — 대소문자/앞뒤·중간 공백/전각공백/특수 하이픈 차이로
+// 같은 인보이스가 다른 그룹으로 쪼개지는 것을 방지
+function normInvoiceNo(v) {
+  return String(v ?? '')
+    .replace(/[ 　]/g, ' ')          // NBSP·전각 공백 → 일반 공백
+    .replace(/[‐-―−]/g, '-')   // 각종 대시(– — −) → 일반 하이픈
+    .replace(/\s+/g, '')                      // 모든 공백 제거
+    .toUpperCase();
+}
+
+// 문자열 비교(숫자 인식) — 10580-055 < 10580-150 < 10580-155
+function cmpStr(a, b) {
+  return String(a ?? '').localeCompare(String(b ?? ''), 'en', { numeric: true, sensitivity: 'base' });
+}
+
 // 입고일 + INVOICE NO. 단위로 인접 그룹 재구성 (목록 뷰 / 엑셀 다운로드 공용 — 순서 1:1 보장)
-// 1순위 arrival_date 오름차순, 2순위 invoice_no 오름차순, 3순위 그룹 내 원본(등록) 순서 유지
+// 1순위 arrival_date 오름차순
+// 2순위 invoice_no 오름차순 (같은 인보이스는 반드시 연속된 행으로 묶임)
+// 3순위 그룹 내 style_no 오름차순 (동률이면 color_code, 그다음 id로 안정 정렬)
 function buildArrivalInvoiceGroups(rows) {
   const invoiceMap = new Map();
   rows.forEach(r => {
-    const k = `${r.arrival_date}|${r.invoice_no}`;
-    if (!invoiceMap.has(k)) invoiceMap.set(k, []);
-    invoiceMap.get(k).push(r);
+    const date = String(r.arrival_date ?? '') || '9999-12-31'; // 날짜 없는 행은 맨 뒤
+    const inv = normInvoiceNo(r.invoice_no);
+    const k = `${date}|${inv}`;
+    if (!invoiceMap.has(k)) invoiceMap.set(k, { date, inv, items: [] });
+    invoiceMap.get(k).items.push(r);
   });
-  return [...invoiceMap.entries()]
-    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
-    .map(([, v]) => v);
+
+  const groups = [...invoiceMap.values()];
+
+  // 2순위: 날짜 → 인보이스
+  groups.sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return cmpStr(a.inv, b.inv);
+  });
+
+  // 3순위: 같은 인보이스 내에서 style_no 오름차순
+  groups.forEach(g => {
+    g.items.sort((a, b) =>
+      cmpStr(a.style_no, b.style_no) ||
+      cmpStr(a.color_code, b.color_code) ||
+      cmpStr(a.id, b.id)
+    );
+  });
+
+  return groups.map(g => g.items);
 }
 
 function renderArrivalList() {
