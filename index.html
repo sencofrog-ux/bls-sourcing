@@ -104,6 +104,7 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .bdg-reorder{background:#e8eefd;color:#2952cc;font-weight:700;border:1px solid #c6d3f5}
 .bdg-cancelled{background:#e8e8e8;color:#888;border:1px solid #d0d0d0}
 .bdg-changed{background:var(--purplel);color:var(--purple);font-weight:700;cursor:pointer}
+.bdg-axmissing{background:#fdecea;color:#c0392b;font-weight:700;border:1px solid #f1b0b7;cursor:pointer}
 .bdg-dday{background:var(--oral);color:var(--ora);font-weight:700;border:1px solid #f0d080}
 .bdg-dday0{background:#fff3cd;color:#856404;font-weight:700;border:1px solid #ffc107}
 .bulk-bar{display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--acl);border:1px solid var(--ac);border-radius:10px;margin-bottom:12px;flex-wrap:wrap}
@@ -4599,6 +4600,20 @@ function getArrivalFilteredRows() {
   });
 }
 
+// 입고일 + INVOICE NO. 단위로 인접 그룹 재구성 (목록 뷰 / 엑셀 다운로드 공용 — 순서 1:1 보장)
+// 1순위 arrival_date 오름차순, 2순위 invoice_no 오름차순, 3순위 그룹 내 원본(등록) 순서 유지
+function buildArrivalInvoiceGroups(rows) {
+  const invoiceMap = new Map();
+  rows.forEach(r => {
+    const k = `${r.arrival_date}|${r.invoice_no}`;
+    if (!invoiceMap.has(k)) invoiceMap.set(k, []);
+    invoiceMap.get(k).push(r);
+  });
+  return [...invoiceMap.entries()]
+    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+    .map(([, v]) => v);
+}
+
 function renderArrivalList() {
   const rows = getArrivalFilteredRows();
   const tbl = document.getElementById('inbound-tbl');
@@ -4608,15 +4623,7 @@ function renderArrivalList() {
   const isMaster = me.role === 'master';
 
   // 같은 입고일 + INVOICE NO. 단위로 그룹화 (인접 행이 되도록 재구성)
-  const invoiceMap = new Map();
-  rows.forEach(r => {
-    const k = `${r.arrival_date}|${r.invoice_no}`;
-    if (!invoiceMap.has(k)) invoiceMap.set(k, []);
-    invoiceMap.get(k).push(r);
-  });
-  const invoiceGroups = [...invoiceMap.entries()]
-    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
-    .map(([, v]) => v);
+  const invoiceGroups = buildArrivalInvoiceGroups(rows);
 
   let totalQty = 0, totalBoxes = 0;
   const bodyRows = [];
@@ -5029,37 +5036,40 @@ async function submitArrivalRows() {
 
 // ── 입고 일정 엑셀 다운로드 ──
 function downloadArrivalExcel() {
+  // 현재 목록에 적용된 필터/검색 조건 기준 (전체 데이터 아님)
   const rows = getArrivalFilteredRows();
   if (!rows.length) { alert(L('다운로드할 데이터가 없습니다.','No data to download.')); return; }
-  // 인보이스(DATE+INVOICE NO.) 단위 CTN 합산 (중복 없이)
-  const ctnTotals = new Map();
-  rows.forEach(r => {
-    const k = `${r.arrival_date}|${r.invoice_no}`;
-    ctnTotals.set(k, (ctnTotals.get(k) || 0) + (Number(r.ctn) || 0));
-  });
-  const seen = new Set();
-  const seenInvoice = new Set();
-  const data = rows.map(r => {
-    const k = arrivalGroupKey(r);
-    const isFirst = !seen.has(k);
-    seen.add(k);
-    const invKey = `${r.arrival_date}|${r.invoice_no}`;
-    const isFirstInvoice = !seenInvoice.has(invKey);
-    seenInvoice.add(invKey);
-    return {
-      'DATE': r.arrival_date || '',
-      'SUPPLIER': r.supplier || '',
-      'BRAND': r.brand || '',
-      'STYLE NO.': r.style_no || '',
-      'COLOR CODE': formatColorCode(r.color_code) || '',
-      'QTY/COLOR': r.qty_color ?? '',
-      'QTY/TOTAL': isFirst ? (r.qty_total ?? '') : '',
-      'CTN': isFirstInvoice ? (ctnTotals.get(invKey) || '') : '',
-      'TYPE': isFirst ? (r.container_type || '') : '',
-      'Forwarder': isFirst ? (r.forwarder || '') : '',
-      'B/L NO.': isFirst ? (r.bl_no || '') : '',
-      'INVOICE NO.': isFirst ? (r.invoice_no || '') : ''
-    };
+  // 목록 뷰와 동일한 그룹핑/정렬 사용 → 화면 행 순서와 1:1 일치
+  const invoiceGroups = buildArrivalInvoiceGroups(rows);
+
+  const data = [];
+  invoiceGroups.forEach(group => {
+    // 인보이스 단위 CTN 합산 (화면 rowspan 셀과 동일)
+    const groupCtn = group.reduce((s, x) => s + (Number(x.ctn) || 0), 0);
+    // 같은 인보이스 내 스타일번호 단위 하위 그룹 (QTY/TOTAL 병합용)
+    const styleMap = new Map();
+    group.forEach(r => {
+      if (!styleMap.has(r.style_no)) styleMap.set(r.style_no, []);
+      styleMap.get(r.style_no).push(r);
+    });
+    group.forEach((r, idx) => {
+      const isFirstInInvoice = idx === 0;
+      const isFirstInStyle = styleMap.get(r.style_no)[0] === r;
+      data.push({
+        'DATE': r.arrival_date || '',
+        'SUPPLIER': r.supplier || '',
+        'BRAND': r.brand || '',
+        'STYLE NO.': r.style_no || '',
+        'COLOR CODE': formatColorCode(r.color_code) || '',
+        'QTY/COLOR': r.qty_color ?? '',
+        'QTY/TOTAL': isFirstInStyle ? (r.qty_total ?? '') : '',
+        'CTN': isFirstInInvoice ? (groupCtn || '') : '',
+        'TYPE': isFirstInInvoice ? (r.container_type || '') : '',
+        'Forwarder': isFirstInInvoice ? (r.forwarder || '') : '',
+        'B/L NO.': isFirstInInvoice ? (r.bl_no || '') : '',
+        'INVOICE NO.': isFirstInInvoice ? (r.invoice_no || '') : ''
+      });
+    });
   });
   const header = ['DATE','SUPPLIER','BRAND','STYLE NO.','COLOR CODE','QTY/COLOR','QTY/TOTAL','CTN','TYPE','Forwarder','B/L NO.','INVOICE NO.'];
   const ws = XLSX.utils.json_to_sheet(data, { header });
