@@ -90,6 +90,13 @@ thead th{background:var(--bg);padding:12px 14px;text-align:left;font-size:11px;f
 tbody td{padding:12px 14px;border-bottom:1px solid var(--bdr);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
 #inbound-tbl tr.inv-end td{border-bottom:2px solid var(--ac)}
+/* 입고일정표 목록 — 헤더 행 틀고정(sticky). 표 내부에 세로 스크롤을 만들어 헤더를 상단에 붙임 */
+#inbound-tbl .tbl-wrap{max-height:calc(100vh - 250px);overflow:auto}
+#inbound-tbl thead th{position:sticky;top:0;z-index:3;box-shadow:inset 0 -1px 0 var(--bdr)}
+@media print{
+  #inbound-tbl .tbl-wrap{max-height:none;overflow:visible}
+  #inbound-tbl thead th{position:static;box-shadow:none}
+}
 tbody tr:hover{background:var(--bg)}
 .ord-chk:checked,#chk-all:checked{box-shadow:0 0 0 3px rgba(46,125,50,.3);border-radius:3px}
 tbody tr:has(.ord-chk:checked){background:#eaf6ec!important;box-shadow:inset 3px 0 0 0 #2e7d32}
@@ -580,6 +587,7 @@ body.pz-noselect{user-select:none}
               <button class="btn btn-s btn-sm" id="arr-week-next" style="width:auto" data-ko="다음 주 ▶" data-en="Next Week ▶">다음 주 ▶</button>
               <input class="fsearch" type="text" id="arr-filter-style" data-ko-ph="스타일번호/스타일명 검색" data-en-ph="Search style no./name" placeholder="스타일번호/스타일명 검색">
               <button class="btn btn-s btn-sm" id="arr-filter-reset" style="width:auto" data-ko="✕ 초기화" data-en="✕ Reset">✕ 초기화</button>
+              <span class="bdg" id="arr-allperiod-note" style="display:none;background:var(--acl);color:var(--ac)" data-ko="검색 중 · 전체 기간" data-en="Searching · All periods">검색 중 · 전체 기간</span>
             </div>
             <div id="inbound-tbl"></div>
           </div>
@@ -4583,14 +4591,30 @@ function shiftArrivalWeek(days) {
   renderArrivalList();
 }
 
+// 검색 중에는 날짜 필터가 적용되지 않으므로, 날짜 입력을 흐리게 처리하고 안내 배지를 표시
+function updateArrivalSearchModeUI() {
+  const searching = !!(document.getElementById('arr-filter-style').value || '').trim();
+  const note = document.getElementById('arr-allperiod-note');
+  if (note) note.style.display = searching ? 'inline-flex' : 'none';
+  ['arr-filter-date-start','arr-filter-date-end'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.opacity = searching ? '.45' : ''; el.title = searching ? L('검색 중에는 전체 기간이 조회됩니다','All periods are shown while searching') : ''; }
+  });
+}
+
 function getArrivalFilteredRows() {
   const start = document.getElementById('arr-filter-date-start').value;
   const end = document.getElementById('arr-filter-date-end').value;
   const styleQ = (document.getElementById('arr-filter-style').value || '').trim().toLowerCase();
   const styleNameMap = new Map(allOrders.map(o=>[o.style_no, (o.style_name||'').toLowerCase()]));
+  // 스타일 검색어가 입력된 상태에서는 날짜(주간) 필터를 무시하고 전체 기간에서 조회.
+  // 검색어를 지우면 다시 날짜 필터가 적용된다.
+  const applyDateFilter = !styleQ;
   return allArrival.filter(r => {
-    if (start && r.arrival_date < start) return false;
-    if (end && r.arrival_date > end) return false;
+    if (applyDateFilter) {
+      if (start && r.arrival_date < start) return false;
+      if (end && r.arrival_date > end) return false;
+    }
     if (styleQ) {
       const styleNo = (r.style_no||'').toLowerCase();
       const styleName = styleNameMap.get(r.style_no) || '';
@@ -4650,6 +4674,7 @@ function buildArrivalInvoiceGroups(rows) {
 }
 
 function renderArrivalList() {
+  updateArrivalSearchModeUI();
   const rows = getArrivalFilteredRows();
   const tbl = document.getElementById('inbound-tbl');
   selectedArrivalKeys.clear();
