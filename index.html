@@ -202,7 +202,7 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .brand-summary-table tfoot td{font-weight:700;border-top:2px solid var(--bdr);border-bottom:none}
 .brand-name-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:12px}
 .modal-section-title{font-size:12px;font-weight:700;color:var(--ac);margin:16px 0 8px 0;border-bottom:1px solid var(--bdr);padding-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:340;display:none;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto}
 .overlay.on{display:flex}
 .modal{background:var(--surf);border-radius:16px;width:100%;max-width:600px;margin:auto;box-shadow:0 4px 24px rgba(0,0,0,.15);overflow:hidden;animation:pop .25s ease-out;position:relative}
 @keyframes pop{from{transform:translateY(15px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -212,6 +212,11 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .mclose{background:none;border:none;font-size:28px;color:var(--muted);cursor:pointer;padding:4px 8px}
 .mbody{padding:16px 20px 24px}
 .mfooter{padding:12px 20px;border-top:1px solid var(--bdr);display:flex;gap:10px;justify-content:flex-end;background:#faf9f6}
+/* ── 내용이 길어질 수 있는 모달용 공용 스크롤 구조: 헤더/푸터 고정 + 본문만 스크롤 ── */
+.modal-scroll{max-height:85vh;display:flex;flex-direction:column}
+.modal-scroll .mhdr{position:sticky;top:0;z-index:2;background:var(--surf);flex:0 0 auto}
+.modal-scroll .mbody{flex:1 1 auto;overflow-y:auto}
+.modal-scroll .mfooter{position:sticky;bottom:0;z-index:2;flex:0 0 auto}
 /* ── 팝업 공통 동작: 드래그/리사이즈 핸들 ── */
 .pz-handle{position:absolute;z-index:5;touch-action:none}
 .pz-n{top:0;left:10px;right:10px;height:7px;cursor:ns-resize}
@@ -1004,7 +1009,7 @@ body.pz-noselect{user-select:none}
 </div>
 
 <div class="overlay" id="order-edit-modal">
-  <div class="modal" style="max-width:560px">
+  <div class="modal modal-scroll" style="max-width:560px">
     <div class="mhdr">
       <div><div class="mhdr-t" id="oe-title" data-ko="오더 수정" data-en="Edit Order">오더 수정</div><div class="mhdr-s" id="oe-sub"></div></div>
       <button class="mclose" id="oe-close">×</button>
@@ -1139,7 +1144,7 @@ body.pz-noselect{user-select:none}
 </div>
 
 <div class="overlay" id="sample-modal">
-  <div class="modal" style="max-width:640px">
+  <div class="modal modal-scroll" style="max-width:640px">
     <div class="mhdr">
       <div>
         <div class="mhdr-t" id="sm-title">TP / QC / PP / SHIPPING 입력</div>
@@ -1179,7 +1184,7 @@ body.pz-noselect{user-select:none}
 </div>
 
 <div class="overlay" id="qc-round-modal">
-  <div class="modal" style="max-width:480px">
+  <div class="modal modal-scroll" style="max-width:480px">
     <div class="mhdr"><div><div class="mhdr-t" id="qcr-title">QC 차수 추가</div><div class="mhdr-s" id="qcr-sub"></div></div><button class="mclose" id="qcr-close">×</button></div>
     <div class="mbody">
       <div class="alert alert-e" id="qcr-alert"></div>
@@ -1867,7 +1872,8 @@ function closeModal(prefix) {
 
   function bringToFront(overlay) {
     zSeq += 1;
-    overlay.style.zIndex = 300 + zSeq;
+    // topbar(310)/sb-shade(320)/sidebar(330)보다 항상 위에 오도록 340부터 시작
+    overlay.style.zIndex = 340 + zSeq;
   }
 
   function clampToViewport(modal) {
