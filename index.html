@@ -334,6 +334,28 @@ body.pz-noselect{user-select:none}
 .sm-qc-round-toggle{color:var(--muted);font-size:11px}
 .sm-qc-round-body{padding:0 10px 10px}
 .sm-qc-empty{font-size:12px;color:var(--muted);padding:6px 0}
+/* 샘플 입력 모달 헤더의 스타일코드 : 상품명 인라인 편집 */
+.sm-style-view{display:inline-flex;align-items:center;gap:6px;max-width:100%;background:#fff3cd;border:1px solid transparent;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px;font-weight:600;color:#856404;transition:border-color .15s,background .15s}
+.sm-style-view:hover{background:#ffeaa7;border-color:#ffc107}
+.sm-style-view:hover .sm-style-text{text-decoration:underline;text-underline-offset:2px}
+.sm-style-view.off{display:none}
+.sm-style-view.pending{border-color:var(--ora);border-style:dashed}
+.sm-style-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sm-style-pencil{font-size:11px;opacity:0;transition:opacity .15s;flex-shrink:0}
+.sm-style-view:hover .sm-style-pencil,.sm-style-view.pending .sm-style-pencil{opacity:1}
+.sm-style-pending-bdg{font-size:10px;font-weight:700;color:var(--ora);flex-shrink:0}
+.sm-style-edit{display:none;align-items:center;gap:4px;flex-wrap:wrap;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:4px 6px;cursor:default}
+.sm-style-edit.on{display:inline-flex}
+.sm-style-input{font-family:inherit;font-size:12px;padding:3px 6px;border:1px solid var(--bdr);border-radius:4px;background:var(--surf);color:var(--txt);min-width:0}
+.sm-style-input:focus{outline:none;border-color:var(--ac)}
+.sm-style-input-no{width:150px;font-family:'DM Mono',monospace;font-weight:700}
+.sm-style-input-name{width:190px}
+.sm-style-sep{color:#856404;font-weight:700}
+.sm-style-icon-btn{font-family:inherit;font-size:11px;line-height:1;padding:5px 7px;border:1px solid var(--bdr);border-radius:4px;background:var(--surf);cursor:pointer}
+.sm-style-icon-btn.ok{color:var(--grn);border-color:var(--grn)}
+.sm-style-icon-btn.ok:hover{background:var(--grnl)}
+.sm-style-icon-btn.cancel{color:var(--red);border-color:var(--red)}
+.sm-style-icon-btn.cancel:hover{background:var(--redl)}
 .sd-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:18px;font-size:12px}
 .sd-info-grid .sd-info-lbl{color:var(--muted);font-size:11px;margin-bottom:2px}
 .sd-info-grid .sd-info-val{color:var(--txt);font-weight:600}
@@ -1113,7 +1135,26 @@ body.pz-noselect{user-select:none}
 
 <div class="overlay" id="sample-modal">
   <div class="modal" style="max-width:640px">
-    <div class="mhdr"><div><div class="mhdr-t" id="sm-title">TP / QC / PP / SHIPPING 입력</div><div class="mhdr-s" id="sm-sub"></div></div><button class="mclose" id="sm-close">×</button></div>
+    <div class="mhdr">
+      <div>
+        <div class="mhdr-t" id="sm-title">TP / QC / PP / SHIPPING 입력</div>
+        <div class="mhdr-s" id="sm-sub">
+          <div class="sm-style-view" id="sm-style-view" title="클릭하여 수정">
+            <span class="sm-style-text" id="sm-style-text"></span>
+            <span class="sm-style-pending-bdg" id="sm-style-pending-bdg" style="display:none">● 미저장</span>
+            <span class="sm-style-pencil">✎</span>
+          </div>
+          <div class="sm-style-edit" id="sm-style-edit">
+            <input type="text" class="sm-style-input sm-style-input-no" id="sm-style-no-input" placeholder="스타일 코드">
+            <span class="sm-style-sep">:</span>
+            <input type="text" class="sm-style-input sm-style-input-name" id="sm-style-name-input" placeholder="상품명">
+            <button type="button" class="sm-style-icon-btn ok" id="sm-style-apply" title="적용">✓</button>
+            <button type="button" class="sm-style-icon-btn cancel" id="sm-style-revert" title="취소">✕</button>
+          </div>
+        </div>
+      </div>
+      <button class="mclose" id="sm-close">×</button>
+    </div>
     <div class="mbody">
       <div class="alert alert-e" id="sm-alert"></div>
       <div class="fg"><label class="fl">TP 발송일</label><input type="date" id="sm-tp-date"></div>
@@ -1776,6 +1817,17 @@ function bindAppEvents() {
   document.getElementById('sm-close')?.addEventListener('click', closeSampleModal);
   document.getElementById('sm-cancel')?.addEventListener('click', closeSampleModal);
   document.getElementById('sm-save')?.addEventListener('click', saveSampleData);
+  document.getElementById('sm-style-view')?.addEventListener('click', startSmStyleEdit);
+  document.getElementById('sm-style-apply')?.addEventListener('click', applySmStyleEdit);
+  document.getElementById('sm-style-revert')?.addEventListener('click', cancelSmStyleEdit);
+  // 모달 헤더(.mhdr)는 팝업 드래그 핸들이므로, 편집 영역에서는 드래그가 시작되지 않도록 막는다
+  ['sm-style-view','sm-style-edit'].forEach(id =>
+    document.getElementById(id)?.addEventListener('pointerdown', e => e.stopPropagation()));
+  ['sm-style-no-input','sm-style-name-input'].forEach(id =>
+    document.getElementById(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); applySmStyleEdit(); }
+      else if (e.key === 'Escape') { e.preventDefault(); cancelSmStyleEdit(); }
+    }));
   document.getElementById('sample-modal')?.addEventListener('click', e=>{ if(e.target.id==='sample-modal') closeSampleModal(); });
   document.getElementById('sample-upload-btn')?.addEventListener('click', openSampleUploadModal);
   document.getElementById('sum-excel-file')?.addEventListener('change', handleSampleExcelUpload);
@@ -6193,6 +6245,9 @@ async function executeForceShip() {
 
 // ── 샘플 관리 ──
 let activeSampleTrackingId = null;
+// 샘플 입력 모달 헤더에서 인라인 편집한 스타일 정보. ✓(적용)를 누르면 여기에 담아두고,
+// 모달 하단 [저장]을 눌렀을 때 나머지 TP/PP/SHIPPING 값과 함께 한 번에 DB에 반영한다.
+let smStyleDraft = null;
 let activeQcRoundStyleId = null;
 let editingQcRoundId = null;
 let activeDetailStyleId = null;
@@ -6340,7 +6395,9 @@ function openSampleModal(trackingId) {
   activeSampleTrackingId = trackingId;
   const st = allSampleTracking.find(s => s.id === trackingId);
   document.getElementById('sm-title').textContent = L('TP / QC / PP / SHIPPING 입력','TP / QC / PP / SHIPPING Input');
-  document.getElementById('sm-sub').textContent = st ? `${st.style_no||''} · ${st.style_name||''}` : '';
+  smStyleDraft = null;
+  exitSmStyleEdit();
+  renderSmStyleHeader();
   document.getElementById('sm-tp-date').value = st?.tp_date || '';
   document.getElementById('sm-alert').classList.remove('on');
   renderQcSectionForSampleModal(trackingId);
@@ -6365,6 +6422,79 @@ function openSampleModal(trackingId) {
     </div>
   `).join('');
   document.getElementById('sample-modal').classList.add('on');
+}
+
+// ── 샘플 입력 모달 헤더: 스타일 코드 / 상품명 인라인 편집 ──
+function getSmStyleCurrent() {
+  const st = allSampleTracking.find(s => s.id === activeSampleTrackingId);
+  if (smStyleDraft) return smStyleDraft;
+  return { style_no: st?.style_no || '', style_name: st?.style_name || '' };
+}
+
+function renderSmStyleHeader() {
+  const view = document.getElementById('sm-style-view');
+  if (!view) return;
+  const cur = getSmStyleCurrent();
+  document.getElementById('sm-style-text').textContent = `${cur.style_no || '-'} : ${cur.style_name || '-'}`;
+  document.getElementById('sm-style-pending-bdg').textContent = L('● 미저장','● Unsaved');
+  document.getElementById('sm-style-pending-bdg').style.display = smStyleDraft ? '' : 'none';
+  view.classList.toggle('pending', !!smStyleDraft);
+  view.title = L('클릭하여 스타일 코드 / 상품명 수정','Click to edit style code / name');
+}
+
+function startSmStyleEdit() {
+  if (!activeSampleTrackingId) return;
+  const cur = getSmStyleCurrent();
+  const noInput = document.getElementById('sm-style-no-input');
+  const nameInput = document.getElementById('sm-style-name-input');
+  noInput.value = cur.style_no;
+  nameInput.value = cur.style_name;
+  noInput.placeholder = L('스타일 코드','Style code');
+  nameInput.placeholder = L('상품명','Style name');
+  document.getElementById('sm-style-view').classList.add('off');
+  document.getElementById('sm-style-edit').classList.add('on');
+  noInput.focus();
+  noInput.select();
+}
+
+function exitSmStyleEdit() {
+  document.getElementById('sm-style-edit')?.classList.remove('on');
+  document.getElementById('sm-style-view')?.classList.remove('off');
+}
+
+function isSmStyleEditing() {
+  return !!document.getElementById('sm-style-edit')?.classList.contains('on');
+}
+
+// 취소: 편집 중이던 입력값을 버리고 직전 확정값(원본 또는 이미 적용해둔 draft)으로 되돌린다
+function cancelSmStyleEdit() {
+  exitSmStyleEdit();
+  renderSmStyleHeader();
+}
+
+// 적용(✓): 검증 후 draft에만 반영. 실제 DB 반영은 모달 하단 [저장] 시점에 함께 이루어진다
+function applySmStyleEdit() {
+  const styleNo = document.getElementById('sm-style-no-input').value.trim();
+  const styleName = document.getElementById('sm-style-name-input').value.trim();
+  if (!styleNo) {
+    showAlert('sm-alert', L('스타일 코드를 입력하세요.','Style code is required.'));
+    document.getElementById('sm-style-no-input').focus();
+    return false;
+  }
+  // style_no는 엑셀 업로드/오더 연결의 매칭 키로 쓰이므로 다른 행과 중복되면 안 된다
+  const dup = allSampleTracking.some(s => s.id !== activeSampleTrackingId && (s.style_no||'').trim().toLowerCase() === styleNo.toLowerCase());
+  if (dup) {
+    showAlert('sm-alert', L(`이미 등록된 스타일 코드입니다: ${styleNo}`,`Style code already exists: ${styleNo}`));
+    document.getElementById('sm-style-no-input').focus();
+    return false;
+  }
+  const st = allSampleTracking.find(s => s.id === activeSampleTrackingId);
+  const changed = styleNo !== (st?.style_no||'') || styleName !== (st?.style_name||'');
+  smStyleDraft = changed ? { style_no: styleNo, style_name: styleName } : null;
+  document.getElementById('sm-alert').classList.remove('on');
+  exitSmStyleEdit();
+  renderSmStyleHeader();
+  return true;
 }
 
 function renderQcSectionForSampleModal(styleId) {
@@ -6399,11 +6529,15 @@ function toggleSmQcRound(hdrEl) {
 
 function closeSampleModal() {
   document.getElementById('sample-modal').classList.remove('on');
+  exitSmStyleEdit();
+  smStyleDraft = null;
   activeSampleTrackingId = null;
 }
 
 async function saveSampleData() {
   if (!activeSampleTrackingId) return;
+  // 헤더를 편집 중인 채로 [저장]을 누른 경우, 입력해둔 값을 먼저 확정한다(검증 실패 시 저장 중단)
+  if (isSmStyleEditing() && !applySmStyleEdit()) return;
   const btn = document.getElementById('sm-save');
   btn.disabled = true; btn.textContent = L('저장 중...','Saving...');
   const patch = {
@@ -6411,6 +6545,10 @@ async function saveSampleData() {
     updated_by: me.id,
     updated_at: nowKstIso()
   };
+  if (smStyleDraft) {
+    patch.style_no = smStyleDraft.style_no;
+    patch.style_name = smStyleDraft.style_name || null;
+  }
   ['pp','shipping'].forEach(k => {
     patch[k+'_date'] = document.getElementById(`sm-${k}-date`)?.value || null;
     patch[k+'_result'] = document.getElementById(`sm-${k}-result`)?.value || null;
