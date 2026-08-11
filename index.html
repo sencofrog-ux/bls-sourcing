@@ -32,7 +32,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--txt)
 input,select,textarea{width:100%;padding:12px;border:1px solid var(--bdr);border-radius:var(--r);font-family:inherit;font-size:14px;background:var(--surf);color:var(--txt);outline:none;-webkit-appearance:none}
 input:focus,select:focus,textarea:focus{border-color:var(--ac)}
 textarea{resize:vertical;min-height:70px}
-.ta-comment{height:189px;min-height:189px;resize:vertical}
+/* 공용 코멘트 textarea (샘플관리 PP / SHIPPING) - 기본 높이 */
+.ta-comment{height:70px;min-height:70px;resize:vertical}
+/* QC 차수 추가/수정 팝업 전용 코멘트 textarea - 5cm(189px) */
+.comment-textarea-qc{height:189px;min-height:189px;resize:vertical}
 .row3 .fg-comment{grid-column:1/-1}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
@@ -1190,7 +1193,7 @@ body.pz-noselect{user-select:none}
           <option value="반려">반려</option>
         </select>
       </div>
-      <div class="fg"><label class="fl">코멘트</label><textarea id="qcr-comment" class="ta-comment"></textarea></div>
+      <div class="fg"><label class="fl">코멘트</label><textarea id="qcr-comment" class="comment-textarea-qc"></textarea></div>
     </div>
     <div class="mfooter">
       <button class="btn btn-s btn-sm" id="qcr-delete-btn" style="width:auto;margin-right:auto;color:var(--red);border-color:var(--red)">삭제</button>
