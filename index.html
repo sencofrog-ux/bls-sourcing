@@ -2490,13 +2490,15 @@ function getBaseFilteredOrders() {
   }
   return list;
 }
-// 벤더 기준 "완료(남은 게 없는)" 스타일 그룹 판정: 선적요청/선적완료 상태이거나, 4단계 생산이 모두 끝났거나,
-// 그룹 합산 선적수량이 발주수량 이상이면 완료. (마스터 화면은 이 함수를 쓰지 않는다)
+// 벤더 기준 "완료(남은 게 없는)" 스타일 그룹 판정. 그룹 전체가 status='shipped'(마스터 확정)인데 합산 선적수량이
+// 발주수량보다 적으면 남은 수량이 있는 것이므로 진행중으로 되돌린다. 선적요청 대기(shipping_requested)·4단계 완료 그룹은
+// 마스터 확정 전이라 shipped_qty가 비어 있는 게 정상이므로 수량과 무관하게 기존대로 완료로 인정한다.
+// (마스터 화면은 이 함수를 쓰지 않는다)
 function isVendorGroupDone(g) {
-  if (g.every(isInShippedTab) || isGroupStagesComplete(g)) return true;
   const totalQty = g.reduce((s,x)=>s+(x.order_qty||0),0);
   const totalShipped = g.reduce((s,x)=>s+(x.shipped_qty||0),0);
-  return totalQty > 0 && totalShipped >= totalQty;
+  if (g.every(isOrderShipped) && totalQty > 0 && totalShipped < totalQty) return false;
+  return g.every(isInShippedTab) || isGroupStagesComplete(g) || (totalQty > 0 && totalShipped >= totalQty);
 }
 // 벤더 화면 "남은 N건 / 전체 M건" 표시(스타일 그룹 기준, 시즌/검색어 필터 반영·탭 선택과 무관)
 function updateVendorCountLabel() {
