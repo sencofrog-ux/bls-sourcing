@@ -695,6 +695,7 @@ thead th.cell-chk{width:36px}
             <select class="fsel" id="ord-vendor"><option value="">전체 벤더</option></select>
             <input class="fsearch" type="text" id="ord-search" data-ko-ph="스타일명/번호 검색" data-en-ph="Search style name/number" placeholder="스타일명/번호 검색">
           </div>
+          <div id="vendor-cnt" style="display:none;font-size:12px;color:var(--muted);margin:0 0 8px 2px"></div>
           <div id="ord-tbl"></div>
         </div>
 
@@ -2470,14 +2471,14 @@ function orderPriorityTier(o) {
 function getDashStatusFilter() {
   return document.querySelector('#dash-status-tabs .view-tab.on')?.dataset.dstatus || 'active';
 }
-function getVisibleOrders() {
+// 시즌/벤더/검색어 필터까지만 적용한 목록(진행중/선적완료 탭 분류 전) — 벤더 "남은 N건 / 전체 M건" 집계에도 재사용
+function getBaseFilteredOrders() {
   let list = allOrders.slice();
   list = list.filter(o => o.match_status !== 'unmatched'); // 미매칭 AX PO는 PO 매칭 관리 화면에서만 노출
   if (me.role === 'vendor') list = list.filter(o=>o.vendor_id===me.id);
   const sid = document.getElementById('dash-season').value;
   const vid = document.getElementById('ord-vendor').value;
   const q = document.getElementById('ord-search').value.trim().toLowerCase();
-  const statusFilter = getDashStatusFilter();
   if (sid) list = list.filter(o=>o.season_id===sid);
   if (vid) list = list.filter(o=>o.vendor_id===vid);
   if (q) {
@@ -2487,13 +2488,36 @@ function getVisibleOrders() {
       return terms.every(t => combined.includes(t));
     });
   }
+  return list;
+}
+// 벤더 기준 "완료(남은 게 없는)" 스타일 그룹 판정: 선적요청/선적완료 상태이거나, 4단계 생산이 모두 끝났거나,
+// 그룹 합산 선적수량이 발주수량 이상이면 완료. (마스터 화면은 이 함수를 쓰지 않는다)
+function isVendorGroupDone(g) {
+  if (g.every(isInShippedTab) || isGroupStagesComplete(g)) return true;
+  const totalQty = g.reduce((s,x)=>s+(x.order_qty||0),0);
+  const totalShipped = g.reduce((s,x)=>s+(x.shipped_qty||0),0);
+  return totalQty > 0 && totalShipped >= totalQty;
+}
+// 벤더 화면 "남은 N건 / 전체 M건" 표시(스타일 그룹 기준, 시즌/검색어 필터 반영·탭 선택과 무관)
+function updateVendorCountLabel() {
+  const el = document.getElementById('vendor-cnt');
+  if (!el) return;
+  if (me.role !== 'vendor') { el.style.display = 'none'; return; }
+  const groups = buildOrderGroups(getBaseFilteredOrders());
+  const remain = groups.filter(g => !isVendorGroupDone(g)).length;
+  el.textContent = L(`남은 ${remain}건 / 전체 ${groups.length}건`, `${remain} remaining / ${groups.length} total`);
+  el.style.display = '';
+}
+function getVisibleOrders() {
+  let list = getBaseFilteredOrders();
+  const statusFilter = getDashStatusFilter();
   // 진행중/선적완료 탭 분류는 PO+스타일 그룹 전체 기준으로 판단한다(컬러 행 단위 X).
   // 컬러별로 선적 상태가 갈리면(예: 일부 컬러만 먼저 선적) 그룹이 탭 사이에서 쪼개져
   // 같은 스타일이 두 개의 카드로 중복 표시되고, 각 카드의 수량 합계도 컬러 일부만 집계되어 어긋난다.
   // 벤더 화면은 "선적 상태"가 아니라 "할 일이 남았는지"가 기준이 되어야 하므로, 4단계(CUT/ARTWORK/SEW/FINISH)가
   // 모두 끝난 그룹은 아직 선적 요청 전이라도 진행중 탭에서 숨기고 완료(선적완료) 탭으로 넘긴다.
   const isDoneForTab = g => me.role === 'vendor'
-    ? (g.every(isInShippedTab) || isGroupStagesComplete(g))
+    ? isVendorGroupDone(g)
     : g.every(isInShippedTab);
   const statusGroups = statusFilter === 'ax_unregistered'
     ? buildOrderGroups(list.filter(o => o.source === 'manual')) // AX로 전환되지 않은(source가 여전히 manual인) 오더 — AX 담당자에게 등록 요청할 목록
@@ -2529,8 +2553,7 @@ function getVendorTodoStats() {
   const t = today();
   let needAction = 0, dueSoon = 0;
   groups.forEach(g => {
-    const done = g.every(isInShippedTab) || isGroupStagesComplete(g);
-    if (done) return;
+    if (isVendorGroupDone(g)) return;
     needAction++;
     const d = groupMinDate(g);
     if (d && Math.ceil((new Date(d) - new Date(t)) / 86400000) <= 7) dueSoon++;
@@ -2574,6 +2597,7 @@ function renderDashboard() {
     <div class="sum-card"><div class="sum-lbl">${L('불량 발생','Defect Found')}</div><div class="sum-val is-cs">${defectCnt}</div><div class="sum-sub">${U.cases}</div></div>`;
 
   selectedOrderIds.clear();
+  updateVendorCountLabel();
 
   if (!list.length) { document.getElementById('ord-tbl').innerHTML = `<div class="empty"><div class="empty-t">${L('오더가 없습니다','No orders found')}</div></div>`; return; }
 
@@ -2955,8 +2979,9 @@ async function toggleStage(orderId, stage) {
   const upd = computeStageGroupUpdate(orderId, stage);
   if (!upd) return;
   document.getElementById('ord-tbl').innerHTML = renderVendorOrderCards(getVisibleOrders());
+  updateVendorCountLabel();
   const ok = await commitStageGroupUpdate(upd);
-  if (!ok) document.getElementById('ord-tbl').innerHTML = renderVendorOrderCards(getVisibleOrders());
+  if (!ok) { document.getElementById('ord-tbl').innerHTML = renderVendorOrderCards(getVisibleOrders()); updateVendorCountLabel(); }
 }
 
 function renderVmStageSection(o) {
