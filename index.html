@@ -8,91 +8,215 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#f0ede8;--surf:#fff;--bdr:#ddd9d2;--txt:#1a1a18;--muted:#7a7870;--red:#c0392b;--redl:#fdf0ee;--ora:#b7770d;--oral:#fef9ec;--grn:#1e7e4a;--grnl:#edf7f1;--purple:#6b3fa0;--purplel:#f0eaf8;--r:10px;--ac:#1e3a5f;--acl:#e8eef6;--ach:#152b47;--sat:#2563eb}
+/* ══════════════════════════════════════════════════════════════════
+   BLS 디자인 토큰 (Design Tokens)
+   화면별로 제각각이던 색상/여백/폰트/모서리/그림자를 하나로 통일하기 위한
+   단일 출처(single source of truth). 새 UI는 반드시 아래 토큰만 사용할 것.
+   ※ 기존 변수명(--bg,--surf,--r 등)은 하위호환을 위해 그대로 유지한다.
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  /* ── 색상: 표면/텍스트 ── */
+  --bg:#f0ede8;            /* 페이지 배경 */
+  --surf:#fff;             /* 카드·모달 등 표면 */
+  --surf-2:#faf9f6;        /* 표면 위 보조 영역(모달 푸터, 테이블 헤더 등) */
+  --bdr:#ddd9d2;           /* 기본 테두리 */
+  --bdr-soft:#eceae5;      /* 내부 구분선(점선/약한 선) */
+  --txt:#1a1a18;           /* 본문 텍스트 */
+  --txt-2:#4a4844;         /* 보조 본문 */
+  --muted:#7a7870;         /* 캡션·라벨 */
+
+  /* ── 색상: 시맨틱(상태) ── 각 색은 진한색(전경)/연한색(배경) 한 쌍 */
+  --red:#c0392b;    --redl:#fdf0ee;    --red-bdr:#f0c0bb;   /* 위험/지연/불량 */
+  --ora:#b7770d;    --oral:#fef9ec;    --ora-bdr:#f0d080;   /* 주의/대기 */
+  --grn:#1e7e4a;    --grnl:#edf7f1;    --grn-bdr:#b8e4c8;   /* 완료/정상 */
+  --purple:#6b3fa0; --purplel:#f0eaf8; --purple-bdr:#d8c6ee;/* CS/변경 */
+  --blue:#2952cc;   --bluel:#e8eefd;   --blue-bdr:#c6d3f5;  /* 정보/리오더 */
+  --gray:#888;      --grayl:#eeeded;   --gray-bdr:#d8d6d0;  /* 비활성/취소 */
+  --sat:#2563eb;                                            /* 토요일 표기 */
+  --sel:#2e7d32;    --sell:#eaf6ec;                         /* 행 선택 */
+
+  /* ── 색상: 테마 액센트(아래 body.theme-* 에서 역할별로 덮어씀) ── */
+  --ac:#1e3a5f;     --acl:#e8eef6;     --ach:#152b47;
+
+  /* ── 여백 스케일 (4px 배수) ── */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+  --sp-5:20px; --sp-6:24px; --sp-7:28px; --sp-8:32px;
+
+  /* ── 폰트 크기 위계 ──
+     fs-1 캡션/배지 · fs-2 보조본문 · fs-3 표본문 · fs-4 본문(기본)
+     fs-5 부제목/카드제목 · fs-6 섹션제목 · fs-7 대시보드 수치 */
+  --fs-0:10px; --fs-1:11px; --fs-2:12px; --fs-3:13px;
+  --fs-4:14px; --fs-5:16px; --fs-6:20px; --fs-7:24px;
+
+  /* ── 폰트 두께 ── */
+  --fw-n:400; --fw-m:500; --fw-b:600; --fw-x:700;
+
+  /* ── 모서리 둥글기 ── */
+  --r-xs:4px;   /* 칩·미니 태그 */
+  --r-sm:6px;   /* 작은 버튼·인풋 보조 */
+  --r-md:8px;   /* 셀렉트·작은 카드 */
+  --r:10px;     /* 기본(버튼·인풋) */
+  --r-lg:12px;  /* 카드·테이블 래퍼 */
+  --r-xl:16px;  /* 모달·로그인 박스 */
+  --r-pill:999px;
+
+  /* ── 그림자 ── */
+  --sh-sm:0 1px 2px rgba(26,26,24,.05);
+  --sh:0 2px 6px rgba(26,26,24,.06);
+  --sh-md:0 4px 12px rgba(26,26,24,.09);
+  --sh-lg:0 8px 28px rgba(26,26,24,.15);
+  --sh-focus:0 0 0 3px var(--acl);
+
+  /* ── 모션 ── */
+  --tr:.18s ease;
+
+  /* ── 폰트 패밀리 ── */
+  --ff:'Noto Sans KR',sans-serif;
+  --ff-mono:'DM Mono',monospace;
+}
 body.theme-master{--ac:#1e3a5f;--acl:#e8eef6;--ach:#152b47;--bg:#f0ede8}
 body.theme-cs{--ac:#6b3fa0;--acl:#f0eaf8;--ach:#4e2d78;--bg:#f5f0f8}
 body.theme-md{--ac:#b5443a;--acl:#fbeae8;--ach:#8f3129;--bg:#faf2f0}
 body.theme-vendor{--ac:#1e7e4a;--acl:#edf7f1;--ach:#145c34;--bg:#ebf2ee}
 body.theme-viewer{--ac:#5a5a52;--acl:#eeede9;--ach:#3f3f38;--bg:#f3f2ef}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.6;min-height:100vh}
+body{font-family:var(--ff);background:var(--bg);color:var(--txt);font-size:var(--fs-4);line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ── 타이포그래피 유틸 (화면마다 다르던 글자 크기를 이 위계로 통일) ── */
+.t-caption{font-size:var(--fs-1);color:var(--muted);font-weight:var(--fw-m)}
+.t-sm{font-size:var(--fs-2)}
+.t-body{font-size:var(--fs-3)}
+.t-lead{font-size:var(--fs-5);font-weight:var(--fw-b)}
+.t-mono{font-family:var(--ff-mono)}
+.t-muted{color:var(--muted)}
+.t-num{font-size:var(--fs-7);font-weight:var(--fw-x);line-height:1}
 .pg{display:none}.pg.on{display:block}
 .sec{display:none}.sec.on{display:block}
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
-.auth-box{background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:28px 24px;width:100%;max-width:400px;box-shadow:0 4px 20px rgba(0,0,0,0.05)}
-.logo{text-align:center;margin-bottom:24px}
-.logo-brand{font-size:11px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
-.logo-title{font-size:21px;font-weight:700;margin-top:4px}
-.logo-sub{font-size:12px;background:var(--ac);color:#fff;display:inline-block;padding:2px 12px;border-radius:20px;margin-top:8px;font-weight:500}
-.tabs{display:flex;background:var(--bg);border-radius:8px;padding:3px;margin-bottom:20px}
-.tab{flex:1;padding:10px;border:none;background:none;border-radius:6px;font-family:inherit;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer}
-.tab.on{background:var(--surf);color:var(--txt);box-shadow:0 1px 4px rgba(0,0,0,.1)}
-.fg{margin-bottom:14px}
-.fl{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px}
-input,select,textarea{width:100%;padding:12px;border:1px solid var(--bdr);border-radius:var(--r);font-family:inherit;font-size:14px;background:var(--surf);color:var(--txt);outline:none;-webkit-appearance:none}
-input:focus,select:focus,textarea:focus{border-color:var(--ac)}
+.auth-box{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r-xl);padding:var(--sp-7) var(--sp-6);width:100%;max-width:400px;box-shadow:var(--sh-md)}
+.logo{text-align:center;margin-bottom:var(--sp-6)}
+.logo-brand{font-size:var(--fs-1);letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+.logo-title{font-size:var(--fs-6);font-weight:var(--fw-x);margin-top:var(--sp-1)}
+.logo-sub{font-size:var(--fs-2);background:var(--ac);color:#fff;display:inline-block;padding:2px var(--sp-3);border-radius:var(--r-pill);margin-top:var(--sp-2);font-weight:var(--fw-m)}
+.tabs{display:flex;background:var(--bg);border-radius:var(--r-md);padding:3px;margin-bottom:var(--sp-5)}
+.tab{flex:1;padding:var(--sp-2);border:none;background:none;border-radius:var(--r-sm);font-family:inherit;font-size:var(--fs-3);font-weight:var(--fw-m);color:var(--muted);cursor:pointer;transition:background var(--tr),color var(--tr)}
+.tab.on{background:var(--surf);color:var(--txt);box-shadow:var(--sh-sm)}
+/* ── 폼: 라벨/입력창 여백·테두리 통일 ── */
+.fg{margin-bottom:var(--sp-3)}
+.fl{display:block;font-size:var(--fs-2);font-weight:var(--fw-m);color:var(--muted);margin-bottom:var(--sp-1)}
+input,select,textarea{width:100%;padding:var(--sp-3);border:1px solid var(--bdr);border-radius:var(--r);font-family:inherit;font-size:var(--fs-4);background:var(--surf);color:var(--txt);outline:none;-webkit-appearance:none;transition:border-color var(--tr),box-shadow var(--tr)}
+input:focus,select:focus,textarea:focus{border-color:var(--ac);box-shadow:var(--sh-focus)}
+input:disabled,select:disabled,textarea:disabled{background:var(--bg);color:var(--muted);cursor:not-allowed}
+input::placeholder,textarea::placeholder{color:#a8a69f}
+/* 체크박스: 목록·모달 어디서든 같은 크기/색 (인라인 style 대체용) */
+input[type=checkbox].chk,input[type=radio].chk{width:18px;height:18px;cursor:pointer;accent-color:var(--sel);flex:none}
 textarea{resize:vertical;min-height:70px}
 /* 공용 코멘트 textarea (샘플관리 PP / SHIPPING) - 기본 높이 */
 .ta-comment{height:70px;min-height:70px;resize:vertical}
+/* 여러 줄 입력이 필요한 비고란 공통 높이 */
+.ta-lg{min-height:90px}
 /* QC 차수 추가/수정 팝업 전용 코멘트 textarea - 5cm(189px) */
 .comment-textarea-qc{height:189px;min-height:189px;resize:vertical}
 .row3 .fg-comment{grid-column:1/-1}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 16px;border-radius:var(--r);border:none;font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;min-height:44px}
-.btn:disabled{opacity:.5;cursor:not-allowed}
+/* ══ 버튼 체계 ══
+   btn-p    주요 액션 (테마 액센트 — 저장/등록/확정)
+   btn-s    보조 액션 (중립 — 취소/닫기/다운로드/상세)
+   btn-ok   긍정 완료 (초록 — 승인/완료 처리)
+   btn-danger 위험 액션 (빨강 — 삭제/거절)  ※ 되돌릴 수 없는 동작에만
+   btn-purple CS 계열 (보라 — 불량 관련)
+   btn-ghost 테두리 없는 텍스트 버튼
+   크기: 기본(44px) / .btn-sm(36px) / .btn-xs(28px) */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-1);padding:var(--sp-3) var(--sp-4);border-radius:var(--r);border:1px solid transparent;font-family:inherit;font-size:var(--fs-4);font-weight:var(--fw-m);line-height:1.2;cursor:pointer;transition:background var(--tr),border-color var(--tr),box-shadow var(--tr),opacity var(--tr);white-space:nowrap;min-height:44px}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn:focus-visible{outline:none;box-shadow:var(--sh-focus)}
+.btn:active:not(:disabled){transform:translateY(1px)}
 .btn-p{background:var(--ac);color:#fff;width:100%}
 .btn-p:hover:not(:disabled){background:var(--ach)}
-.btn-s{background:var(--bg);color:var(--txt);border:1px solid var(--bdr)}
-.btn-sm{padding:6px 12px;font-size:12px;width:auto;min-height:36px}
+.btn-s{background:var(--surf);color:var(--txt);border-color:var(--bdr)}
+.btn-s:hover:not(:disabled){background:var(--bg);border-color:var(--muted)}
 .btn-ok{background:var(--grn);color:#fff}
+.btn-ok:hover:not(:disabled){background:#176139}
 .btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover:not(:disabled){background:#9d2d21}
 .btn-purple{background:var(--purple);color:#fff}
-.alert{padding:10px 14px;border-radius:var(--r);font-size:13px;margin-bottom:14px;display:none}
+.btn-purple:hover:not(:disabled){background:#54317e}
+.btn-ghost{background:transparent;color:var(--muted)}
+.btn-ghost:hover:not(:disabled){background:var(--bg);color:var(--txt)}
+/* 위험 액션 외곽선형 — 삭제처럼 눈에 띄되 주 버튼과 경쟁하지 않아야 할 때 */
+.btn-danger-o{background:var(--surf);color:var(--red);border-color:var(--red)}
+.btn-danger-o:hover:not(:disabled){background:var(--redl)}
+/* 모달 푸터에서 왼쪽 끝으로 밀어내는 버튼(삭제 등) */
+.btn-pull-left{margin-right:auto}
+.btn-sm{padding:var(--sp-2) var(--sp-3);font-size:var(--fs-2);width:auto;min-height:36px;border-radius:var(--r-md)}
+.btn-xs{padding:var(--sp-1) var(--sp-2);font-size:var(--fs-1);width:auto;min-height:28px;border-radius:var(--r-sm)}
+/* 버튼 그룹: 목록 행·모달 푸터에서 버튼 사이 간격을 항상 동일하게 */
+.btn-row{display:inline-flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
+.alert{padding:var(--sp-3) var(--sp-4);border-radius:var(--r);font-size:var(--fs-3);margin-bottom:var(--sp-3);display:none;border:1px solid transparent}
 .alert.on{display:block}
-.alert-e{background:var(--redl);color:var(--red);border:1px solid #f0c0bb}
-.alert-s{background:var(--grnl);color:var(--grn);border:1px solid #b8e4c8}
+.alert-e{background:var(--redl);color:var(--red);border-color:var(--red-bdr)}
+.alert-s{background:var(--grnl);color:var(--grn);border-color:var(--grn-bdr)}
+.alert-w{background:var(--oral);color:var(--ora);border-color:var(--ora-bdr)}
+.alert-i{background:var(--acl);color:var(--ac);border-color:var(--ac)}
 .app-wrap{display:flex;min-height:100vh}
 .sidebar{width:240px;background:var(--ac);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:330;transition:transform .3s ease}
-.sb-logo{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.12)}
-.sb-brand{font-size:11px;letter-spacing:.15em;opacity:.6;text-transform:uppercase}
-.sb-name{font-size:15px;font-weight:700;margin-top:2px}
-.sb-role{font-size:11px;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:20px;display:inline-block;margin-top:5px}
-.sb-nav{flex:1;padding:14px 0;overflow-y:auto}
-.nav-btn{display:flex;align-items:center;gap:10px;padding:13px 18px;font-size:14px;font-weight:500;color:rgba(255,255,255,.7);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit}
-.nav-btn:hover,.nav-btn.on{background:rgba(255,255,255,.15);color:#fff}
-.nav-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;display:none}
+/* ── 사이드바 (공통 레이아웃) ── */
+.sb-logo{padding:var(--sp-5) var(--sp-5) var(--sp-4);border-bottom:1px solid rgba(255,255,255,.12)}
+.sb-brand{font-size:var(--fs-1);letter-spacing:.15em;opacity:.6;text-transform:uppercase}
+.sb-name{font-size:var(--fs-5);font-weight:var(--fw-x);margin-top:2px;line-height:1.3}
+.sb-role{font-size:var(--fs-1);background:rgba(255,255,255,.15);padding:2px var(--sp-2);border-radius:var(--r-pill);display:inline-block;margin-top:var(--sp-1)}
+.sb-nav{flex:1;padding:var(--sp-3) 0;overflow-y:auto}
+.nav-btn{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-3) var(--sp-5);font-size:var(--fs-4);font-weight:var(--fw-m);color:rgba(255,255,255,.7);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit;transition:background var(--tr),color var(--tr)}
+.nav-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+/* 현재 화면은 좌측 바로 명확히 구분 (hover와 구분이 안 되던 문제 정리) */
+.nav-btn.on{background:rgba(255,255,255,.16);color:#fff;font-weight:var(--fw-b);box-shadow:inset 3px 0 0 0 #fff}
+.nav-badge{background:var(--red);color:#fff;font-size:var(--fs-0);font-weight:var(--fw-x);padding:1px var(--sp-2);border-radius:var(--r-pill);margin-left:auto;display:none}
 .nav-badge.on{display:inline}
-.nav-group-hdr{display:flex;align-items:center;gap:10px;padding:13px 18px;font-size:14px;font-weight:600;color:rgba(255,255,255,.75);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.nav-group-hdr{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-3) var(--sp-5);font-size:var(--fs-4);font-weight:var(--fw-b);color:rgba(255,255,255,.75);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit;transition:background var(--tr),color var(--tr)}
 .nav-group-hdr:hover{background:rgba(255,255,255,.1);color:#fff}
 .nav-group-label{flex:1}
-.nav-group-arrow{font-size:11px;transition:transform .2s ease;opacity:.7}
+.nav-group-arrow{font-size:var(--fs-1);transition:transform var(--tr);opacity:.7}
 .nav-group.open>.nav-group-hdr .nav-group-arrow{transform:rotate(90deg)}
 .nav-group-body{max-height:0;overflow:hidden;transition:max-height .25s ease}
 .nav-group.open>.nav-group-body{max-height:600px}
-.nav-group-body .nav-btn{padding-left:34px;font-size:13.5px}
-.sb-foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.12)}
-.sb-logout{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);font-family:inherit;font-size:12px;padding:10px 14px;border-radius:6px;cursor:pointer;width:100%}
-.topbar{display:flex;background:var(--ac);color:#fff;padding:0 16px;height:56px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:310;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-.hamburger{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:8px;margin-left:-8px}
+.nav-group-body .nav-btn{padding-left:var(--sp-8);font-size:var(--fs-3)}
+.sb-foot{padding:var(--sp-3) var(--sp-5);border-top:1px solid rgba(255,255,255,.12)}
+.sb-logout{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);font-family:inherit;font-size:var(--fs-2);padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm);cursor:pointer;width:100%;transition:background var(--tr),color var(--tr)}
+.sb-logout:hover{background:rgba(255,255,255,.2);color:#fff}
+/* ── 상단바 (모바일 헤더) ── */
+.topbar{display:flex;background:var(--ac);color:#fff;padding:0 var(--sp-4);height:56px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:310;width:100%;box-shadow:var(--sh)}
+.topbar-title{font-size:var(--fs-5);font-weight:var(--fw-x)}
+.hamburger{background:none;border:none;color:#fff;font-size:var(--fs-7);cursor:pointer;padding:var(--sp-2);margin-left:calc(var(--sp-2) * -1);line-height:1}
+/* 상단바 내 보조 버튼(언어 전환 등) — 인라인 style 대체 */
+.topbar-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm);font-family:inherit;font-size:var(--fs-2);font-weight:var(--fw-b);cursor:pointer;transition:background var(--tr)}
+.topbar-btn:hover{background:rgba(255,255,255,.28)}
 .content{margin-left:240px;flex:1;min-width:0;width:100%}
-.inner{max-width:1140px;margin:0 auto;padding:24px 20px}
-.sec-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
-.sec-title{font-size:20px;font-weight:700}
-.sec-sub{font-size:13px;color:var(--muted);margin-top:2px}
-.sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:22px}
-.sum-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:16px}
-.sum-lbl{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase}
-.sum-val{font-size:24px;font-weight:700;margin-top:4px;line-height:1}
-.sum-sub{font-size:12px;color:var(--muted);margin-top:3px}
-.sum-card.danger{border-color:#f0c0bb;background:var(--redl)}
-.filter-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
-.fsel,.fsearch{padding:10px 12px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;background:var(--surf)}
+.inner{max-width:1140px;margin:0 auto;padding:var(--sp-6) var(--sp-5)}
+/* ── 섹션 헤더 (모든 화면 상단 제목 영역) ── */
+.sec-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:var(--sp-5);flex-wrap:wrap;gap:var(--sp-3)}
+.sec-title{font-size:var(--fs-6);font-weight:var(--fw-x);line-height:1.3}
+.sec-sub{font-size:var(--fs-3);color:var(--muted);margin-top:2px}
+/* ── 대시보드 요약 카드 ── */
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:var(--sp-3);margin-bottom:var(--sp-5)}
+.sum-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r-lg);padding:var(--sp-4);box-shadow:var(--sh-sm)}
+.sum-lbl{font-size:var(--fs-1);color:var(--muted);font-weight:var(--fw-m);text-transform:uppercase;letter-spacing:.04em}
+.sum-val{font-size:var(--fs-7);font-weight:var(--fw-x);margin-top:var(--sp-1);line-height:1}
+.sum-sub{font-size:var(--fs-2);color:var(--muted);margin-top:3px}
+.sum-card.danger{border-color:var(--red-bdr);background:var(--redl)}
+.sum-card.accent{border-color:var(--ac);border-width:2px;background:var(--acl)}
+.sum-val.is-danger{color:var(--red)}
+.sum-val.is-ac{color:var(--ac)}
+.sum-val.is-cs{color:var(--purple)}
+/* ── 필터 바 ── */
+.filter-row{display:flex;gap:var(--sp-2);margin-bottom:var(--sp-3);flex-wrap:wrap;align-items:center}
+.fsel,.fsearch{padding:var(--sp-2) var(--sp-3);border:1px solid var(--bdr);border-radius:var(--r-md);font-size:var(--fs-3);background:var(--surf);min-height:38px}
 .fsearch{width:100%;max-width:280px}
-.tbl-wrap{overflow-x:auto;border:1px solid var(--bdr);border-radius:12px;background:var(--surf);margin-bottom:15px}
-table{width:100%;border-collapse:collapse;font-size:13px;min-width:760px}
-thead th{background:var(--bg);padding:12px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--bdr);white-space:nowrap}
-tbody td{padding:12px 14px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+/* ── 테이블 ── */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--bdr);border-radius:var(--r-lg);background:var(--surf);margin-bottom:var(--sp-4);box-shadow:var(--sh-sm)}
+table{width:100%;border-collapse:collapse;font-size:var(--fs-3);min-width:760px}
+thead th{background:var(--surf-2);padding:var(--sp-3) var(--sp-4);text-align:left;font-size:var(--fs-1);font-weight:var(--fw-b);color:var(--muted);border-bottom:1px solid var(--bdr);white-space:nowrap;text-transform:uppercase;letter-spacing:.03em}
+tbody td{padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--bdr-soft);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
 #inbound-tbl tr.inv-end td{border-bottom:2px solid var(--ac)}
 /* 입고일정표 목록 — 헤더 행 틀고정(sticky). 표 내부에 세로 스크롤을 만들어 헤더를 상단에 붙임 */
@@ -104,28 +228,37 @@ tbody tr:last-child td{border-bottom:none}
 }
 tbody tr:hover{background:var(--bg)}
 .ord-chk:checked,#chk-all:checked{box-shadow:0 0 0 3px rgba(46,125,50,.3);border-radius:3px}
-tbody tr:has(.ord-chk:checked){background:#eaf6ec!important;box-shadow:inset 3px 0 0 0 #2e7d32}
+tbody tr:has(.ord-chk:checked){background:var(--sell)!important;box-shadow:inset 3px 0 0 0 var(--sel)}
 tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
-.bdg{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
-.bdg-pend{background:#fef3e2;color:#b7770d}
-.bdg-pass,.bdg-ok{background:var(--grnl);color:var(--grn)}
-.bdg-fail{background:var(--redl);color:var(--red)}
-.bdg-cs{background:var(--purplel);color:var(--purple)}
-.bdg-late{background:var(--redl);color:var(--red)}
-.bdg-urgent{background:#fde8e8;color:var(--red);font-weight:700;border:1px solid #f5c6c6}
-.bdg-reorder{background:#e8eefd;color:#2952cc;font-weight:700;border:1px solid #c6d3f5}
-.bdg-cancelled{background:#e8e8e8;color:#888;border:1px solid #d0d0d0}
-.bdg-changed{background:var(--purplel);color:var(--purple);font-weight:700;cursor:pointer}
-.bdg-axmissing{background:#fdecea;color:#c0392b;font-weight:700;border:1px solid #f1b0b7;cursor:pointer}
-.bdg-dday{background:var(--oral);color:var(--ora);font-weight:700;border:1px solid #f0d080}
-.bdg-dday0{background:#fff3cd;color:#856404;font-weight:700;border:1px solid #ffc107}
-.bulk-bar{display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--acl);border:1px solid var(--ac);border-radius:10px;margin-bottom:12px;flex-wrap:wrap}
+/* ══ 상태 배지 ══
+   모든 배지는 「연한 배경 + 같은 계열 진한 글자 + 같은 계열 테두리」 한 가지 공식으로 통일.
+   (기존에는 테두리가 있는 배지/없는 배지, 하드코딩 색/변수 색이 섞여 있었음)
+   색 의미: 초록=정상·완료 / 빨강=지연·불량·긴급 / 주황=대기·임박 / 보라=CS·변경 / 파랑=정보·리오더 / 회색=취소·비활성 */
+.bdg{display:inline-flex;align-items:center;gap:3px;padding:3px var(--sp-2);border-radius:var(--r-pill);font-size:var(--fs-1);font-weight:var(--fw-b);white-space:nowrap;border:1px solid transparent;line-height:1.5}
+/* 목록 안에서 보조로 붙는 미니 배지 (인라인 font-size:9px 대체) */
+.bdg-xs{font-size:var(--fs-0);padding:1px var(--sp-1)}
+.bdg-pend{background:var(--oral);color:var(--ora);border-color:var(--ora-bdr)}
+.bdg-pass,.bdg-ok{background:var(--grnl);color:var(--grn);border-color:var(--grn-bdr)}
+.bdg-fail{background:var(--redl);color:var(--red);border-color:var(--red-bdr)}
+.bdg-cs{background:var(--purplel);color:var(--purple);border-color:var(--purple-bdr)}
+.bdg-late{background:var(--redl);color:var(--red);border-color:var(--red-bdr)}
+.bdg-urgent{background:var(--redl);color:var(--red);font-weight:var(--fw-x);border-color:var(--red-bdr)}
+.bdg-reorder{background:var(--bluel);color:var(--blue);font-weight:var(--fw-x);border-color:var(--blue-bdr)}
+.bdg-cancelled{background:var(--grayl);color:var(--gray);border-color:var(--gray-bdr)}
+.bdg-changed{background:var(--purplel);color:var(--purple);font-weight:var(--fw-x);border-color:var(--purple-bdr);cursor:pointer}
+.bdg-axmissing{background:var(--redl);color:var(--red);font-weight:var(--fw-x);border-color:var(--red-bdr);cursor:pointer}
+.bdg-dday{background:var(--oral);color:var(--ora);font-weight:var(--fw-x);border-color:var(--ora-bdr)}
+.bdg-dday0{background:var(--redl);color:var(--red);font-weight:var(--fw-x);border-color:var(--red-bdr)}
+/* 클릭 가능한 배지는 커서와 hover로 그 사실을 알린다 */
+.bdg[onclick]{cursor:pointer}
+.bdg-changed:hover,.bdg-axmissing:hover,.bdg[onclick]:hover{filter:brightness(.96)}
+.bulk-bar{display:none;align-items:center;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4);background:var(--acl);border:1px solid var(--ac);border-radius:var(--r-lg);margin-bottom:var(--sp-3);flex-wrap:wrap}
 .bulk-bar.on{display:flex}
-.bulk-cnt{font-size:13px;font-weight:600;color:var(--ac);flex:1}
-.pend-card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+.bulk-cnt{font-size:var(--fs-3);font-weight:var(--fw-b);color:var(--ac);flex:1}
+.pend-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r-lg);padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-3);margin-bottom:var(--sp-3);box-shadow:var(--sh-sm)}
 .pend-info{flex:1}
-.pend-name{font-size:15px;font-weight:600}
-.pend-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.pend-name{font-size:var(--fs-5);font-weight:var(--fw-b)}
+.pend-meta{font-size:var(--fs-2);color:var(--muted);margin-top:var(--sp-1)}
 .prog{width:80px;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle}
 .prog-f{height:100%;background:var(--ac);border-radius:3px}
 .cal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
@@ -201,17 +334,40 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 .brand-summary-table td{padding:8px 10px;border-bottom:1px solid var(--bdr)}
 .brand-summary-table tfoot td{font-weight:700;border-top:2px solid var(--bdr);border-bottom:none}
 .brand-name-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:12px}
-.modal-section-title{font-size:12px;font-weight:700;color:var(--ac);margin:16px 0 8px 0;border-bottom:1px solid var(--bdr);padding-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:340;display:none;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto}
+/* ── 모달 공통 ── */
+.modal-section-title{font-size:var(--fs-2);font-weight:var(--fw-x);color:var(--ac);margin:var(--sp-4) 0 var(--sp-2);border-bottom:1px solid var(--bdr);padding-bottom:var(--sp-1);text-transform:uppercase;letter-spacing:.05em}
+.overlay{position:fixed;inset:0;background:rgba(26,26,24,.5);z-index:340;display:none;align-items:flex-start;justify-content:center;padding:var(--sp-3);overflow-y:auto}
 .overlay.on{display:flex}
-.modal{background:var(--surf);border-radius:16px;width:100%;max-width:600px;margin:auto;box-shadow:0 4px 24px rgba(0,0,0,.15);overflow:hidden;animation:pop .25s ease-out;position:relative}
+.modal{background:var(--surf);border-radius:var(--r-xl);width:100%;max-width:600px;margin:auto;box-shadow:var(--sh-lg);overflow:hidden;animation:pop .25s ease-out;position:relative}
 @keyframes pop{from{transform:translateY(15px);opacity:0}to{transform:translateY(0);opacity:1}}
-.mhdr{padding:18px 20px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;cursor:move;touch-action:none}
-.mhdr-t{font-size:16px;font-weight:700;line-height:1.3}
-.mhdr-s{font-size:12px;color:var(--muted);margin-top:3px}
-.mclose{background:none;border:none;font-size:28px;color:var(--muted);cursor:pointer;padding:4px 8px}
-.mbody{padding:16px 20px 24px}
-.mfooter{padding:12px 20px;border-top:1px solid var(--bdr);display:flex;gap:10px;justify-content:flex-end;background:#faf9f6}
+.mhdr{padding:var(--sp-5) var(--sp-5) var(--sp-3);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);cursor:move;touch-action:none}
+.mhdr-t{font-size:var(--fs-5);font-weight:var(--fw-x);line-height:1.3}
+.mhdr-s{font-size:var(--fs-2);color:var(--muted);margin-top:3px}
+.mclose{background:none;border:none;font-size:var(--fs-7);color:var(--muted);cursor:pointer;padding:var(--sp-1) var(--sp-2);border-radius:var(--r-sm);line-height:1;flex:none;transition:background var(--tr),color var(--tr)}
+.mclose:hover{background:var(--bg);color:var(--txt)}
+.mbody{padding:var(--sp-4) var(--sp-5) var(--sp-6)}
+.mfooter{padding:var(--sp-3) var(--sp-5);border-top:1px solid var(--bdr);display:flex;gap:var(--sp-2);justify-content:flex-end;background:var(--surf-2)}
+/* 모달 안에서 반복되는 정보 블록 — 화면마다 다르게 쓰던 인라인 박스 스타일을 통일 */
+.m-panel{background:var(--acl);border:1px solid var(--bdr);border-radius:var(--r);padding:var(--sp-4);margin-bottom:var(--sp-4)}
+.m-panel-neutral{background:var(--surf-2);border:1px solid var(--bdr);border-radius:var(--r);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4)}
+/* CS(불량) 계열 정보 패널 — 보라 계열로 통일 */
+.m-panel-cs{background:var(--purplel);border:1px solid var(--purple-bdr);border-radius:var(--r);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);font-size:var(--fs-3)}
+.m-panel-t{font-size:var(--fs-3);font-weight:var(--fw-x);color:var(--ac);margin-bottom:var(--sp-2)}
+.m-grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2) var(--sp-3);font-size:var(--fs-3);color:var(--txt)}
+.m-divider{border-top:1px dashed var(--bdr);padding-top:var(--sp-2);margin-top:var(--sp-2);font-size:var(--fs-3);color:var(--txt-2)}
+/* 선택 결과를 보조로 알려주는 인라인 안내 (공장 CAPA 정보 등)
+   ※ 기존에 정의되지 않은 --vendor/--vendorl 변수를 참조해 색이 적용되지 않던 자리 */
+.m-note{background:var(--grnl);border:1px solid var(--grn-bdr);color:var(--grn);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--fs-2);margin-bottom:var(--sp-3)}
+/* 모달 안 읽기전용 정보 박스 (공장/메모 등) */
+.m-readbox{background:var(--bg);border:1px solid var(--bdr-soft);border-radius:var(--r-md);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);font-size:var(--fs-3)}
+.m-readbox-main{font-size:var(--fs-4);font-weight:var(--fw-b)}
+.m-readbox-pre{white-space:pre-wrap;min-height:50px}
+/* 모달 안 보조 표 (컬러별 수량 등) */
+.m-subtbl{width:100%;font-size:var(--fs-2);border-collapse:collapse;min-width:0}
+.m-subtbl th{text-align:left;padding:3px var(--sp-1);color:var(--muted);font-weight:var(--fw-b);white-space:nowrap}
+.m-subtbl td{padding:3px var(--sp-1)}
+.m-subtbl .num{text-align:right;font-weight:var(--fw-b)}
+.m-subtbl th.num{font-weight:var(--fw-b)}
 /* ── 내용이 길어질 수 있는 모달용 공용 스크롤 구조: 헤더/푸터 고정 + 본문만 스크롤 ── */
 .modal-scroll{max-height:85vh;display:flex;flex-direction:column}
 .modal-scroll .mhdr{position:sticky;top:0;z-index:2;background:var(--surf);flex:0 0 auto}
@@ -230,14 +386,23 @@ tbody tr:has(.ord-chk:checked):hover{background:#dcefe0!important}
 body.pz-noselect{user-select:none}
 .sb-shade{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:320;display:none}
 .sb-shade.on{display:block}
-.empty{text-align:center;padding:40px 20px;color:var(--muted);background:var(--surf);border-radius:12px;border:1px solid var(--bdr)}
-.empty-t{font-size:14px;font-weight:500;color:var(--txt);margin-bottom:4px}
-.loading{text-align:center;padding:40px;color:var(--muted)}
+.empty{text-align:center;padding:var(--sp-8) var(--sp-5);color:var(--muted);background:var(--surf);border-radius:var(--r-lg);border:1px solid var(--bdr);font-size:var(--fs-3)}
+.empty-t{font-size:var(--fs-4);font-weight:var(--fw-m);color:var(--txt);margin-bottom:var(--sp-1)}
+.loading{text-align:center;padding:var(--sp-8);color:var(--muted);font-size:var(--fs-3)}
 @keyframes spin{to{transform:rotate(360deg)}}
-.spin{width:24px;height:24px;border:2px solid var(--bdr);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
-.card{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:14px}
-.card-hdr{padding:14px 18px;border-bottom:1px solid var(--bdr);font-size:14px;font-weight:600}
-.card-body{padding:16px 18px}
+.spin{width:24px;height:24px;border:2px solid var(--bdr);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto var(--sp-2)}
+/* ── 카드 (모든 화면 공통 컨테이너) ── */
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r-lg);overflow:hidden;margin-bottom:var(--sp-3);box-shadow:var(--sh-sm)}
+.card-hdr{padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--bdr);font-size:var(--fs-4);font-weight:var(--fw-b);background:var(--surf-2)}
+.card-body{padding:var(--sp-4)}
+/* 강조 카드: 업로드 안내 등 주의를 끌어야 하는 영역 (인라인 dashed 스타일 대체) */
+.card-accent{border:1px dashed var(--ora);background:var(--oral);box-shadow:none}
+.card-accent .card-body{text-align:center}
+.card-accent-t{color:var(--ora);font-weight:var(--fw-x);font-size:var(--fs-4);margin-bottom:var(--sp-1)}
+.card-muted{border:1px dashed var(--bdr);background:var(--bg);box-shadow:none}
+/* 본문 폭이 제한된 폼 카드 — max-width 인라인 대체 */
+.card-form{max-width:680px}
+.card-narrow{max-width:480px}
 .ax-csv-dropzone{border:2px dashed var(--bdr);border-radius:var(--r);padding:28px 16px;text-align:center;cursor:pointer;font-size:13px;color:var(--muted);transition:border-color .15s,background .15s}
 .ax-csv-dropzone:hover,.ax-csv-dropzone.drag-over{border-color:var(--ac);background:var(--acl)}
 .ax-csv-progress-bar-wrap{background:var(--bg);border:1px solid var(--bdr);border-radius:99px;height:10px;overflow:hidden}
@@ -247,9 +412,10 @@ body.pz-noselect{user-select:none}
 .factory-name{font-size:14px;font-weight:600;margin-bottom:6px}
 .factory-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:2px}
 .factory-row strong{color:var(--txt)}
-.view-tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--bdr)}
-.view-tab{padding:10px 16px;border:none;background:none;font-family:inherit;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
-.view-tab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.view-tabs{display:flex;gap:var(--sp-1);margin-bottom:var(--sp-3);border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.view-tab{padding:var(--sp-2) var(--sp-4);border:none;background:none;font-family:inherit;font-size:var(--fs-3);font-weight:var(--fw-m);color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color var(--tr),border-color var(--tr)}
+.view-tab:hover{color:var(--txt)}
+.view-tab.on{color:var(--ac);border-bottom-color:var(--ac);font-weight:var(--fw-b)}
 .view-pane{display:none}.view-pane.on{display:block}
 .qr-input-row{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap}
 .qr-input-row input{flex:1;min-width:220px}
@@ -279,7 +445,9 @@ body.pz-noselect{user-select:none}
   tbody td{padding:8px 0;border-bottom:1px dashed #eee;display:flex;justify-content:space-between;align-items:center;text-align:right;font-size:13px}
   tbody td:last-child{border-bottom:none;padding-top:12px;justify-content:center}
   tbody td::before{content:attr(data-label);font-weight:500;color:var(--muted);text-align:left;font-size:12px}
-  .btn-sm{width:100%;padding:10px;font-size:13px}
+  .btn-sm{width:100%;padding:10px;font-size:var(--fs-3)}
+  /* 목록 행의 액션 버튼 묶음: 모바일에서는 기존처럼 세로로 꽉 차게 */
+  .btn-row{display:flex;width:100%;flex-direction:column;gap:var(--sp-2)}
   .cal-cell{min-height:52px;padding:4px;font-size:10px}
   .cal-event{font-size:9px;padding:1px 3px}
   .pend-card .btn{width:100%}
@@ -394,6 +562,53 @@ body.pz-noselect{user-select:none}
 @media(max-width:992px){
   .pm-page-info{width:100%;text-align:center;order:3}
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   유틸리티 — 화면마다 흩어져 있던 인라인 style을 대체하는 공용 클래스.
+   새 마크업에서는 style="..." 대신 아래 클래스를 사용할 것.
+   ══════════════════════════════════════════════════════════════════ */
+/* 레이아웃 */
+.u-w-auto{width:auto}
+.u-row{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
+.u-row-tight{display:flex;align-items:center;gap:var(--sp-1)}
+.u-col{display:flex;flex-direction:column;gap:var(--sp-1)}
+.u-between{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2)}
+.u-center{text-align:center}
+.u-right{text-align:right}
+.u-nowrap{white-space:nowrap}
+.u-hidden{display:none}
+/* 여백 */
+.u-mt-1{margin-top:var(--sp-1)}.u-mt-2{margin-top:var(--sp-2)}.u-mt-3{margin-top:var(--sp-3)}.u-mt-4{margin-top:var(--sp-4)}
+.u-mb-1{margin-bottom:var(--sp-1)}.u-mb-2{margin-bottom:var(--sp-2)}.u-mb-3{margin-bottom:var(--sp-3)}.u-mb-4{margin-bottom:var(--sp-4)}
+/* 텍스트 색 (수치 강조) */
+.u-danger{color:var(--red)}
+.u-warn{color:var(--ora)}
+.u-ok{color:var(--grn)}
+.u-cs{color:var(--purple)}
+.u-accent{color:var(--ac)}
+.u-b{font-weight:var(--fw-b)}
+.u-x{font-weight:var(--fw-x)}
+/* 표 셀: 스타일번호 등 코드값 열 */
+.cell-code{font-family:var(--ff-mono);font-size:var(--fs-1);color:var(--ac)}
+/* 표 행 상태 (인라인 background 대체) */
+tbody tr.row-cancelled{opacity:.6}
+tbody tr.row-reorder{background:var(--bluel)}
+tbody tr.row-reorder:hover{background:#dde6fb}
+tbody tr.row-urgent{background:var(--redl)}
+tbody tr.row-urgent:hover{background:#fbe4e0}
+/* 선택 체크박스 칸 — 폭 고정은 헤더에만 걸어 모바일 카드 레이아웃에 영향을 주지 않게 한다 */
+.cell-chk{text-align:center}
+thead th.cell-chk{width:36px}
+/* 접이식 컬러별 내역 (오더 목록) */
+.brk{margin-top:var(--sp-1);font-family:var(--ff)}
+.brk>summary{cursor:pointer;font-size:var(--fs-1);color:var(--muted);list-style:revert}
+.brk>summary:hover{color:var(--ac)}
+.brk-list{margin-top:var(--sp-1);display:flex;flex-direction:column;gap:3px;min-width:170px}
+.brk-item{display:flex;justify-content:space-between;gap:var(--sp-2);padding:3px var(--sp-1);background:var(--bg);border-radius:var(--r-xs);font-size:var(--fs-1)}
+/* 접이식 섹션 공통 (변경 이력 등) */
+.u-details{margin-bottom:var(--sp-3)}
+.u-details>summary{cursor:pointer;font-size:var(--fs-2);font-weight:var(--fw-x);color:var(--ac);text-transform:uppercase;letter-spacing:.05em}
+.u-details-body{background:var(--bg);border-radius:var(--r-md);padding:var(--sp-3) var(--sp-4);margin-top:var(--sp-2);font-size:var(--fs-2)}
 </style>
 </head>
 <body class="theme-master">
@@ -447,8 +662,8 @@ body.pz-noselect{user-select:none}
 <div class="pg" id="pg-app">
   <div class="topbar">
     <button class="hamburger" id="hamburger">☰</button>
-    <span style="font-size:15px;font-weight:700" id="topbar-title">BLS Sourcing</span>
-    <button id="lang-toggle" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 12px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">🌐 EN</button>
+    <span class="topbar-title" id="topbar-title">BLS Sourcing</span>
+    <button class="topbar-btn" id="lang-toggle">🌐 EN</button>
   </div>
 
   <div class="app-wrap">
@@ -602,6 +817,7 @@ body.pz-noselect{user-select:none}
           <div class="sec-hdr"><div><div class="sec-title" data-ko="입고 일정표" data-en="Inbound Schedule">입고 일정표</div><div class="sec-sub" data-ko="수입 통관 기준 입고 일정" data-en="Inbound schedule based on customs clearance">수입 통관 기준 입고 일정</div></div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-p btn-sm" id="arr-upload-btn" style="width:auto;display:none" data-ko="📤 엑셀 업로드" data-en="📤 Excel Upload">📤 엑셀 업로드</button>
+              <button class="btn btn-purple btn-sm" id="arr-doc-btn" style="width:auto;display:none" data-ko="📄 서류로 입력" data-en="📄 Fill from Document">📄 서류로 입력</button>
               <button class="btn btn-s btn-sm" id="arr-download-btn" style="width:auto" data-ko="⬇️ 엑셀 다운로드" data-en="⬇️ Excel Download">⬇️ 엑셀 다운로드</button>
               <button class="btn btn-s btn-sm" id="inbound-print" data-ko="🖨️ 인쇄" data-en="🖨️ Print">🖨️ 인쇄</button>
             </div>
@@ -845,39 +1061,39 @@ body.pz-noselect{user-select:none}
           <div class="fg"><label class="fl" data-ko="생산 공장 선택 *" data-en="Select Factory *">생산 공장 선택 *</label><select id="vm-factory"></select></div>
           <div class="fg"><label class="fl" data-ko="생산 라인" data-en="Production Line">생산 라인</label><input type="text" id="vm-line" data-ko-ph="A라인" data-en-ph="Line A" placeholder="A라인"></div>
         </div>
-        <div id="vm-factory-info" style="background:var(--vendorl);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--vendor);margin-bottom:14px;display:none"></div>
+        <div id="vm-factory-info" class="m-note" style="display:none"></div>
         <div class="modal-section-title" data-ko="📦 생산 현황" data-en="📦 Production Status">📦 생산 현황</div>
-        <div id="vm-stage-section" style="margin-bottom:14px"></div>
+        <div id="vm-stage-section" class="u-mb-3"></div>
         <div class="row2">
           <div class="fg"><label class="fl" data-ko="누적 생산 완료 (장)" data-en="Total Produced (pcs)">누적 생산 완료 (장)</label><input type="number" id="vm-produced" placeholder="0"></div>
           <div class="fg"><label class="fl" data-ko="생산중 불량 (장)" data-en="Defects in Production">생산중 불량 (장)</label><input type="number" id="vm-fail" placeholder="0"></div>
         </div>
-        <div class="fg"><label class="fl" data-ko="비고" data-en="Notes">비고</label><textarea id="vm-notes" style="min-height:90px" data-ko-ph="생산 현황, 특이사항, 지연 사유 등" data-en-ph="Production status, special notes, delay reason, etc." placeholder="생산 현황, 특이사항, 지연 사유 등"></textarea></div>
+        <div class="fg"><label class="fl" data-ko="비고" data-en="Notes">비고</label><textarea id="vm-notes" class="ta-lg" data-ko-ph="생산 현황, 특이사항, 지연 사유 등" data-en-ph="Production status, special notes, delay reason, etc." placeholder="생산 현황, 특이사항, 지연 사유 등"></textarea></div>
       </div>
 
       <div id="vm-po-change-section"></div>
     </div>
     <div class="mfooter" id="vm-footer-actions">
-      <button class="btn btn-s btn-sm" id="vm-delete-btn" style="width:auto;margin-right:auto;color:var(--red);border-color:var(--red);display:none" onclick="confirmDeleteOrder(activeOrderId)" data-ko="🗑 오더 삭제" data-en="🗑 Delete Order">🗑 오더 삭제</button>
+      <button class="btn btn-danger-o btn-sm btn-pull-left" id="vm-delete-btn" style="display:none" onclick="confirmDeleteOrder(activeOrderId)" data-ko="🗑 오더 삭제" data-en="🗑 Delete Order">🗑 오더 삭제</button>
       <button class="btn btn-s btn-sm" id="vm-cancel" data-ko="취소" data-en="Cancel">취소</button>
-      <button class="btn btn-p btn-sm" id="vm-save" style="width:auto" data-ko="저장" data-en="Save">저장</button>
+      <button class="btn btn-p btn-sm" id="vm-save" data-ko="저장" data-en="Save">저장</button>
     </div>
   </div>
 </div>
 
 <div class="overlay" id="defect-modal">
   <div class="modal">
-    <div class="mhdr"><div><div class="mhdr-t" id="defm-title" style="color:var(--purple)">불량 추가 입력</div><div class="mhdr-s" id="defm-sub"></div></div><button class="mclose" id="defm-close">×</button></div>
+    <div class="mhdr"><div><div class="mhdr-t u-cs" id="defm-title">불량 추가 입력</div><div class="mhdr-s" id="defm-sub"></div></div><button class="mclose" id="defm-close">×</button></div>
     <div class="mbody">
       <div class="alert alert-e" id="defm-alert"></div>
-      <div id="defm-info" class="card" style="background:var(--purplel);border-color:#c9b3e8;margin-bottom:14px;padding:12px 14px;font-size:13px"></div>
+      <div id="defm-info" class="m-panel-cs"></div>
       <div class="fg"><label class="fl" data-ko="추가 불량 수량 (장) *" data-en="Additional Defect Qty (pcs) *">추가 불량 수량 (장) *</label><input type="number" id="defm-qty" placeholder="0" min="0"></div>
-      <div id="defm-rate" style="font-size:13px;color:var(--purple);font-weight:500;margin-bottom:10px"></div>
+      <div id="defm-rate" class="t-body u-cs u-b u-mb-2"></div>
       <div id="defm-history"></div>
     </div>
     <div class="mfooter">
       <button class="btn btn-s btn-sm" id="defm-cancel" data-ko="취소" data-en="Cancel">취소</button>
-      <button class="btn btn-purple btn-sm" id="defm-save" style="width:auto" data-ko="추가" data-en="Add">추가</button>
+      <button class="btn btn-purple btn-sm" id="defm-save" data-ko="추가" data-en="Add">추가</button>
     </div>
   </div>
 </div>
@@ -925,6 +1141,80 @@ body.pz-noselect{user-select:none}
     <div class="mfooter">
       <button class="btn btn-s btn-sm" id="aum-cancel" data-ko="취소" data-en="Cancel">취소</button>
       <button class="btn btn-ok btn-sm" id="arr-submit-btn" style="width:auto;display:none" data-ko="✓ 업로드" data-en="✓ Upload">✓ 업로드</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="arrival-doc-modal">
+  <div class="modal" style="max-width:760px">
+    <div class="mhdr"><div><div class="mhdr-t" data-ko="📄 서류로 입력" data-en="📄 Fill from Document">📄 서류로 입력</div><div class="mhdr-s" data-ko="인보이스/B.L 문서를 업로드하면 AI가 필드를 채워줍니다 (추출 결과는 저장 전 검토/수정 가능)" data-en="Upload invoice/B.L documents and AI fills the fields (review/edit before saving)">인보이스/B.L 문서를 업로드하면 AI가 필드를 채워줍니다 (추출 결과는 저장 전 검토/수정 가능)</div></div><button class="mclose" id="adm-close">×</button></div>
+    <div class="mbody">
+      <div class="alert alert-e" id="adm-alert"></div>
+
+      <div class="t-caption u-x u-mb-1" data-ko="1단계 · 인보이스 / B.L 업로드" data-en="Step 1 · Upload Invoice / B.L">1단계 · 인보이스 / B.L 업로드</div>
+      <div class="row2">
+        <div class="fg">
+          <label class="fl" data-ko="인보이스 파일" data-en="Invoice file">인보이스 파일</label>
+          <input type="file" id="adm-invoice-file" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls" style="display:none">
+          <button class="btn btn-s btn-sm" type="button" onclick="document.getElementById('adm-invoice-file').click()" style="width:auto" data-ko="파일 선택" data-en="Choose File">파일 선택</button>
+          <span id="adm-invoice-filename" style="font-size:11px;color:var(--muted);margin-left:8px;vertical-align:middle"></span>
+        </div>
+        <div class="fg">
+          <label class="fl" data-ko="B/L 파일 (선택)" data-en="B/L file (optional)">B/L 파일 (선택)</label>
+          <input type="file" id="adm-bl-file" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls" style="display:none">
+          <button class="btn btn-s btn-sm" type="button" onclick="document.getElementById('adm-bl-file').click()" style="width:auto" data-ko="파일 선택" data-en="Choose File">파일 선택</button>
+          <span id="adm-bl-filename" style="font-size:11px;color:var(--muted);margin-left:8px;vertical-align:middle"></span>
+        </div>
+      </div>
+      <button class="btn btn-purple btn-sm" id="adm-extract-btn" style="width:auto" data-ko="🤖 AI로 추출" data-en="🤖 Extract with AI">🤖 AI로 추출</button>
+      <span id="adm-extract-loading" style="display:none;font-size:12px;color:var(--muted);margin-left:10px" data-ko="추출 중… (최대 30초 정도 걸릴 수 있습니다)" data-en="Extracting… (may take up to ~30s)">추출 중… (최대 30초 정도 걸릴 수 있습니다)</span>
+
+      <div id="adm-form-zone" style="display:none;margin-top:16px;border-top:1px solid var(--bdr);padding-top:14px">
+        <div class="row3">
+          <div class="fg"><label class="fl" data-ko="공급사" data-en="Supplier">공급사</label><input type="text" id="adm-supplier"></div>
+          <div class="fg"><label class="fl" data-ko="브랜드" data-en="Brand">브랜드</label><input type="text" id="adm-brand"></div>
+          <div class="fg"><label class="fl" data-ko="Forwarder" data-en="Forwarder">Forwarder</label><input type="text" id="adm-forwarder"></div>
+        </div>
+        <div class="row3">
+          <div class="fg"><label class="fl" data-ko="INVOICE NO." data-en="Invoice No.">INVOICE NO.</label><input type="text" id="adm-invoice-no"></div>
+          <div class="fg"><label class="fl" data-ko="B/L NO." data-en="B/L No.">B/L NO.</label><input type="text" id="adm-bl-no"></div>
+          <div class="fg">
+            <label class="fl" data-ko="입고일(DATE) *" data-en="Arrival Date (DATE) *">입고일(DATE) *</label>
+            <input type="date" id="adm-date">
+          </div>
+        </div>
+        <div id="adm-etd-hint" style="display:none;font-size:11px;color:var(--ac);margin:-4px 0 10px" data-ko-tpl="참고: 추출된 ETD(Shipped on board date) = " data-en-tpl="Reference: extracted ETD (Shipped on board date) = "></div>
+
+        <div class="fg" style="margin-top:6px">
+          <label class="fl" data-ko="스타일별 총수량 / 카톤 (검출된 값 — 필요 시 수정)" data-en="Total qty/ctn per style (detected — edit if needed)">스타일별 총수량 / 카톤 (검출된 값 — 필요 시 수정)</label>
+          <div id="adm-style-rows"></div>
+          <button class="btn btn-s btn-sm" id="adm-style-add" type="button" style="width:auto;margin-top:6px" data-ko="+ 스타일 행 추가" data-en="+ Add style row">+ 스타일 행 추가</button>
+        </div>
+
+        <button class="btn btn-ok btn-sm" id="adm-goto-color-btn" type="button" style="width:auto;margin-top:16px" data-ko="다음: 컬러별 수량 검토 →" data-en="Next: Review Qty by Color →">다음: 컬러별 수량 검토 →</button>
+      </div>
+
+      <div id="adm-color-zone" style="display:none;margin-top:16px;border-top:1px solid var(--bdr);padding-top:14px">
+        <div class="t-caption u-x u-mb-1" data-ko="2단계 · 디테일 팩킹리스트 (선택) → 컬러별 수량 검토" data-en="Step 2 · Detail Packing List (optional) → Review Qty by Color">2단계 · 디테일 팩킹리스트 (선택) → 컬러별 수량 검토</div>
+        <div class="alert alert-e" id="adm-alert2"></div>
+        <div class="fg">
+          <label class="fl" data-ko="디테일 팩킹리스트 파일 (선택 — 카톤별 컬러 데이터를 자동 합산합니다)" data-en="Detail packing list file (optional — auto-sums carton-level color data)">디테일 팩킹리스트 파일 (선택 — 카톤별 컬러 데이터를 자동 합산합니다)</label>
+          <input type="file" id="adm-packing-file" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls" style="display:none">
+          <button class="btn btn-s btn-sm" type="button" onclick="document.getElementById('adm-packing-file').click()" style="width:auto" data-ko="파일 선택" data-en="Choose File">파일 선택</button>
+          <span id="adm-packing-filename" style="font-size:11px;color:var(--muted);margin-left:8px;vertical-align:middle"></span>
+        </div>
+        <button class="btn btn-purple btn-sm" id="adm-analyze-btn" type="button" style="width:auto" data-ko="🤖 AI로 컬러 분석" data-en="🤖 Analyze Colors with AI">🤖 AI로 컬러 분석</button>
+        <span id="adm-analyze-loading" style="display:none;font-size:12px;color:var(--muted);margin-left:10px" data-ko="분석 중… (최대 30초 정도 걸릴 수 있습니다)" data-en="Analyzing… (may take up to ~30s)">분석 중… (최대 30초 정도 걸릴 수 있습니다)</span>
+
+        <p style="font-size:11px;color:var(--muted);margin:10px 0 6px" data-ko="아래 표는 자동 확정되지 않습니다. 저장 전 컬러코드/수량을 직접 검토·수정하세요." data-en="This table is never auto-confirmed. Review/edit color codes and quantities before saving.">아래 표는 자동 확정되지 않습니다. 저장 전 컬러코드/수량을 직접 검토·수정하세요.</p>
+        <div id="adm-color-rows"></div>
+        <button class="btn btn-s btn-sm" id="adm-color-add" type="button" style="width:auto;margin-top:6px" data-ko="+ 컬러 행 추가" data-en="+ Add color row">+ 컬러 행 추가</button>
+        <div id="adm-color-sum-check" style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5"></div>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-s btn-sm" id="adm-cancel" data-ko="취소" data-en="Cancel">취소</button>
+      <button class="btn btn-ok btn-sm" id="adm-final-save-btn" style="width:auto;display:none" data-ko="✓ 이 내용으로 확정" data-en="✓ Confirm and Save">✓ 이 내용으로 확정</button>
     </div>
   </div>
 </div>
@@ -1250,6 +1540,8 @@ const SUPABASE_URL = "https://boyixtyrtzknaqjmxfjj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_b19kpVsItvdlFneFpzYb2Q_Z_Xc3ccr";
 // vendor-etd-alert Edge Function 헤더 검증용 (supabase secrets set ALERT_FN_SECRET=... 과 동일한 값)
 const ALERT_FN_SECRET = "93bbf3a8537cd8b0735da02377ea2d9c228a67f6adf246dd14c3a8bf6682cb9b";
+// extract-arrival-doc Edge Function 헤더 검증용 (supabase secrets set DOC_EXTRACT_FN_SECRET=... 과 동일한 값)
+const DOC_EXTRACT_FN_SECRET = "545204751db76e87c06374c381bf12d9e5cd05a21def154a8dc8888b32af3e0b";
 
 // ── 전역 상태 ──
 let me = null;
@@ -1378,6 +1670,12 @@ function isGroupDelayed(group, t) {
   const totalQty = active.reduce((s,x)=>s+(x.order_qty||0),0);
   const totalShipped = active.reduce((s,x)=>s+(x.shipped_qty||0),0);
   return d < t && totalShipped < totalQty;
+}
+// ── 생산 4단계(CUT/ARTWORK/SEW/FINISH) 전체 완료 판정 (스타일 그룹 단위) ──
+// 컬러 행 전원이 4단계 모두 완료해야 그룹 전체가 완료로 간주된다(벤더 대시보드 "할 일" 판정에 사용).
+function isGroupStagesComplete(group) {
+  const STAGES = ['cut','artwork','sew','finish'];
+  return (group || []).length > 0 && (group || []).every(o => o && STAGES.every(s => !!o[s+'_done']));
 }
 function isMobileCal() { return window.matchMedia('(max-width:992px)').matches; }
 function addDaysToDateStr(dateStr, n) { const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
@@ -1550,6 +1848,8 @@ async function launchApp() {
   if (ordVendorSel) ordVendorSel.style.display = me.role === 'vendor' ? 'none' : '';
   const arrUploadBtn = document.getElementById('arr-upload-btn');
   if (arrUploadBtn) arrUploadBtn.style.display = me.role === 'master' ? '' : 'none';
+  const arrDocBtn = document.getElementById('arr-doc-btn');
+  if (arrDocBtn) arrDocBtn.style.display = me.role === 'master' ? '' : 'none';
   // 벤더 화면에는 "AX 미등록" 탭을 노출하지 않음(내부 관리용 — 마스터/MD 화면은 그대로 유지)
   const axUnregTab = document.querySelector('#dash-status-tabs [data-dstatus="ax_unregistered"]');
   if (axUnregTab) axUnregTab.style.display = me.role === 'vendor' ? 'none' : '';
@@ -1735,6 +2035,19 @@ function bindAppEvents() {
     if (b.dataset.iview === 'cal') renderArrivalCalendar();
   }));
   document.getElementById('arr-upload-btn')?.addEventListener('click', openArrivalUploadModal);
+  document.getElementById('arr-doc-btn')?.addEventListener('click', openArrivalDocModal);
+  document.getElementById('adm-invoice-file')?.addEventListener('change', e=>{ document.getElementById('adm-invoice-filename').textContent = e.target.files[0]?.name || ''; });
+  document.getElementById('adm-bl-file')?.addEventListener('change', e=>{ document.getElementById('adm-bl-filename').textContent = e.target.files[0]?.name || ''; });
+  document.getElementById('adm-packing-file')?.addEventListener('change', e=>{ document.getElementById('adm-packing-filename').textContent = e.target.files[0]?.name || ''; });
+  document.getElementById('adm-extract-btn')?.addEventListener('click', extractArrivalDoc);
+  document.getElementById('adm-style-add')?.addEventListener('click', ()=>addAdmStyleRow());
+  document.getElementById('adm-goto-color-btn')?.addEventListener('click', goToAdmColorStep);
+  document.getElementById('adm-analyze-btn')?.addEventListener('click', analyzeAdmPackingList);
+  document.getElementById('adm-color-add')?.addEventListener('click', ()=>addAdmColorRow());
+  document.getElementById('adm-final-save-btn')?.addEventListener('click', saveArrivalDocFinal);
+  document.getElementById('adm-style-rows')?.addEventListener('input', updateAdmColorSumCheck);
+  document.getElementById('adm-color-rows')?.addEventListener('input', updateAdmColorSumCheck);
+  document.getElementById('arrival-doc-modal')?.addEventListener('click', e=>{ if(e.target.id==='arrival-doc-modal') closeModal('adm'); });
   document.getElementById('settings-schedule-code-save')?.addEventListener('click', saveScheduleCode);
   document.getElementById('settings-login-url-save')?.addEventListener('click', saveLoginUrl);
   document.getElementById('settings-test-alert-btn')?.addEventListener('click', sendTestAlertEmail);
@@ -1784,7 +2097,7 @@ function bindAppEvents() {
   document.getElementById('err-filter').addEventListener('change', renderErrors);
   document.getElementById('err-clear-btn').addEventListener('click', clearResolvedErrors);
 
-  ['vm','defm','fm','dm','oe','fim','aem','aum','fsm','sum','pcm'].forEach(prefix=>{
+  ['vm','defm','fm','dm','oe','fim','aem','aum','adm','fsm','sum','pcm'].forEach(prefix=>{
     document.getElementById(prefix+'-close')?.addEventListener('click', ()=>closeModal(prefix));
     document.getElementById(prefix+'-cancel')?.addEventListener('click', ()=>closeModal(prefix));
   });
@@ -1858,7 +2171,7 @@ function bindAppEvents() {
   document.getElementById('sample-detail-modal')?.addEventListener('click', e=>{ if(e.target.id==='sample-detail-modal') closeSampleDetailModal(); });
 }
 function closeModal(prefix) {
-  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', fsm:'force-ship-modal', sm:'sample-modal', sum:'sample-upload-modal', pcm:'po-change-modal', dsp:'dup-suspect-modal'};
+  const map = {vm:'vendor-modal', defm:'defect-modal', fm:'factory-modal', dm:'day-modal', oe:'order-edit-modal', fim:'finish-modal', aem:'arrival-edit-modal', aum:'arrival-upload-modal', adm:'arrival-doc-modal', fsm:'force-ship-modal', sm:'sample-modal', sum:'sample-upload-modal', pcm:'po-change-modal', dsp:'dup-suspect-modal'};
   document.getElementById(map[prefix])?.classList.remove('on');
 }
 
@@ -2177,20 +2490,25 @@ function getVisibleOrders() {
   // 진행중/선적완료 탭 분류는 PO+스타일 그룹 전체 기준으로 판단한다(컬러 행 단위 X).
   // 컬러별로 선적 상태가 갈리면(예: 일부 컬러만 먼저 선적) 그룹이 탭 사이에서 쪼개져
   // 같은 스타일이 두 개의 카드로 중복 표시되고, 각 카드의 수량 합계도 컬러 일부만 집계되어 어긋난다.
+  // 벤더 화면은 "선적 상태"가 아니라 "할 일이 남았는지"가 기준이 되어야 하므로, 4단계(CUT/ARTWORK/SEW/FINISH)가
+  // 모두 끝난 그룹은 아직 선적 요청 전이라도 진행중 탭에서 숨기고 완료(선적완료) 탭으로 넘긴다.
+  const isDoneForTab = g => me.role === 'vendor'
+    ? (g.every(isInShippedTab) || isGroupStagesComplete(g))
+    : g.every(isInShippedTab);
   const statusGroups = statusFilter === 'ax_unregistered'
     ? buildOrderGroups(list.filter(o => o.source === 'manual')) // AX로 전환되지 않은(source가 여전히 manual인) 오더 — AX 담당자에게 등록 요청할 목록
     : statusFilter === 'all'
       ? buildOrderGroups(list)
       : buildOrderGroups(list).filter(g => {
-          const allShipped = g.every(isInShippedTab);
-          return statusFilter === 'shipped' ? allShipped : !allShipped;
+          const done = isDoneForTab(g);
+          return statusFilter === 'shipped' ? done : !done;
         });
-  // 1) 선적완료 건은 하단으로 고정 2) 그 안에서 긴급건 최상단, 리오더건 그 다음 고정
-  // 3) 스타일 그룹 내 컬러 행들 중 가장 이른 adjusted_date(MIN) 기준 오름차순 — 컬러별 행 단위가 아니라
+  // 1) 완료(선적완료) 건은 하단으로 고정 2) 그 안에서 긴급건 최상단, 리오더건 그 다음 고정
+  // 3) 스타일 그룹 내 컬러 행들 중 가장 이른 adjusted_date(MIN) 기준 오름차순(납기 임박순) — 컬러별 행 단위가 아니라
   //    그룹 단위로 정렬해야 컬러마다 납기가 달라도 같은 스타일 행들이 흩어지지 않는다.
   statusGroups.sort((ga,gb)=>{
-    const aShipped = ga.every(isInShippedTab), bShipped = gb.every(isInShippedTab);
-    if (aShipped !== bShipped) return aShipped ? 1 : -1;
+    const aDone = isDoneForTab(ga), bDone = isDoneForTab(gb);
+    if (aDone !== bDone) return aDone ? 1 : -1;
     const aTier = orderPriorityTier(ga[0]), bTier = orderPriorityTier(gb[0]);
     if (aTier !== bTier) return aTier - bTier;
     return (groupMinDate(ga)||'9999-99-99').localeCompare(groupMinDate(gb)||'9999-99-99');
@@ -2200,6 +2518,24 @@ function getVisibleOrders() {
 function L(ko, en) {
   const lang = localStorage.getItem('bls_lang') || 'ko';
   return lang === 'en' ? en : ko;
+}
+
+// ── 벤더 첫 화면 "할 일" 요약: 현재 탭 선택과 무관하게 시즌 필터만 반영해 항상 전체 진행 상황을 보여준다 ──
+function getVendorTodoStats() {
+  const sid = document.getElementById('dash-season')?.value || '';
+  let list = allOrders.filter(o => o.vendor_id === me.id && o.match_status !== 'unmatched' && o.status !== 'cancelled');
+  if (sid) list = list.filter(o => o.season_id === sid);
+  const groups = buildOrderGroups(list);
+  const t = today();
+  let needAction = 0, dueSoon = 0;
+  groups.forEach(g => {
+    const done = g.every(isInShippedTab) || isGroupStagesComplete(g);
+    if (done) return;
+    needAction++;
+    const d = groupMinDate(g);
+    if (d && Math.ceil((new Date(d) - new Date(t)) / 86400000) <= 7) dueSoon++;
+  });
+  return { needAction, dueSoon };
 }
 
 function renderDashboard() {
@@ -2222,13 +2558,20 @@ function renderDashboard() {
   const ppct = tOrd?Math.round(tPrd/tOrd*100):0;
   const spct = tOrd?Math.round(tShp/tOrd*100):0;
   const U = { cases: L('건','cases'), pcs: L('장','pcs') };
-  document.getElementById('sum-grid').innerHTML = `
+  // 벤더 화면 전용 "할 일" 요약 카드 — 탭/검색과 무관하게 항상 전체 기준으로 계산해 맨 앞에 강조 배치
+  const vendorTodoCards = me.role === 'vendor' ? (() => {
+    const { needAction, dueSoon } = getVendorTodoStats();
+    return `
+    <div class="sum-card accent"><div class="sum-lbl">${L('진행 필요','Action Needed')}</div><div class="sum-val is-ac">${needAction}</div><div class="sum-sub">${U.cases}</div></div>
+    <div class="sum-card ${dueSoon>0?'danger':''}"><div class="sum-lbl">${L('납기 임박','Due Soon')}</div><div class="sum-val ${dueSoon>0?'is-danger':''}">${dueSoon}</div><div class="sum-sub">${U.cases}</div></div>`;
+  })() : '';
+  document.getElementById('sum-grid').innerHTML = vendorTodoCards + `
     <div class="sum-card"><div class="sum-lbl">${L('전체 스타일','Total Styles')}</div><div class="sum-val">${groups.length}</div><div class="sum-sub">${U.cases}</div></div>
     <div class="sum-card"><div class="sum-lbl">${L('총 오더','Total Order')}</div><div class="sum-val">${tOrd.toLocaleString()}</div><div class="sum-sub">${U.pcs}</div></div>
     <div class="sum-card"><div class="sum-lbl">${L('생산 완료','Production')}</div><div class="sum-val">${ppct}%</div><div class="sum-sub">${tPrd.toLocaleString()}${U.pcs}</div></div>
     <div class="sum-card"><div class="sum-lbl">${L('선적 완료','Shipped')}</div><div class="sum-val">${spct}%</div><div class="sum-sub">${tShp.toLocaleString()}${U.pcs}</div></div>
-    <div class="sum-card ${delayed>0?'danger':''}"><div class="sum-lbl">${L('납기 지연','Delayed')}</div><div class="sum-val" style="color:${delayed>0?'var(--red)':''}">${delayed}</div><div class="sum-sub">${U.cases}</div></div>
-    <div class="sum-card"><div class="sum-lbl">${L('불량 발생','Defect Found')}</div><div class="sum-val" style="color:var(--purple)">${defectCnt}</div><div class="sum-sub">${U.cases}</div></div>`;
+    <div class="sum-card ${delayed>0?'danger':''}"><div class="sum-lbl">${L('납기 지연','Delayed')}</div><div class="sum-val ${delayed>0?'is-danger':''}">${delayed}</div><div class="sum-sub">${U.cases}</div></div>
+    <div class="sum-card"><div class="sum-lbl">${L('불량 발생','Defect Found')}</div><div class="sum-val is-cs">${defectCnt}</div><div class="sum-sub">${U.cases}</div></div>`;
 
   selectedOrderIds.clear();
 
@@ -2252,7 +2595,7 @@ function renderDashboard() {
   document.getElementById('ord-tbl').innerHTML = bulkBarHtml + `
     <div class="tbl-wrap"><table>
     <thead><tr>
-      ${isMaster ? `<th style="width:36px;text-align:center"><input type="checkbox" id="chk-all" style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleSelectAll(this.checked)"></th>` : ''}
+      ${isMaster ? `<th class="cell-chk"><input type="checkbox" class="chk" id="chk-all" onchange="toggleSelectAll(this.checked)"></th>` : ''}
       <th>${L('벤더','Vendor')}</th>
       <th>${L('스타일번호','Style No.')}</th>
       <th>${L('스타일명','Style Name')}</th>
@@ -2291,7 +2634,7 @@ function renderDashboard() {
         }
         if (me.role === 'master' || me.role === 'md') {
           // AX 연동 PO는 openOrderEditModal 내부에서 납기(조정) 필드만 편집 가능하도록 제한된다(스타일/수량/벤더 등은 AX 원본 유지)
-          actBtn += ` <button class="btn btn-sm" style="background:var(--ac);color:#fff" onclick="openOrderEditModal('${o.id}')">${L('수정','Edit')}</button>`;
+          actBtn += ` <button class="btn btn-p btn-sm" onclick="openOrderEditModal('${o.id}')">${L('수정','Edit')}</button>`;
         }
       }
       const statusBadge = cancelled
@@ -2301,35 +2644,37 @@ function renderDashboard() {
           : shipRequested
             ? `<span class="bdg bdg-cs">${L('선적요청됨','Ship Requested')}</span>`
             : `<span class="bdg ${late?'bdg-late':'bdg-ok'}">${late?L('지연','Delayed'):L('정상','Normal')}</span>`;
-      const rowBg = cancelled ? ' style="opacity:.6"' : o.is_reorder ? ' style="background:#f4f7fe"' : o.is_urgent ? ' style="background:#fff8f8"' : '';
+      const rowCls = cancelled ? ' class="row-cancelled"' : o.is_reorder ? ' class="row-reorder"' : o.is_urgent ? ' class="row-urgent"' : '';
       const priorityBadge = o.is_reorder
-        ? `<span class="bdg bdg-reorder" style="font-size:9px;padding:2px 5px">${L('RE-ORDER','RE-ORDER')}</span>`
+        ? `<span class="bdg bdg-reorder bdg-xs">${L('RE-ORDER','RE-ORDER')}</span>`
         : o.is_urgent
-          ? `<span class="bdg bdg-urgent" style="font-size:9px;padding:2px 5px">${L('긴급','URGENT')}</span>`
+          ? `<span class="bdg bdg-urgent bdg-xs">${L('긴급','URGENT')}</span>`
           : '';
-      const changedBadge = getPendingPoChangeLogs(o.id).length ? `<span class="bdg bdg-changed" style="font-size:9px;padding:2px 5px" onclick="openPoChangeModal('${o.id}')">${L('변경됨','Changed')}</span>` : '';
+      const changedBadge = getPendingPoChangeLogs(o.id).length ? `<span class="bdg bdg-changed bdg-xs" onclick="openPoChangeModal('${o.id}')">${L('변경됨','Changed')}</span>` : '';
       const dupSuspectRow = group.find(x => findDupSuspect(x));
-      const dupBadge = dupSuspectRow ? `<span class="bdg bdg-late" style="font-size:9px;padding:2px 5px;cursor:pointer" onclick="openDupSuspectModal('${dupSuspectRow.id}')">${L('중복 의심','Possible Dup.')}</span>` : '';
+      const dupBadge = dupSuspectRow ? `<span class="bdg bdg-late bdg-xs" onclick="openDupSuspectModal('${dupSuspectRow.id}')">${L('중복 의심','Possible Dup.')}</span>` : '';
       // 컬러가 여러 개인 그룹(AX)만 접이식 컬러별 수량 내역 노출
       const colorBreakdown = group.length > 1 ? `
-        <details style="margin-top:4px;font-family:'Noto Sans KR',sans-serif">
-          <summary style="cursor:pointer;font-size:11px;color:var(--muted)">${L('컬러별 내역','By color')} (${group.length})</summary>
-          <div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;min-width:170px">
-            ${group.map(x=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 6px;background:var(--bg);border-radius:5px;font-size:11px"><span>${x.ax_color_code||'-'}</span><span>${L('발주','Ord')} ${Number(x.order_qty||0).toLocaleString()} · ${L('선적','Shp')} ${Number(x.shipped_qty||0).toLocaleString()}</span></div>`).join('')}
+        <details class="brk">
+          <summary>${L('컬러별 내역','By color')} (${group.length})</summary>
+          <div class="brk-list">
+            ${group.map(x=>`<div class="brk-item"><span>${x.ax_color_code||'-'}</span><span>${L('발주','Ord')} ${Number(x.order_qty||0).toLocaleString()} · ${L('선적','Shp')} ${Number(x.shipped_qty||0).toLocaleString()}</span></div>`).join('')}
           </div>
         </details>` : '';
-      return `<tr${rowBg}>
-        ${isMaster ? `<td style="text-align:center"><input type="checkbox" class="ord-chk" data-id="${o.id}" ${o.source==='ax'?'disabled title="AX 연동 PO는 삭제/취소할 수 없습니다"':''} style="width:18px;height:18px;cursor:pointer;accent-color:#2e7d32" onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
+      // 차이율/불량률은 수치 구간에 따라 색이 달라지는 값 — 클래스로 통일(빨강=위험, 주황=주의)
+      const defCls = +def > 5 ? 'u-danger u-b' : +def > 2 ? 'u-warn' : '';
+      return `<tr${rowCls}>
+        ${isMaster ? `<td class="cell-chk"><input type="checkbox" class="ord-chk chk" data-id="${o.id}" ${o.source==='ax'?'disabled title="AX 연동 PO는 삭제/취소할 수 없습니다"':''} onchange="toggleOrderSelect('${o.id}',this.checked)"></td>` : ''}
         <td data-label="${L('벤더','Vendor')}"><strong>${v?.company_name||'-'}</strong></td>
-        <td data-label="${L('스타일번호','Style No.')}" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ac)">${o.style_no}${priorityBadge?` ${priorityBadge}`:''}${changedBadge?` ${changedBadge}`:''}${dupBadge?` ${dupBadge}`:''}${colorBreakdown}</td>
+        <td data-label="${L('스타일번호','Style No.')}" class="cell-code">${o.style_no}${priorityBadge?` ${priorityBadge}`:''}${changedBadge?` ${changedBadge}`:''}${dupBadge?` ${dupBadge}`:''}${colorBreakdown}</td>
         <td data-label="${L('스타일명','Style Name')}">${o.style_name}</td>
         <td data-label="${L('오더','Order')}">${Number(totalQty).toLocaleString()}</td>
         <td data-label="${L('진행율','Progress')}"><div class="stage-progbar">${stageSegs}</div></td>
         <td data-label="${L('선적','Shipped')}">${Number(totalShipped).toLocaleString()}</td>
-        <td data-label="${L('차이율','Variance')}" style="color:${varInfo.color};font-weight:${hasShippedQty?'600':''}">${varInfo.text}</td>
-        <td data-label="${L('불량률','Defect')}" style="color:${+def>5?'var(--red)':+def>2?'var(--ora)':''};font-weight:${+def>5?'600':''}">${def}%${hasDefect?' <span class="bdg bdg-cs" style="font-size:9px">CS</span>':''}</td>
+        <td data-label="${L('차이율','Variance')}" class="${hasShippedQty?'u-b':''}" style="color:${varInfo.color}">${varInfo.text}</td>
+        <td data-label="${L('불량률','Defect')}" class="${defCls}">${def}%${hasDefect?' <span class="bdg bdg-cs bdg-xs">CS</span>':''}</td>
         <td data-label="${L('상태','Status')}">${statusBadge}</td>
-        <td data-label="${L('액션','Action')}">${actBtn}</td>
+        <td data-label="${L('액션','Action')}"><span class="btn-row">${actBtn}</span></td>
       </tr>`;
     }).join('')}
     </tbody></table></div>`;
@@ -4146,27 +4491,27 @@ function openVendorModal(orderId) {
   const poChangeSectionEl = document.getElementById('vm-po-change-section');
   const canActOnPoChange = me.role === 'master' || me.role === 'md';
   poChangeSectionEl.innerHTML = `
-    <details style="margin-bottom:14px" ${getPendingPoChangeLogs(orderId).length ? 'open' : ''}>
-      <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.05em">${L('📜 변경 이력 보기','📜 View Change History')}</summary>
-      <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-top:8px;font-size:12px">${renderMergedChangeHistoryHtml(orderId, canActOnPoChange)}</div>
+    <details class="u-details" ${getPendingPoChangeLogs(orderId).length ? 'open' : ''}>
+      <summary>${L('📜 변경 이력 보기','📜 View Change History')}</summary>
+      <div class="u-details-body">${renderMergedChangeHistoryHtml(orderId, canActOnPoChange)}</div>
     </details>`;
   // 마스터/MD만 조정 ETD(변경 납기일)를 수정할 수 있다(벤더/CS는 조회만) — 입력은 아래 일정 영역에 스타일 단위로 하나만 존재한다
   const canEditAdjusted = me.role === 'master' || me.role === 'md';
   // 원래 타겟 ETD(planned_ship_date)는 컬러별로 다를 수 있어 참고용으로 계속 컬러별 표시(읽기 전용).
   // 조정 ETD는 스타일 전체에 하나만 존재하므로(아래 일정 영역 참고) 이 표에는 더 이상 표시하지 않는다.
   const colorTableHtml = group.length > 1 ? `
-    <div style="margin-top: 8px; border-top: 1px dashed var(--bdr); padding-top: 8px;">
-      <div style="font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px;">${L('컬러별 수량','Qty by Color')} (${group.length})</div>
-      <table style="width:100%;font-size:12px;border-collapse:collapse">
+    <div class="m-divider">
+      <div class="t-caption u-x u-mb-1">${L('컬러별 수량','Qty by Color')} (${group.length})</div>
+      <table class="m-subtbl">
         <thead><tr>
-          <th style="text-align:left;padding:3px 6px 3px 0;color:var(--muted);font-weight:600">${L('컬러','Color')}</th>
-          <th style="text-align:right;padding:3px 6px;color:var(--muted);font-weight:600">${L('수량','Qty')}</th>
-          <th style="text-align:right;padding:3px 0 3px 6px;color:var(--muted);font-weight:600;white-space:nowrap">${L('원래 타겟 ETD','Original Target ETD')}</th>
+          <th>${L('컬러','Color')}</th>
+          <th class="num">${L('수량','Qty')}</th>
+          <th class="num">${L('원래 타겟 ETD','Original Target ETD')}</th>
         </tr></thead>
         <tbody>${group.map(x=>`<tr>
-          <td style="padding:3px 6px 3px 0;font-family:'DM Mono',monospace">${x.ax_color_code||'-'}</td>
-          <td style="padding:3px 6px;text-align:right;font-weight:600">${Number(x.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
-          <td style="padding:3px 0 3px 6px;text-align:right;color:var(--muted)">${x.planned_ship_date ? x.planned_ship_date.slice(0,10) : '-'}</td>
+          <td class="t-mono">${x.ax_color_code||'-'}</td>
+          <td class="num">${Number(x.order_qty||0).toLocaleString()}${L('장','pcs')}</td>
+          <td class="num t-muted">${x.planned_ship_date ? x.planned_ship_date.slice(0,10) : '-'}</td>
         </tr>`).join('')}</tbody>
       </table>
     </div>` : '';
@@ -4174,7 +4519,7 @@ function openVendorModal(orderId) {
   document.getElementById('vm-title').textContent = o.style_name;
   const oDispDate = groupMinDate(group);
   const ddayVal = calcDday(oDispDate);
-  const ddayBadge = ddayVal === null ? '' : ` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`;
+  const ddayBadge = ddayVal === null ? '' : ` <span class="bdg bdg-xs ${ddayVal===0?'bdg-dday0':'bdg-dday'}">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`;
   document.getElementById('vm-sub').innerHTML = `${o.style_no} · ${L('오더','Order')} ${Number(groupTotalQty).toLocaleString()}${L('장','pcs')}${ddayBadge}`;
 
   // 🌟 notes 기저에서 발주 정보 역직렬화(복원) 🌟
@@ -4186,30 +4531,30 @@ function openVendorModal(orderId) {
     if (me.role === 'master' || me.role === 'md') {
       // 👑 마스터/MD 버전: 7가지 정보 전체 노출 👑
       topZone.innerHTML = `
-        <div style="background: var(--acl); padding: 14px; border-radius: var(--r); margin-bottom: 16px; border: 1px solid var(--bdr);">
-          <h4 style="margin-bottom: 8px; font-size: 13px; color: var(--ac); font-weight:700;">📦 ${L('발주 상세 정보 (PO 정보)','Order Details (PO Info)')}</h4>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color:var(--txt);">
+        <div class="m-panel">
+          <h4 class="m-panel-t">📦 ${L('발주 상세 정보 (PO 정보)','Order Details (PO Info)')}</h4>
+          <div class="m-grid2">
             <div><strong>${L('PO 발송일','PO Send Date')}:</strong> ${o.po_send||'-'}</div>
             <div><strong>${L('스타일 번호','Style No.')}:</strong> ${o.style_no||'-'}</div>
             <div><strong>Order Q'ty:</strong> ${Number(groupTotalQty).toLocaleString()}</div>
-            <div><strong>Target ETD:</strong> ${(oDispDate||'-')}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
+            <div><strong>Target ETD:</strong> ${(oDispDate||'-')}${ddayBadge}</div>
             <div><strong>Supplier:</strong> ${v?.company_name||'-'}</div>
             <div><strong>FOB Price:</strong> ${fmtPrice(o.unit_price, o.currency)}</div>
           </div>
-          <div style="margin-top: 6px; font-size: 13px; border-top: 1px dashed var(--bdr); padding-top: 6px; color:#333;"><strong>Description:</strong> ${o.style_name||'-'}</div>
+          <div class="m-divider"><strong>Description:</strong> ${o.style_name||'-'}</div>
           ${colorTableHtml}
         </div>`;
     } else {
       // 🏭 벤더용 버전: 가격/공급원 제외 5가지 정보만 노출 🏭
       topZone.innerHTML = `
-        <div style="background: #f9f9f9; padding: 12px; border-radius: var(--r); margin-bottom: 16px; border-left: 4px solid var(--grn); font-size: 13px;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; color:var(--txt);">
+        <div class="m-panel-neutral" style="border-left:4px solid var(--grn)">
+          <div class="m-grid2">
             <div><strong>${L('PO 발송일','PO Send Date')}:</strong> ${o.po_send||'-'}</div>
             <div><strong>${L('스타일 번호','Style No.')}:</strong> ${o.style_no||'-'}</div>
             <div><strong>Order Q'ty:</strong> ${Number(groupTotalQty).toLocaleString()}</div>
-            <div><strong>Target ETD:</strong> ${(oDispDate||'-')}${ddayVal===null?'':` <span class="bdg ${ddayVal===0?'bdg-dday0':'bdg-dday'}" style="font-size:10px;vertical-align:middle">${ddayVal===0?'D-day':'D-'+ddayVal}</span>`}</div>
+            <div><strong>Target ETD:</strong> ${(oDispDate||'-')}${ddayBadge}</div>
           </div>
-          <div style="border-top: 1px dashed #eee; padding-top: 4px; margin-top: 4px; color:#555;"><strong>Description:</strong> ${o.style_name||'-'}</div>
+          <div class="m-divider"><strong>Description:</strong> ${o.style_name||'-'}</div>
           ${colorTableHtml}
         </div>`;
     }
@@ -4281,7 +4626,7 @@ function openVendorModal(orderId) {
       const factoryOrders = allOrders.filter(x => x.factory_name === o.factory_name && x.vendor_id === o.vendor_id && !x.finish_done && x.status !== 'cancelled');
       const totalProduced = factoryOrders.reduce((s, x) => s + (x.produced_qty || 0), 0);
       const util = ((totalProduced / matchedFactory.capa) * 100).toFixed(1);
-      utilHtml = `<strong style="color:var(--ac)">${util}%</strong> <span style="color:var(--muted);font-size:11px">(${L('현생산','Current')} ${Number(totalProduced).toLocaleString()}${L('장','pcs')} / ${L('월 CAPA','Monthly CAPA')} ${Number(matchedFactory.capa).toLocaleString()}${L('장','pcs')})</span>`;
+      utilHtml = `<strong class="u-accent">${util}%</strong> <span class="t-caption">(${L('현생산','Current')} ${Number(totalProduced).toLocaleString()}${L('장','pcs')} / ${L('월 CAPA','Monthly CAPA')} ${Number(matchedFactory.capa).toLocaleString()}${L('장','pcs')})</span>`;
     } else if (matchedFactory) {
       utilHtml = L('CAPA 미등록','CAPA not set');
     } else if (o.factory_name) {
@@ -4290,9 +4635,9 @@ function openVendorModal(orderId) {
 
     const factoryLine = o.factory_name
       ? `<strong>${o.factory_name}</strong>${o.production_line ? ' / ' + o.production_line : ''}`
-      : `<span style="color:var(--ora)">${L('미입력','Not entered')}</span>`;
+      : `<span class="u-warn">${L('미입력','Not entered')}</span>`;
     const locationHtml = matchedFactory?.location
-      ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${matchedFactory.location}</div>` : '';
+      ? `<div class="t-sm t-muted u-mt-1">${matchedFactory.location}</div>` : '';
 
     const stageHtml = document.getElementById('vm-stage-section')?.innerHTML || '';
 
@@ -4303,19 +4648,19 @@ function openVendorModal(orderId) {
       : baseNotes2;
     const notesHtml = displayNotes
       ? displayNotes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      : `<span style="color:var(--muted)">${L('메모 없음','No notes')}</span>`;
+      : `<span class="t-muted">${L('메모 없음','No notes')}</span>`;
 
     readonlyView.innerHTML = `
       <div class="modal-section-title">${L('🏭 공장 / 라인','🏭 Factory / Line')}</div>
-      <div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px">
-        <div style="font-size:14px;margin-bottom:2px">${factoryLine}</div>
+      <div class="m-readbox">
+        <div class="m-readbox-main">${factoryLine}</div>
         ${locationHtml}
-        <div style="margin-top:6px;font-size:12px;color:var(--muted)">${L('현재 가동률','Utilization')}: ${utilHtml}</div>
+        <div class="t-sm t-muted u-mt-2">${L('현재 가동률','Utilization')}: ${utilHtml}</div>
       </div>
       <div class="modal-section-title">📦 Production Status</div>
-      <div style="margin-bottom:14px">${stageHtml}</div>
+      <div class="u-mb-3">${stageHtml}</div>
       <div class="modal-section-title">${L('📝 벤더 메모','📝 Vendor Notes')}</div>
-      <div style="background:var(--bg);border-radius:8px;padding:12px 14px;font-size:13px;white-space:pre-wrap;min-height:50px;margin-bottom:14px">${notesHtml}</div>
+      <div class="m-readbox m-readbox-pre">${notesHtml}</div>
     `;
   }
 
@@ -5154,6 +5499,287 @@ async function submitArrivalRows() {
     if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar();
   } catch(err) {
     alert(L('업로드 실패: ','Upload failed: ')+err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── 입고 일정: 서류로 입력 (Claude API 비전 기반 반자동 추출) ──
+// 1단계: 인보이스/B.L 문서 → style_no/qty_total/ctn/invoice_no/bl_no/forwarder/brand/supplier + 참고용 ETD 추출
+// 2단계: 디테일 팩킹리스트 → 카톤별 원본 행을 서버에서 추출한 뒤, 여기(클라이언트)에서 스타일+컬러 단위로 합산
+// 어느 단계든 결과는 편집 가능한 폼/표로만 채워지고, [이 내용으로 확정] 을 눌러야 arrival_schedule에 저장된다.
+function admEsc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error(L('파일을 읽을 수 없습니다','Could not read file')));
+    reader.readAsDataURL(file);
+  });
+}
+function readFileAsBinaryStringP(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error(L('파일을 읽을 수 없습니다','Could not read file')));
+    reader.readAsBinaryString(file);
+  });
+}
+function readFileAsTextP(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error(L('파일을 읽을 수 없습니다','Could not read file')));
+    reader.readAsText(file);
+  });
+}
+// 업로드 파일을 extract-arrival-doc Edge Function이 이해하는 파트로 변환.
+// 이미지/PDF는 base64 그대로(Claude vision/document 블록용), 엑셀은 시트를 CSV 텍스트로 변환해 전달(비전 불필요).
+async function fileToDocPart(file) {
+  const nameLower = (file.name || '').toLowerCase();
+  if (file.type.startsWith('image/')) {
+    const dataUrl = await readFileAsDataURL(file);
+    return { name: file.name, kind: 'image', mediaType: file.type, data: dataUrl.split(',')[1] };
+  }
+  if (file.type === 'application/pdf' || nameLower.endsWith('.pdf')) {
+    const dataUrl = await readFileAsDataURL(file);
+    return { name: file.name, kind: 'pdf', mediaType: 'application/pdf', data: dataUrl.split(',')[1] };
+  }
+  if (nameLower.endsWith('.xlsx') || nameLower.endsWith('.xls')) {
+    const bin = await readFileAsBinaryStringP(file);
+    const wb = XLSX.read(bin, { type: 'binary' });
+    const csv = wb.SheetNames.map(name => `--- ${name} ---\n` + XLSX.utils.sheet_to_csv(wb.Sheets[name])).join('\n\n');
+    return { name: file.name, kind: 'text', data: csv };
+  }
+  const text = await readFileAsTextP(file);
+  return { name: file.name, kind: 'text', data: text };
+}
+async function callExtractDocFn(mode, files) {
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/extract-arrival-doc`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'x-doc-extract-secret': DOC_EXTRACT_FN_SECRET },
+    body: JSON.stringify({ mode, files })
+  });
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok || data.ok === false) throw new Error(data.message || L('추출 실패','Extraction failed'));
+  return data.result;
+}
+
+function openArrivalDocModal() {
+  ['adm-invoice-file','adm-bl-file','adm-packing-file'].forEach(id => { document.getElementById(id).value = ''; });
+  ['adm-invoice-filename','adm-bl-filename','adm-packing-filename'].forEach(id => { document.getElementById(id).textContent = ''; });
+  ['adm-supplier','adm-brand','adm-forwarder','adm-invoice-no','adm-bl-no','adm-date'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('adm-etd-hint').style.display = 'none';
+  document.getElementById('adm-style-rows').innerHTML = '';
+  document.getElementById('adm-color-rows').innerHTML = '';
+  document.getElementById('adm-color-sum-check').innerHTML = '';
+  document.getElementById('adm-form-zone').style.display = 'none';
+  document.getElementById('adm-color-zone').style.display = 'none';
+  document.getElementById('adm-final-save-btn').style.display = 'none';
+  document.getElementById('adm-alert').classList.remove('on');
+  document.getElementById('adm-alert2').classList.remove('on');
+  document.getElementById('arrival-doc-modal').classList.add('on');
+}
+
+async function extractArrivalDoc() {
+  const invoiceFile = document.getElementById('adm-invoice-file').files[0];
+  const blFile = document.getElementById('adm-bl-file').files[0];
+  if (!invoiceFile && !blFile) return showAlert('adm-alert', L('인보이스 또는 B/L 파일을 선택해주세요','Please select an invoice or B/L file'));
+  const btn = document.getElementById('adm-extract-btn'); btn.disabled = true;
+  document.getElementById('adm-extract-loading').style.display = '';
+  try {
+    const files = [];
+    if (invoiceFile) files.push(await fileToDocPart(invoiceFile));
+    if (blFile) files.push(await fileToDocPart(blFile));
+    const result = await callExtractDocFn('invoice_bl', files);
+    fillAdmFormFromExtraction(result || {});
+    document.getElementById('adm-alert').classList.remove('on');
+  } catch(e) {
+    showAlert('adm-alert', e.message);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('adm-extract-loading').style.display = 'none';
+  }
+}
+
+function fillAdmFormFromExtraction(result) {
+  document.getElementById('adm-supplier').value = result.supplier || '';
+  document.getElementById('adm-brand').value = result.brand || '';
+  document.getElementById('adm-forwarder').value = result.forwarder || '';
+  document.getElementById('adm-invoice-no').value = result.invoice_no || '';
+  document.getElementById('adm-bl-no').value = result.bl_no || '';
+  const extractedEtd = result.etd || '';
+  const hint = document.getElementById('adm-etd-hint');
+  if (extractedEtd) {
+    hint.style.display = '';
+    hint.textContent = L('참고: 추출된 ETD(Shipped on board date) = ','Reference: extracted ETD (Shipped on board date) = ') + extractedEtd +
+      L(' — 입고일(DATE)은 이를 참고하여 직접 입력하세요',' — please refer to this and enter the actual arrival DATE yourself');
+  } else {
+    hint.style.display = 'none';
+  }
+  document.getElementById('adm-style-rows').innerHTML = '';
+  const styles = Array.isArray(result.styles) ? result.styles : [];
+  if (styles.length) {
+    styles.forEach(s => addAdmStyleRow({ style_no: s.style_no, qty_total: s.qty_total || '', ctn: s.ctn || '' }));
+  } else {
+    addAdmStyleRow();
+  }
+  document.getElementById('adm-form-zone').style.display = '';
+}
+
+function admStyleRowHtml(v) {
+  v = v || {};
+  return `<div class="adm-style-row" style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+    <input type="text" class="adm-style-no" placeholder="${L('스타일번호','Style No.')}" value="${admEsc(v.style_no||'')}" style="flex:2">
+    <input type="number" class="adm-style-qty" placeholder="${L('총수량','Qty Total')}" value="${v.qty_total===''||v.qty_total==null?'':v.qty_total}" style="flex:1" min="0">
+    <input type="number" class="adm-style-ctn" placeholder="CTN" value="${v.ctn===''||v.ctn==null?'':v.ctn}" style="flex:1" min="0">
+    <button type="button" class="btn btn-s btn-sm" style="width:auto;flex:0 0 auto" onclick="this.closest('.adm-style-row').remove(); updateAdmColorSumCheck();">✕</button>
+  </div>`;
+}
+function addAdmStyleRow(prefill) {
+  document.getElementById('adm-style-rows').insertAdjacentHTML('beforeend', admStyleRowHtml(prefill));
+}
+
+function goToAdmColorStep() {
+  const rows = [...document.querySelectorAll('#adm-style-rows .adm-style-row')].map(row => ({
+    style_no: row.querySelector('.adm-style-no').value.trim(),
+    qty_total: parseInt(row.querySelector('.adm-style-qty').value) || 0
+  })).filter(r => r.style_no);
+  if (!rows.length) return showAlert('adm-alert', L('스타일번호를 최소 1건 입력해주세요','Please enter at least one style number'));
+  document.getElementById('adm-color-zone').style.display = '';
+  if (!document.getElementById('adm-color-rows').children.length) {
+    rows.forEach(r => addAdmColorRow({ style_no: r.style_no, color_code: '', color_name: '', qty: r.qty_total || '' }));
+  }
+  document.getElementById('adm-final-save-btn').style.display = '';
+  updateAdmColorSumCheck();
+  document.getElementById('adm-color-zone').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function admColorRowHtml(v) {
+  v = v || {};
+  return `<div class="adm-color-row" style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+    <input type="text" class="adm-color-style" placeholder="${L('스타일번호','Style No.')}" value="${admEsc(v.style_no||'')}" style="flex:1.4">
+    <input type="text" class="adm-color-code" placeholder="${L('컬러코드','Color Code')}" value="${admEsc(v.color_code||'')}" style="flex:1;font-family:'DM Mono',monospace">
+    <input type="text" class="adm-color-name" placeholder="${L('컬러명','Color Name')}" value="${admEsc(v.color_name||'')}" style="flex:1.4">
+    <input type="number" class="adm-color-qty" placeholder="${L('수량','Qty')}" value="${v.qty===''||v.qty==null?'':v.qty}" style="flex:1" min="0">
+    <button type="button" class="btn btn-s btn-sm" style="width:auto;flex:0 0 auto" onclick="this.closest('.adm-color-row').remove(); updateAdmColorSumCheck();">✕</button>
+  </div>`;
+}
+function addAdmColorRow(prefill) {
+  document.getElementById('adm-color-rows').insertAdjacentHTML('beforeend', admColorRowHtml(prefill));
+  updateAdmColorSumCheck();
+}
+
+async function analyzeAdmPackingList() {
+  const file = document.getElementById('adm-packing-file').files[0];
+  if (!file) return showAlert('adm-alert2', L('디테일 팩킹리스트 파일을 선택해주세요','Please select a detail packing list file'));
+  const btn = document.getElementById('adm-analyze-btn'); btn.disabled = true;
+  document.getElementById('adm-analyze-loading').style.display = '';
+  try {
+    const part = await fileToDocPart(file);
+    const result = await callExtractDocFn('packing_list', [part]);
+    const rows = Array.isArray(result?.rows) ? result.rows : [];
+    if (!rows.length) return showAlert('adm-alert2', L('팩킹리스트에서 추출된 행이 없습니다','No rows extracted from the packing list'));
+    // 카톤별 원본 행을 스타일+컬러 단위로 합산 (자동 확정 아님 — 아래 표에서 검토/수정 후 저장)
+    const agg = new Map();
+    rows.forEach(r => {
+      const styleNo = String(r.style_no||'').trim();
+      if (!styleNo) return;
+      const colorCode = formatColorCode(r.color_code) || '';
+      const key = `${styleNo}|${colorCode}|${r.color_name||''}`;
+      if (!agg.has(key)) agg.set(key, { style_no: styleNo, color_code: colorCode, color_name: r.color_name||'', qty: 0 });
+      agg.get(key).qty += Number(r.qty) || 0;
+    });
+    document.getElementById('adm-color-rows').innerHTML = '';
+    [...agg.values()].forEach(v => addAdmColorRow(v));
+    document.getElementById('adm-alert2').classList.remove('on');
+  } catch(e) {
+    showAlert('adm-alert2', e.message);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('adm-analyze-loading').style.display = 'none';
+  }
+}
+
+// 1단계 스타일별 총수량과 2단계 컬러별 수량 합계를 대조해 사용자가 저장 전 불일치를 알아챌 수 있게 표시(비차단성 참고 정보)
+function updateAdmColorSumCheck() {
+  const styleTotals = new Map();
+  document.querySelectorAll('#adm-style-rows .adm-style-row').forEach(row => {
+    const styleNo = row.querySelector('.adm-style-no').value.trim();
+    const qty = parseInt(row.querySelector('.adm-style-qty').value) || 0;
+    if (styleNo) styleTotals.set(styleNo, (styleTotals.get(styleNo)||0) + qty);
+  });
+  const colorSums = new Map();
+  document.querySelectorAll('#adm-color-rows .adm-color-row').forEach(row => {
+    const styleNo = row.querySelector('.adm-color-style').value.trim();
+    const qty = parseInt(row.querySelector('.adm-color-qty').value) || 0;
+    if (styleNo) colorSums.set(styleNo, (colorSums.get(styleNo)||0) + qty);
+  });
+  const allStyles = new Set([...styleTotals.keys(), ...colorSums.keys()]);
+  const lines = [...allStyles].map(s => {
+    const target = styleTotals.get(s);
+    const sum = colorSums.get(s) || 0;
+    if (target === undefined) return `⚠️ ${admEsc(s)}: ${L('컬러 합계','color sum')} ${sum.toLocaleString()} (${L('1단계 스타일 목록에 없음','not in Step 1 style list')})`;
+    if (sum !== target) return `⚠️ ${admEsc(s)}: ${L('컬러 합계','color sum')} ${sum.toLocaleString()} ≠ ${L('총수량','qty_total')} ${target.toLocaleString()}`;
+    return `✓ ${admEsc(s)}: ${sum.toLocaleString()}${L('장 (일치)',' pcs (matches)')}`;
+  });
+  const el = document.getElementById('adm-color-sum-check');
+  if (el) el.innerHTML = lines.join('<br>');
+}
+
+async function saveArrivalDocFinal() {
+  const date = document.getElementById('adm-date').value;
+  if (!date) return showAlert('adm-alert', L('입고일(DATE)을 입력해주세요','Please enter the arrival DATE'));
+  const supplier = document.getElementById('adm-supplier').value.trim() || null;
+  const brand = document.getElementById('adm-brand').value.trim() || null;
+  const forwarder = document.getElementById('adm-forwarder').value.trim() || null;
+  const invoice_no = document.getElementById('adm-invoice-no').value.trim() || null;
+  const bl_no = document.getElementById('adm-bl-no').value.trim() || null;
+
+  const styleCtnMeta = new Map();
+  document.querySelectorAll('#adm-style-rows .adm-style-row').forEach(row => {
+    const styleNo = row.querySelector('.adm-style-no').value.trim();
+    if (!styleNo || styleCtnMeta.has(styleNo)) return;
+    const ctnVal = row.querySelector('.adm-style-ctn').value;
+    styleCtnMeta.set(styleNo, ctnVal ? parseInt(ctnVal) : null);
+  });
+
+  const colorRows = [...document.querySelectorAll('#adm-color-rows .adm-color-row')].map(row => ({
+    style_no: row.querySelector('.adm-color-style').value.trim(),
+    color_code: formatColorCode(row.querySelector('.adm-color-code').value),
+    qty_color: parseInt(row.querySelector('.adm-color-qty').value) || 0
+  })).filter(r => r.style_no);
+  if (!colorRows.length) return showAlert('adm-alert', L('컬러별 수량 행을 최소 1건 입력해주세요','Please enter at least one color row'));
+
+  // qty_total은 기존 엑셀 업로드와 동일한 규칙으로, 같은 스타일의 컬러별 수량 합계를 각 행에 주입
+  const colorSumByStyle = new Map();
+  colorRows.forEach(r => colorSumByStyle.set(r.style_no, (colorSumByStyle.get(r.style_no)||0) + r.qty_color));
+
+  const usedCtnStyles = new Set();
+  const payload = colorRows.map(r => {
+    const qty_total = colorSumByStyle.get(r.style_no) || 0;
+    let ctn = null;
+    const meta = styleCtnMeta.get(r.style_no);
+    if (meta != null && !usedCtnStyles.has(r.style_no)) { ctn = meta; usedCtnStyles.add(r.style_no); }
+    return {
+      arrival_date: date, supplier, brand,
+      style_no: r.style_no, color_code: r.color_code,
+      qty_color: r.qty_color, qty_total, ctn,
+      forwarder, bl_no, invoice_no, created_by: me.id
+    };
+  });
+
+  const btn = document.getElementById('adm-final-save-btn'); btn.disabled = true;
+  try {
+    await sb('arrival_schedule', 'POST', payload);
+    await loadAll();
+    closeModal('adm');
+    alert(L('입고 일정이 저장되었습니다.','Arrival schedule saved.'));
+    renderArrivalList();
+    if (document.getElementById('view-inbound-cal')?.classList.contains('on')) renderArrivalCalendar();
+  } catch(e) {
+    showAlert('adm-alert', e.message);
   } finally {
     btn.disabled = false;
   }
