@@ -15,13 +15,13 @@
    ※ 기존 변수명(--bg,--surf,--r 등)은 하위호환을 위해 그대로 유지한다.
    ══════════════════════════════════════════════════════════════════ */
 :root{
-  /* ── 색상: 표면/텍스트 ── */
-  --bg:#f0ede8;            /* 페이지 배경 */
+  /* ── 색상: 표면/텍스트 (Hang Ten 브랜드 톤 — 빈티지 서핑 배지) ── */
+  --bg:#f7f3ea;            /* 페이지 배경 — 크림/오프화이트 */
   --surf:#fff;             /* 카드·모달 등 표면 */
   --surf-2:#faf9f6;        /* 표면 위 보조 영역(모달 푸터, 테이블 헤더 등) */
   --bdr:#ddd9d2;           /* 기본 테두리 */
   --bdr-soft:#eceae5;      /* 내부 구분선(점선/약한 선) */
-  --txt:#1a1a18;           /* 본문 텍스트 */
+  --txt:#141414;           /* 본문 텍스트 — 잉크 블랙 */
   --txt-2:#4a4844;         /* 보조 본문 */
   --muted:#7a7870;         /* 캡션·라벨 */
 
@@ -35,8 +35,13 @@
   --sat:#2563eb;                                            /* 토요일 표기 */
   --sel:#2e7d32;    --sell:#eaf6ec;                         /* 행 선택 */
 
-  /* ── 색상: 테마 액센트(아래 body.theme-* 에서 역할별로 덮어씀) ── */
-  --ac:#1e3a5f;     --acl:#e8eef6;     --ach:#152b47;
+  /* ── 색상: Hang Ten 브랜드 액센트 (역할별 테마 구분을 폐지하고 전체 통일) ──
+     --ac    2차 액센트 · 딥 네이비 오션 블루 — 헤더/네비/링크/활성 탭/카드 강조 테두리
+     --ac-btn 1차 액센트 · 빈티지 레드 — 주요 버튼/CTA (상태색 --red 와는 다른 값이니 혼동 주의)
+     --ac3   3차 액센트 · 뮤트 틸 — 태그/보조 하이라이트(정보 알림 등) */
+  --ac:#103a5c;     --acl:#e3eaf0;     --ach:#0b2940;
+  --ac-btn:#c8342a; --ac-btn-h:#a32a22;
+  --ac3:#156b64;    --ac3l:#e1f0ee;   /* 크림 배경 위 대비 확보를 위해 원안(#1e7f78)보다 살짝 진하게 조정 */
 
   /* ── 여백 스케일 (4px 배수) ── */
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
@@ -74,11 +79,7 @@
   --ff:'Noto Sans KR',sans-serif;
   --ff-mono:'DM Mono',monospace;
 }
-body.theme-master{--ac:#1e3a5f;--acl:#e8eef6;--ach:#152b47;--bg:#f0ede8}
-body.theme-cs{--ac:#6b3fa0;--acl:#f0eaf8;--ach:#4e2d78;--bg:#f5f0f8}
-body.theme-md{--ac:#b5443a;--acl:#fbeae8;--ach:#8f3129;--bg:#faf2f0}
-body.theme-vendor{--ac:#1e7e4a;--acl:#edf7f1;--ach:#145c34;--bg:#ebf2ee}
-body.theme-viewer{--ac:#5a5a52;--acl:#eeede9;--ach:#3f3f38;--bg:#f3f2ef}
+/* 역할별(master/cs/md/vendor/viewer) 개별 강조색은 폐지 — Hang Ten 브랜드 톤으로 전체 통일. body.theme-* 클래스는 JS에서 계속 부여되지만 색상은 더 이상 덮어쓰지 않음. */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:var(--ff);background:var(--bg);color:var(--txt);font-size:var(--fs-4);line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased}
 
@@ -97,10 +98,12 @@ body{font-family:var(--ff);background:var(--bg);color:var(--txt);font-size:var(-
 .logo{text-align:center;margin-bottom:var(--sp-6)}
 .logo-brand{font-size:var(--fs-1);letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
 .logo-title{font-size:var(--fs-6);font-weight:var(--fw-x);margin-top:var(--sp-1)}
-.logo-sub{font-size:var(--fs-2);background:var(--ac);color:#fff;display:inline-block;padding:2px var(--sp-3);border-radius:var(--r-pill);margin-top:var(--sp-2);font-weight:var(--fw-m)}
+.logo-sub{font-size:var(--fs-2);background:var(--ac);color:#fff;display:inline-block;padding:2px var(--sp-3);border-radius:var(--r-pill);margin-top:var(--sp-2);font-weight:var(--fw-b);letter-spacing:.04em;text-transform:uppercase;border:1.5px solid var(--ac-btn)}
+/* 로그인 화면 전용 — 배지 스타일의 둥근 모서리로 살짝 레트로한 톤만 (앱 전체 버튼 모양은 유지) */
+.auth-box .btn-p{border-radius:var(--r-pill);text-transform:uppercase;letter-spacing:.06em;font-weight:var(--fw-x)}
 .tabs{display:flex;background:var(--bg);border-radius:var(--r-md);padding:3px;margin-bottom:var(--sp-5)}
 .tab{flex:1;padding:var(--sp-2);border:none;background:none;border-radius:var(--r-sm);font-family:inherit;font-size:var(--fs-3);font-weight:var(--fw-m);color:var(--muted);cursor:pointer;transition:background var(--tr),color var(--tr)}
-.tab.on{background:var(--surf);color:var(--txt);box-shadow:var(--sh-sm)}
+.tab.on{background:var(--surf);color:var(--ac);box-shadow:var(--sh-sm)}
 /* ── 폼: 라벨/입력창 여백·테두리 통일 ── */
 .fg{margin-bottom:var(--sp-3)}
 .fl{display:block;font-size:var(--fs-2);font-weight:var(--fw-m);color:var(--muted);margin-bottom:var(--sp-1)}
@@ -132,8 +135,8 @@ textarea{resize:vertical;min-height:70px}
 .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .btn:focus-visible{outline:none;box-shadow:var(--sh-focus)}
 .btn:active:not(:disabled){transform:translateY(1px)}
-.btn-p{background:var(--ac);color:#fff;width:100%}
-.btn-p:hover:not(:disabled){background:var(--ach)}
+.btn-p{background:var(--ac-btn);color:#fff;width:100%}
+.btn-p:hover:not(:disabled){background:var(--ac-btn-h)}
 .btn-s{background:var(--surf);color:var(--txt);border-color:var(--bdr)}
 .btn-s:hover:not(:disabled){background:var(--bg);border-color:var(--muted)}
 .btn-ok{background:var(--grn);color:#fff}
@@ -158,7 +161,7 @@ textarea{resize:vertical;min-height:70px}
 .alert-e{background:var(--redl);color:var(--red);border-color:var(--red-bdr)}
 .alert-s{background:var(--grnl);color:var(--grn);border-color:var(--grn-bdr)}
 .alert-w{background:var(--oral);color:var(--ora);border-color:var(--ora-bdr)}
-.alert-i{background:var(--acl);color:var(--ac);border-color:var(--ac)}
+.alert-i{background:var(--ac3l);color:var(--ac3);border-color:var(--ac3)}
 .app-wrap{display:flex;min-height:100vh}
 .sidebar{width:240px;background:var(--ac);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:330;transition:transform .3s ease}
 /* ── 사이드바 (공통 레이아웃) ── */
@@ -5312,7 +5315,7 @@ function renderArrivalCalendar() {
 }
 
 const ARRIVAL_BRAND_COLORS = {
-  HANGTEN: { bg: '#e3f2fd', fg: '#1565c0' },
+  HANGTEN: { bg: '#e1f0ee', fg: '#156b64' },
   JUNIOR: { bg: '#f3e5f5', fg: '#6a1b9a' },
   KALE: { bg: '#e8f5e9', fg: '#2e7d32' }
 };
@@ -6446,7 +6449,7 @@ function renderMembers() {
       <td data-label="${L('상태','Status')}"><span class="bdg bdg-${u.status==='active'?'ok':'fail'}">${u.status==='active'?L('활성','Active'):u.status==='pending'?L('대기','Pending'):L('비활성','Inactive')}</span></td>
       <td data-label="${L('관리','Action')}" style="display:flex;gap:6px;flex-wrap:wrap">
         ${u.status==='active'?`<button class="btn btn-s btn-sm" onclick="toggleUser('${u.id}','inactive')">${L('비활성화','Deactivate')}</button>`:`<button class="btn btn-ok btn-sm" onclick="toggleUser('${u.id}','active')">${L('활성화','Activate')}</button>`}
-        ${u.role==='vendor'&&!u.vendor_code?`<button class="btn btn-sm" style="background:var(--ac);color:#fff" onclick="assignVendorCode('${u.id}','${u.company_name}')">${L('코드 부여','Assign Code')}</button>`:''}
+        ${u.role==='vendor'&&!u.vendor_code?`<button class="btn btn-sm" style="background:var(--ac-btn);color:#fff" onclick="assignVendorCode('${u.id}','${u.company_name}')">${L('코드 부여','Assign Code')}</button>`:''}
       </td>
     </tr>`).join('')}
     </tbody></table></div>`;
